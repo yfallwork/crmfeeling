@@ -17,7 +17,7 @@ class Cliente(db.Model):
     creado_en = db.Column(db.DateTime, default=datetime.utcnow)
     actualizado_en = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    reservas = db.relationship("Reserva", back_populates="cliente", lazy="dynamic")
+    reservas = db.relationship("Reserva", back_populates="cliente", lazy="dynamic", cascade="all, delete-orphan")
 
     @property
     def nombre_completo(self):

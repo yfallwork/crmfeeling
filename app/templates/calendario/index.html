@@ -749,15 +749,6 @@ document.addEventListener('DOMContentLoaded', function () {
       modalReserva.show();
     },
 
-    dateClick: function (info) {
-      if (todosPendientes.length > 0) {
-        abrirAsignar(todosPendientes[0]);
-        setTimeout(() => {
-          document.getElementById('asignarFecha').value = info.dateStr + 'T10:00';
-        }, 120);
-      }
-    },
-
     eventDrop: function (info) {
       const id    = info.event.extendedProps.reserva_id;
       const fecha = info.event.start.toISOString();

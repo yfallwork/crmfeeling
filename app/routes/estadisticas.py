@@ -44,7 +44,7 @@ def index():
     tasa_disfrute    = round(total_disfrutados / total_reservas * 100, 1) if total_reservas else 0
     total_clientes   = Cliente.query.count()
     sin_fecha        = Reserva.query.filter(Reserva.fecha_disfrute.is_(None),
-                                            Reserva.estado != "cancelado").count()
+                                            Reserva.estado == "pendiente").count()
 
     hace_30 = hoy - timedelta(days=30)
     hace_60 = hoy - timedelta(days=60)

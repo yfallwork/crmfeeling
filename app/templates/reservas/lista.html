@@ -60,16 +60,31 @@
 
   <div class="table-responsive">
     <table class="table table-hover mb-0">
+      {% macro sort_link(label, key, width="") %}
+        {% set next_dir = "desc" if (sort == key and dir == "asc") else "asc" %}
+        <th {% if width %}style="width:{{ width }}"{% endif %}>
+          <a href="{{ url_for('reservas.lista', sort=key, dir=next_dir, estado=estado, tipo_id=tipo_id, q=q) }}"
+             class="text-decoration-none text-reset d-flex align-items-center gap-1"
+             style="white-space:nowrap">
+            {{ label }}
+            {% if sort == key %}
+              <i class="bi bi-arrow-{{ 'up' if dir == 'asc' else 'down' }}" style="font-size:.75rem"></i>
+            {% else %}
+              <i class="bi bi-arrow-down-up text-muted" style="font-size:.7rem;opacity:.45"></i>
+            {% endif %}
+          </a>
+        </th>
+      {% endmacro %}
       <thead>
         <tr>
-          <th style="width:40px">#</th>
-          <th>Cliente</th>
+          {{ sort_link("#", "id", "40px") }}
+          {{ sort_link("Cliente", "cliente") }}
           <th>Experiencia</th>
-          <th>Compra</th>
-          <th>Fecha disfrute</th>
-          <th>Estado</th>
-          <th>Precio</th>
-          <th style="width:60px">WC</th>
+          {{ sort_link("Compra", "fecha_compra") }}
+          {{ sort_link("Fecha disfrute", "fecha_disfrute") }}
+          {{ sort_link("Estado", "estado") }}
+          {{ sort_link("Precio", "precio") }}
+          {{ sort_link("WC", "woo", "60px") }}
           <th style="width:80px"></th>
         </tr>
       </thead>

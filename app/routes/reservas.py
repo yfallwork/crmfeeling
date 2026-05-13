@@ -11,13 +11,31 @@ from app.models.experiencia import TipoExperiencia
 reservas_bp = Blueprint("reservas", __name__)
 
 
+SORT_COLUMNS = {
+    "id":            Reserva.id,
+    "cliente":       Cliente.nombre,
+    "fecha_compra":  Reserva.fecha_compra,
+    "fecha_disfrute": Reserva.fecha_disfrute,
+    "estado":        Reserva.estado,
+    "precio":        Reserva.precio,
+    "woo":           Reserva.woo_order_id,
+}
+
+
 @reservas_bp.route("/")
 @login_required
 def lista():
-    estado = request.args.get("estado", "")
+    estado  = request.args.get("estado", "")
     tipo_id = request.args.get("tipo_id", "", type=int)
-    q = request.args.get("q", "").strip()
-    page = request.args.get("page", 1, type=int)
+    q       = request.args.get("q", "").strip()
+    page    = request.args.get("page", 1, type=int)
+    sort    = request.args.get("sort", "fecha_disfrute")
+    dir_    = request.args.get("dir", "asc")
+
+    if sort not in SORT_COLUMNS:
+        sort = "fecha_disfrute"
+    if dir_ not in ("asc", "desc"):
+        dir_ = "asc"
 
     query = Reserva.query.join(Cliente).join(TipoExperiencia)
 
@@ -31,9 +49,10 @@ def lista():
             db.or_(Cliente.nombre.ilike(like), Cliente.email.ilike(like))
         )
 
-    reservas = query.order_by(Reserva.fecha_disfrute.asc().nullslast()).paginate(
-        page=page, per_page=25, error_out=False
-    )
+    col = SORT_COLUMNS[sort]
+    order = col.asc().nullslast() if dir_ == "asc" else col.desc().nullslast()
+    reservas = query.order_by(order).paginate(page=page, per_page=25, error_out=False)
+
     tipos = TipoExperiencia.query.filter_by(activo=True).all()
     return render_template(
         "reservas/lista.html",
@@ -43,6 +62,8 @@ def lista():
         estado=estado,
         tipo_id=tipo_id,
         q=q,
+        sort=sort,
+        dir=dir_,
     )
 
 

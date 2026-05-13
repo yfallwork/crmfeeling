@@ -475,6 +475,124 @@
   z-index: 10;
   backdrop-filter: blur(2px);
 }
+
+/* ── MOBILE ──────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .cal-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .cal-stat { padding: 10px 12px; gap: 10px; }
+  .cal-stat-value { font-size: 1.15rem; }
+  .cal-stat-icon { width: 32px; height: 32px; font-size: .85rem; }
+
+  .cal-wrapper { flex-direction: column; gap: 10px; }
+  .cal-sidebar { display: none; }
+  .cal-main { width: 100%; }
+
+  .fc .fc-toolbar { flex-wrap: wrap; gap: 6px; margin-bottom: 10px !important; }
+  .fc .fc-toolbar-title { font-size: .9rem !important; }
+  .fc .fc-button { font-size: .72rem !important; padding: 5px 8px !important; }
+
+  /* FAB */
+  .fab-pendientes {
+    position: fixed;
+    bottom: 22px;
+    right: 18px;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    box-shadow: 0 6px 24px rgba(173,23,38,.45);
+    font-size: 1.35rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1040;
+    cursor: pointer;
+    transition: transform .18s, box-shadow .18s;
+  }
+  .fab-pendientes:active { transform: scale(.93); box-shadow: 0 3px 12px rgba(173,23,38,.3); }
+  .fab-badge {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    background: var(--black);
+    color: #fff;
+    border-radius: 20px;
+    font-size: .58rem;
+    font-weight: 700;
+    padding: 2px 5px;
+    min-width: 18px;
+    text-align: center;
+    border: 2px solid #fff;
+    line-height: 1.2;
+  }
+
+  /* Bottom sheet */
+  .bs-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.5);
+    z-index: 1045;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .3s;
+    backdrop-filter: blur(2px);
+  }
+  .bs-overlay.open { opacity: 1; pointer-events: all; }
+
+  .bottom-sheet {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: #fff;
+    border-radius: 20px 20px 0 0;
+    max-height: 78vh;
+    display: flex;
+    flex-direction: column;
+    z-index: 1050;
+    transform: translateY(100%);
+    transition: transform .35s cubic-bezier(.32,.72,0,1);
+    box-shadow: 0 -10px 50px rgba(0,0,0,.18);
+    will-change: transform;
+  }
+  .bottom-sheet.open { transform: translateY(0); }
+
+  .bs-handle {
+    width: 38px; height: 4px;
+    background: var(--gray-200);
+    border-radius: 2px;
+    margin: 10px auto 0;
+    flex-shrink: 0;
+  }
+  .bs-header {
+    padding: 12px 16px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .bs-title { font-size: .85rem; font-weight: 700; color: var(--black); }
+  .bs-search {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .bs-body {
+    overflow-y: auto;
+    flex: 1;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+}
+
+@media (min-width: 768px) {
+  .fab-pendientes, .bs-overlay, .bottom-sheet { display: none !important; }
+}
 </style>
 {% endblock %}
 
@@ -634,6 +752,34 @@
   </div>
 </div>
 
+<!-- FAB móvil -->
+<button class="fab-pendientes" id="fabPendientes" aria-label="Reservas sin fecha">
+  <i class="bi bi-calendar-plus"></i>
+  <span class="fab-badge" id="fabBadge">0</span>
+</button>
+
+<!-- Bottom sheet móvil -->
+<div class="bs-overlay" id="bsOverlay"></div>
+<div class="bottom-sheet" id="bottomSheet" role="dialog" aria-modal="true">
+  <div class="bs-handle"></div>
+  <div class="bs-header">
+    <span class="bs-title">
+      Sin fecha asignada
+      <span class="badge-count ms-2" id="bsHeaderBadge">0</span>
+    </span>
+    <button class="btn-close" id="bsClose" aria-label="Cerrar"></button>
+  </div>
+  <div class="bs-search">
+    <input type="text" id="buscadorMobile" class="form-control form-control-sm"
+           placeholder="Buscar cliente..." autocomplete="off" />
+  </div>
+  <div class="bs-body" id="bsBody">
+    <div class="sidebar-empty">
+      <div class="spinner-border spinner-border-sm text-muted"></div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -644,6 +790,36 @@ document.addEventListener('DOMContentLoaded', function () {
   let calInstance    = null;
   let reservaActiva  = null;
   let todosPendientes = [];
+  const isMobile = () => window.innerWidth < 768;
+
+  // ── BOTTOM SHEET ──────────────────────────────────────
+  const fab       = document.getElementById('fabPendientes');
+  const bsOverlay = document.getElementById('bsOverlay');
+  const bsSheet   = document.getElementById('bottomSheet');
+  const bsClose   = document.getElementById('bsClose');
+
+  function openBS() {
+    bsSheet.classList.add('open');
+    bsOverlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    document.getElementById('buscadorMobile').focus();
+  }
+  function closeBS() {
+    bsSheet.classList.remove('open');
+    bsOverlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  fab.addEventListener('click', openBS);
+  bsOverlay.addEventListener('click', closeBS);
+  bsClose.addEventListener('click', closeBS);
+
+  // Swipe down para cerrar
+  let tsY = 0;
+  bsSheet.addEventListener('touchstart', e => { tsY = e.touches[0].clientY; }, { passive: true });
+  bsSheet.addEventListener('touchend', e => {
+    if (e.changedTouches[0].clientY - tsY > 60) closeBS();
+  }, { passive: true });
 
   // ── HELPER: iniciales ─────────────────────────────────
   function iniciales(nombre) {
@@ -697,18 +873,16 @@ document.addEventListener('DOMContentLoaded', function () {
   // ── CALENDARIO ────────────────────────────────────────
   const cal = new FullCalendar.Calendar(document.getElementById('calendario'), {
     locale: 'es',
-    initialView: 'dayGridMonth',
-    firstDay: 1,  // Lunes primero
-    headerToolbar: {
-      left:   'prev,next today',
-      center: 'title',
-      right:  'dayGridMonth,timeGridWeek,listWeek',
-    },
+    initialView: isMobile() ? 'listMonth' : 'dayGridMonth',
+    firstDay: 1,
+    headerToolbar: isMobile()
+      ? { left: 'prev,next', center: 'title', right: 'today' }
+      : { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,listWeek' },
     buttonText: {
-      today:    'Hoy',
-      month:    'Mes',
-      week:     'Semana',
-      list:     'Lista',
+      today: 'Hoy',
+      month: 'Mes',
+      week:  'Semana',
+      list:  'Lista',
     },
     editable: true,
     eventStartEditable: true,
@@ -777,24 +951,14 @@ document.addEventListener('DOMContentLoaded', function () {
   calInstance = cal;
 
   // ── LISTA PENDIENTES ──────────────────────────────────
-  function renderPendientes(data) {
-    const lista = document.getElementById('lista-pendientes');
-    const badge = document.getElementById('badge-pendientes');
-    const stat  = document.getElementById('statPendientes');
-
-    badge.textContent = data.length;
-    stat.textContent  = data.length;
-
+  function tarjetasHTML(data) {
     if (data.length === 0) {
-      lista.innerHTML = `
-        <div class="sidebar-empty">
-          <i class="bi bi-check-circle text-success"></i>
-          <p>Todas las reservas tienen fecha asignada</p>
-        </div>`;
-      return;
+      return `<div class="sidebar-empty">
+        <i class="bi bi-check-circle text-success"></i>
+        <p>Todas las reservas tienen fecha asignada</p>
+      </div>`;
     }
-
-    lista.innerHTML = data.map(r => `
+    return data.map(r => `
       <div class="p-card d-flex align-items-center gap-3 pendiente-item" data-id="${r.id}">
         <div class="p-card-avatar">${iniciales(r.cliente)}</div>
         <div class="flex-grow-1 min-w-0">
@@ -815,15 +979,40 @@ document.addEventListener('DOMContentLoaded', function () {
         </button>
       </div>
     `).join('');
+  }
 
-    lista.querySelectorAll('.btn-asignar').forEach(btn => {
-      btn.addEventListener('click', () => abrirAsignar({
-        id:           btn.dataset.id,
-        cliente:      btn.dataset.nombre,
-        experiencia:  btn.dataset.experiencia,
-        email:        btn.dataset.email,
-      }));
+  function bindAsignar(container) {
+    container.querySelectorAll('.btn-asignar').forEach(btn => {
+      btn.addEventListener('click', () => {
+        closeBS();
+        abrirAsignar({
+          id:          btn.dataset.id,
+          cliente:     btn.dataset.nombre,
+          experiencia: btn.dataset.experiencia,
+          email:       btn.dataset.email,
+        });
+      });
     });
+  }
+
+  function renderPendientes(data) {
+    const lista = document.getElementById('lista-pendientes');
+    const badge = document.getElementById('badge-pendientes');
+    const stat  = document.getElementById('statPendientes');
+
+    badge.textContent = data.length;
+    stat.textContent  = data.length;
+
+    // FAB móvil
+    document.getElementById('fabBadge').textContent      = data.length;
+    document.getElementById('bsHeaderBadge').textContent = data.length;
+
+    const html = tarjetasHTML(data);
+    lista.innerHTML = html;
+    document.getElementById('bsBody').innerHTML = html;
+
+    bindAsignar(lista);
+    bindAsignar(document.getElementById('bsBody'));
   }
 
   function cargarPendientes() {
@@ -837,13 +1026,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
   cargarPendientes();
 
-  // Buscador en sidebar
-  document.getElementById('buscadorPendientes').addEventListener('input', function () {
-    const q = this.value.toLowerCase().trim();
-    const filtrados = q
+  function filtrarPendientes(q) {
+    return q
       ? todosPendientes.filter(r => r.cliente.toLowerCase().includes(q) || r.experiencia.toLowerCase().includes(q))
       : todosPendientes;
-    renderPendientes(filtrados);
+  }
+
+  // Buscador sidebar (PC)
+  document.getElementById('buscadorPendientes').addEventListener('input', function () {
+    renderPendientes(filtrarPendientes(this.value.toLowerCase().trim()));
+  });
+
+  // Buscador bottom sheet (móvil)
+  document.getElementById('buscadorMobile').addEventListener('input', function () {
+    const q = this.value.toLowerCase().trim();
+    const data = filtrarPendientes(q);
+    const bsBody = document.getElementById('bsBody');
+    bsBody.innerHTML = tarjetasHTML(data);
+    bindAsignar(bsBody);
   });
 
   // ── ABRIR MODAL ASIGNAR ───────────────────────────────

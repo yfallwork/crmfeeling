@@ -4,17 +4,28 @@
 
 /* ── SIDEBAR MOBILE TOGGLE ───────────────────────────── */
 function toggleSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  if (sidebar) sidebar.classList.toggle('open');
+  const sidebar   = document.getElementById('sidebar');
+  const backdrop  = document.getElementById('sidebarBackdrop');
+  if (!sidebar) return;
+  const isOpen = sidebar.classList.toggle('open');
+  backdrop?.classList.toggle('show', isOpen);
+  document.body.style.overflow = isOpen ? 'hidden' : '';
+}
+
+function closeSidebar() {
+  const sidebar  = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  sidebar?.classList.remove('open');
+  backdrop?.classList.remove('show');
+  document.body.style.overflow = '';
 }
 
 document.addEventListener('click', function (e) {
   const sidebar = document.getElementById('sidebar');
-  const toggle  = document.querySelector('.sidebar-toggle');
-  if (sidebar && sidebar.classList.contains('open')) {
-    if (!sidebar.contains(e.target) && e.target !== toggle) {
-      sidebar.classList.remove('open');
-    }
+  const toggles = document.querySelectorAll('.sidebar-toggle');
+  const clickedToggle = [...toggles].some(t => t.contains(e.target));
+  if (sidebar?.classList.contains('open') && !sidebar.contains(e.target) && !clickedToggle) {
+    closeSidebar();
   }
 });
 

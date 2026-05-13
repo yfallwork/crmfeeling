@@ -84,6 +84,9 @@
   </div>
 </div>
 
+<!-- Backdrop móvil sidebar -->
+<div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+
 <!-- TOPBAR -->
 <div class="topbar">
   <button class="sidebar-toggle" onclick="toggleSidebar()">
@@ -93,7 +96,11 @@
     <i class="bi bi-layout-sidebar" id="sidebarCollapseIcon"></i>
   </button>
   <div class="topbar-title">{% block page_title %}{% endblock %}</div>
-  <div class="ms-auto d-flex align-items-center gap-3">
+  <div class="ms-auto d-flex align-items-center gap-2">
+    <!-- Búsqueda: icono en móvil, botón completo en desktop -->
+    <button class="sidebar-toggle d-flex d-md-none" onclick="openSearch()" title="Buscar" style="color:var(--gray-500)">
+      <i class="bi bi-search" style="font-size:1.05rem"></i>
+    </button>
     <button class="search-trigger-btn d-none d-md-flex" onclick="openSearch()" title="Buscar (Ctrl+K)">
       <i class="bi bi-search"></i>
       <span>Buscar…</span>

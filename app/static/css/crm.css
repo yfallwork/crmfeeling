@@ -924,15 +924,97 @@ a { color: inherit; }
 /* Spinner color override */
 .spinner-border.text-primary { color: var(--red) !important; }
 
+/* ── SIDEBAR BACKDROP (móvil) ────────────────────────── */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  z-index: 999;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+.sidebar-backdrop.show { display: block; }
+
 /* ── RESPONSIVE ──────────────────────────────────────── */
-@media (max-width: 768px) {
-  .sidebar { transform: translateX(-100%); }
-  .sidebar.open { transform: translateX(0); }
-  .topbar { left: 0; }
-  .main-content { margin-left: 0; padding: 16px; }
+@media (max-width: 767px) {
+
+  /* — Layout base — */
+  .sidebar {
+    transform: translateX(-100%);
+    box-shadow: none;
+    transition: transform var(--transition-md), box-shadow var(--transition-md);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 8px 0 40px rgba(0,0,0,.35);
+  }
+  .topbar  { left: 0; padding: 0 12px; gap: 8px; }
+  .main-content { margin-left: 0; padding: 12px 12px 40px; }
   .sidebar-toggle { display: flex; }
-  .login-card { padding: 32px 24px; }
-  .stat-card { padding: 18px 16px; }
+
+  /* — Topbar — */
+  .topbar-title {
+    font-size: .84rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+  }
+
+  /* — Login — */
+  .login-card { padding: 32px 20px; }
+
+  /* — Stat cards — */
+  .stat-card { padding: 14px 14px; gap: 10px; }
+  .stat-icon { width: 38px; height: 38px; font-size: 1rem; }
+  .stat-value { font-size: 1.4rem; }
+
+  /* — Cards — */
+  .card-header { padding: 11px 14px !important; }
+  .card-footer { padding: 10px 14px !important; }
+  .card-body   { padding: 14px !important; }
+
+  /* — Tablas — */
+  .table th { padding: 8px 12px !important; font-size: .63rem; }
+  .table td { padding: 9px 12px !important; font-size: .82rem; }
+
+  /* — Filter bar: inputs full-width — */
+  .filter-bar { padding: 10px 12px; gap: 6px; }
+  .filter-bar form > .input-group,
+  .filter-bar form > .form-select { max-width: 100% !important; flex: 1 1 auto; }
+  .filter-bar form > .ms-auto { margin-left: 0 !important; flex: 1 1 100%; justify-content: space-between; }
+
+  /* — Status tabs: scroll horizontal — */
+  .status-tabs {
+    padding: 8px 12px;
+    gap: 5px;
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .status-tabs::-webkit-scrollbar { display: none; }
+  .status-tab { flex-shrink: 0; font-size: .72rem; padding: 3px 10px; }
+
+  /* — Page header — */
+  .page-header { margin-bottom: 14px; }
+
+  /* — Paginación — */
+  .card-footer > .d-flex { flex-wrap: wrap; gap: 8px; }
+
+  /* — Flash alerts — */
+  .flash-container { margin-bottom: 12px; }
+  .alert { font-size: .82rem; padding: 10px 14px !important; }
+}
+
+@media (max-width: 480px) {
+  .main-content { padding: 10px 10px 36px; }
+  .topbar { padding: 0 10px; }
+  .topbar-title { max-width: 105px; }
+  .stat-value { font-size: 1.25rem; }
+  .stat-label { font-size: .7rem; }
 }
 
 /* ══════════════════════════════════════════════════════

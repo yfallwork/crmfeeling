@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}{{ cliente.nombre_completo }}{% endblock %}
+{% block page_title %}{{ cliente.nombre_completo }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('clientes.lista') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i>Volver
+</a>
+<a href="{{ url_for('clientes.editar', id=cliente.id) }}" class="btn btn-sm btn-outline-primary">
+  <i class="bi bi-pencil me-1"></i>Editar
+</a>
+<a href="{{ url_for('reservas.nueva') }}?cliente_id={{ cliente.id }}" class="btn btn-sm btn-primary">
+  <i class="bi bi-plus-lg me-1"></i>Nueva reserva
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+
+  <!-- Perfil del cliente -->
+  <div class="col-lg-4">
+    <div class="card card-accent mb-3">
+      <div class="card-body" style="padding:28px 20px 20px !important">
+        <!-- Avatar + nombre -->
+        <div class="text-center mb-4">
+          <div class="avatar-lg mb-3 mx-auto">{{ cliente.nombre[0] | upper }}</div>
+          <h5 class="fw-bold mb-1" style="font-size:1rem">{{ cliente.nombre_completo }}</h5>
+          {% if cliente.fuente == 'woocommerce' %}
+            <span class="badge bg-primary-soft" style="color:var(--red-dark)">
+              <i class="bi bi-shop me-1"></i>WooCommerce
+            </span>
+          {% else %}
+            <span class="badge bg-dark-soft" style="color:var(--gray-600)">Manual</span>
+          {% endif %}
+        </div>
+
+        <!-- Datos de contacto -->
+        <ul class="list-unstyled cliente-info mb-0">
+          <li>
+            <i class="bi bi-envelope"></i>
+            {% if cliente.email %}
+              <a href="mailto:{{ cliente.email }}" class="text-decoration-none text-sm">
+                {{ cliente.email }}
+              </a>
+            {% else %}
+              <span class="text-muted text-sm">Sin email</span>
+            {% endif %}
+          </li>
+          <li>
+            <i class="bi bi-telephone"></i>
+            {% if cliente.telefono %}
+              <a href="tel:{{ cliente.telefono }}" class="text-decoration-none text-sm">
+                {{ cliente.telefono }}
+              </a>
+            {% else %}
+              <span class="text-muted text-sm">Sin teléfono</span>
+            {% endif %}
+          </li>
+          {% if cliente.dni %}
+          <li>
+            <i class="bi bi-card-text"></i>
+            <span class="text-sm">{{ cliente.dni }}</span>
+          </li>
+          {% endif %}
+          <li>
+            <i class="bi bi-calendar-plus"></i>
+            <span class="text-sm text-muted">
+              Alta {{ cliente.creado_en.strftime('%d/%m/%Y') if cliente.creado_en }}
+            </span>
+          </li>
+        </ul>
+
+        {% if cliente.notas %}
+        <div class="mt-3 p-3"
+             style="background:var(--gray-50);border-radius:var(--radius-xs);
+                    border:1px solid var(--border-light);font-size:.82rem;color:var(--gray-700)">
+          <div class="section-title mb-1">Notas</div>
+          {{ cliente.notas }}
+        </div>
+        {% endif %}
+      </div>
+      <div class="card-footer">
+        <form method="POST" action="{{ url_for('clientes.eliminar', id=cliente.id) }}"
+              onsubmit="return confirm('¿Eliminar este cliente y todas sus reservas? Esta acción no se puede deshacer.')">
+          <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+            <i class="bi bi-trash me-1"></i>Eliminar cliente
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Mini stats -->
+    <div class="row g-2">
+      <div class="col-6">
+        <div class="card text-center" style="padding:18px 12px">
+          <div style="font-size:1.8rem;font-weight:800;color:var(--red);line-height:1">
+            {{ cliente.total_reservas }}
+          </div>
+          <div class="text-xs text-muted mt-1">Reservas</div>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="card text-center" style="padding:18px 12px">
+          <div style="font-size:1.8rem;font-weight:800;color:#B45309;line-height:1">
+            {{ cliente.reservas_pendientes }}
+          </div>
+          <div class="text-xs text-muted mt-1">Pendientes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Historial de reservas -->
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0">
+          <i class="bi bi-clock-history me-2 text-primary"></i>Historial de reservas
+        </h6>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th style="width:40px">#</th>
+              <th>Experiencia</th>
+              <th>Compra</th>
+              <th>Fecha disfrute</th>
+              <th>Estado</th>
+              <th>Precio</th>
+              <th style="width:44px"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in reservas %}
+            <tr>
+              <td class="text-muted text-xs">{{ r.id }}</td>
+              <td>
+                <span class="fw-semibold text-sm">{{ r.tipo_experiencia.nombre }}</span>
+                {% if r.variante %}
+                <div class="text-xs text-muted">{{ r.variante }}</div>
+                {% endif %}
+              </td>
+              <td class="text-muted text-sm">
+                {{ r.fecha_compra.strftime('%d/%m/%Y') if r.fecha_compra }}
+              </td>
+              <td>
+                {% if r.fecha_disfrute %}
+                  <span class="fw-semibold text-sm">
+                    {{ r.fecha_disfrute.strftime('%d/%m/%Y') }}
+                  </span>
+                  {% if r.horario %}
+                  <div class="text-xs text-muted">{{ r.horario }}</div>
+                  {% endif %}
+                {% else %}
+                  <span class="text-warning text-sm fw-semibold">Sin asignar</span>
+                {% endif %}
+              </td>
+              <td><span class="badge estado-{{ r.estado }}">{{ r.estado }}</span></td>
+              <td class="text-sm fw-semibold">{{ "%.0f"|format(r.precio) }} €</td>
+              <td>
+                <a href="{{ url_for('reservas.detalle', id=r.id) }}"
+                   class="btn btn-xs btn-outline-secondary">
+                  <i class="bi bi-arrow-right"></i>
+                </a>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="7">
+                <div class="empty-state">
+                  <i class="bi bi-calendar-x"></i>
+                  <p>Este cliente no tiene reservas aún</p>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

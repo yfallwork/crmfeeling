@@ -1,0 +1,653 @@
+{% extends "base.html" %}
+{% block title %}Estadísticas{% endblock %}
+{% block page_title %}Estadísticas{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ── Estilos locales estadísticas ── */
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.kpi-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow var(--transition-md), transform var(--transition-md);
+  position: relative;
+  overflow: hidden;
+}
+.kpi-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--kpi-color, var(--red));
+  opacity: .6;
+}
+.kpi-icon {
+  font-size: 1.4rem;
+  margin-bottom: 10px;
+  color: var(--kpi-color, var(--red));
+  display: block;
+}
+.kpi-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--black);
+  line-height: 1;
+  letter-spacing: -.4px;
+}
+.kpi-label {
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: var(--gray-400);
+  margin-top: 5px;
+}
+.kpi-sub {
+  font-size: .74rem;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.trend-up   { color: #059669; }
+.trend-down { color: var(--red); }
+.trend-neu  { color: var(--gray-400); }
+
+/* charts grid */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.chart-col-full  { grid-column: 1 / -1; }
+.chart-col-left  { grid-column: 1; }
+.chart-col-right { grid-column: 2; }
+
+.chart-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+}
+.chart-header {
+  padding: 14px 20px 10px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.chart-title {
+  font-size: .83rem;
+  font-weight: 700;
+  color: var(--black);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.chart-title i { color: var(--red); font-size: .9rem; }
+.chart-subtitle { font-size: .72rem; color: var(--gray-400); }
+.chart-body { padding: 20px; }
+
+/* Top clientes table */
+.top-table { width: 100%; font-size: .82rem; }
+.top-table td { padding: 9px 0; border-bottom: 1px solid var(--border-light); vertical-align: middle; }
+.top-table tr:last-child td { border-bottom: none; }
+.top-rank {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: .7rem; font-weight: 800;
+}
+.rank-1 { background: #FEF3C7; color: #92400E; }
+.rank-2 { background: var(--gray-100); color: var(--gray-600); }
+.rank-3 { background: #FEE2E2; color: #991B1B; }
+.rank-n { background: var(--gray-50); color: var(--gray-400); }
+
+/* Progress bar inline */
+.prog-bar {
+  height: 4px;
+  border-radius: 4px;
+  background: var(--gray-100);
+  overflow: hidden;
+  margin-top: 4px;
+}
+.prog-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--red-light), var(--red));
+  transition: width .4s ease;
+}
+
+/* Horarios grid */
+.horario-grid { display: flex; flex-direction: column; gap: 8px; }
+.horario-row { display: flex; align-items: center; gap: 10px; }
+.horario-label { font-size: .78rem; font-weight: 600; color: var(--black); min-width: 100px; }
+.horario-bar-wrap { flex: 1; height: 8px; background: var(--gray-100); border-radius: 8px; overflow: hidden; }
+.horario-bar { height: 100%; border-radius: 8px; background: var(--red); transition: width .4s ease; }
+.horario-count { font-size: .74rem; color: var(--gray-500); min-width: 28px; text-align: right; font-weight: 700; }
+
+@media (max-width: 900px) {
+  .charts-grid { grid-template-columns: 1fr; }
+  .chart-col-full, .chart-col-left, .chart-col-right { grid-column: 1; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ══ KPI STRIP ═══════════════════════════════════════════════════════════ -->
+<div class="kpi-strip">
+
+  <div class="kpi-card" style="--kpi-color:#AD1726">
+    <i class="bi bi-currency-euro kpi-icon"></i>
+    <div class="kpi-value" data-count-to="{{ "%.0f"|format(total_ingresos) }}" data-suffix="€">{{ "%.0f"|format(total_ingresos) }}€</div>
+    <div class="kpi-label">Ingresos totales</div>
+    {% if variacion_ingresos is not none %}
+    <div class="kpi-sub">
+      {% if variacion_ingresos >= 0 %}
+        <i class="bi bi-arrow-up-right trend-up"></i>
+        <span class="trend-up">+{{ variacion_ingresos }}%</span>
+      {% else %}
+        <i class="bi bi-arrow-down-right trend-down"></i>
+        <span class="trend-down">{{ variacion_ingresos }}%</span>
+      {% endif %}
+      <span class="text-muted">vs mes anterior</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="kpi-card" style="--kpi-color:#0369A1">
+    <i class="bi bi-calendar-check-fill kpi-icon"></i>
+    <div class="kpi-value" data-count-to="{{ total_reservas }}">{{ total_reservas }}</div>
+    <div class="kpi-label">Reservas totales</div>
+    <div class="kpi-sub text-muted">{{ proximas_30 }} en los próximos 30 días</div>
+  </div>
+
+  <div class="kpi-card" style="--kpi-color:#059669">
+    <i class="bi bi-graph-up-arrow kpi-icon"></i>
+    <div class="kpi-value" data-count-to="{{ "%.0f"|format(ticket_medio) }}" data-suffix="€">{{ "%.0f"|format(ticket_medio) }}€</div>
+    <div class="kpi-label">Ticket medio</div>
+    <div class="kpi-sub text-muted">Por reserva</div>
+  </div>
+
+  <div class="kpi-card" style="--kpi-color:#7C3AED">
+    <i class="bi bi-people-fill kpi-icon"></i>
+    <div class="kpi-value" data-count-to="{{ total_clientes }}">{{ total_clientes }}</div>
+    <div class="kpi-label">Clientes</div>
+    <div class="kpi-sub text-muted">Base de datos total</div>
+  </div>
+
+  <div class="kpi-card" style="--kpi-color:#10B981">
+    <i class="bi bi-trophy-fill kpi-icon"></i>
+    <div class="kpi-value" data-count-to="{{ tasa_disfrute }}" data-suffix="%">{{ tasa_disfrute }}%</div>
+    <div class="kpi-label">Tasa de disfrute</div>
+    <div class="kpi-sub text-muted">Experiencias completadas</div>
+  </div>
+
+  <div class="kpi-card" style="--kpi-color:#F59E0B">
+    <i class="bi bi-hourglass-split kpi-icon"></i>
+    <div class="kpi-value" data-count-to="{{ sin_fecha }}">{{ sin_fecha }}</div>
+    <div class="kpi-label">Sin fecha</div>
+    <div class="kpi-sub text-muted">Pendientes de asignar</div>
+  </div>
+
+</div>
+
+<!-- ══ CHARTS GRID ════════════════════════════════════════════════════════ -->
+<div class="charts-grid">
+
+  <!-- Ingresos 12 meses (full width) -->
+  <div class="chart-card chart-col-full">
+    <div class="chart-header">
+      <div class="chart-title">
+        <i class="bi bi-graph-up"></i> Evolución de ingresos
+      </div>
+      <span class="chart-subtitle">Últimos 12 meses</span>
+    </div>
+    <div class="chart-body">
+      <canvas id="chartIngresos" height="55"></canvas>
+    </div>
+  </div>
+
+  <!-- Reservas por mes -->
+  <div class="chart-card chart-col-left">
+    <div class="chart-header">
+      <div class="chart-title">
+        <i class="bi bi-bar-chart"></i> Reservas por mes
+      </div>
+      <span class="chart-subtitle">Últimos 12 meses</span>
+    </div>
+    <div class="chart-body">
+      <canvas id="chartReservasMes" height="130"></canvas>
+    </div>
+  </div>
+
+  <!-- Estado de reservas -->
+  <div class="chart-card chart-col-right">
+    <div class="chart-header">
+      <div class="chart-title">
+        <i class="bi bi-pie-chart"></i> Distribución por estado
+      </div>
+      <span class="chart-subtitle">Reservas actuales</span>
+    </div>
+    <div class="chart-body d-flex align-items-center gap-4">
+      <div style="flex:0 0 160px">
+        <canvas id="chartEstados" width="160" height="160"></canvas>
+      </div>
+      <div style="flex:1">
+        {% set colores_estado = {'pendiente':'#F59E0B','reservado':'#AD1726','disfrutado':'#10B981','cancelado':'#9CA3AF'} %}
+        {% for estado, count in estados_data.items() %}
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <div class="d-flex align-items-center gap-2">
+            <span style="width:10px;height:10px;border-radius:50%;background:{{ colores_estado.get(estado,'#9CA3AF') }};display:inline-block;flex-shrink:0"></span>
+            <span style="font-size:.8rem;font-weight:600;color:var(--black)">{{ estado | title }}</span>
+          </div>
+          <span class="badge estado-{{ estado }}">{{ count }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Top experiencias (full width) -->
+  <div class="chart-card chart-col-full">
+    <div class="chart-header">
+      <div class="chart-title">
+        <i class="bi bi-flag-fill"></i> Experiencias más populares
+      </div>
+      <span class="chart-subtitle">Por número de reservas e ingresos</span>
+    </div>
+    <div class="chart-body">
+      <canvas id="chartExperiencias" height="50"></canvas>
+    </div>
+  </div>
+
+  <!-- Día de la semana -->
+  <div class="chart-card chart-col-left">
+    <div class="chart-header">
+      <div class="chart-title">
+        <i class="bi bi-calendar-week"></i> Días de la semana
+      </div>
+      <span class="chart-subtitle">Experiencias por día (fecha de disfrute)</span>
+    </div>
+    <div class="chart-body">
+      <canvas id="chartDias" height="140"></canvas>
+    </div>
+  </div>
+
+  <!-- Horarios populares -->
+  <div class="chart-card chart-col-right">
+    <div class="chart-header">
+      <div class="chart-title">
+        <i class="bi bi-clock"></i> Horarios más populares
+      </div>
+      <span class="chart-subtitle">Franja horaria de inicio</span>
+    </div>
+    <div class="chart-body">
+      {% if horarios_data %}
+      {% set max_h = horarios_data[0].count %}
+      <div class="horario-grid">
+        {% for h in horarios_data %}
+        <div class="horario-row">
+          <span class="horario-label">{{ h.horario }}</span>
+          <div class="horario-bar-wrap">
+            <div class="horario-bar" style="width:{{ (h.count / max_h * 100)|int }}%"></div>
+          </div>
+          <span class="horario-count">{{ h.count }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <i class="bi bi-clock"></i>
+        <p>Sin datos de horarios todavía</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Clientes nuevos por mes -->
+  <div class="chart-card chart-col-left">
+    <div class="chart-header">
+      <div class="chart-title">
+        <i class="bi bi-person-plus"></i> Nuevos clientes por mes
+      </div>
+      <span class="chart-subtitle">Últimos 12 meses</span>
+    </div>
+    <div class="chart-body">
+      <canvas id="chartClientes" height="130"></canvas>
+    </div>
+  </div>
+
+  <!-- Top clientes por gasto -->
+  <div class="chart-card chart-col-right">
+    <div class="chart-header">
+      <div class="chart-title">
+        <i class="bi bi-award"></i> Top clientes por gasto
+      </div>
+      <span class="chart-subtitle">Acumulado histórico</span>
+    </div>
+    <div class="chart-body" style="padding-top:8px !important">
+      {% if top_clientes %}
+      <table class="top-table">
+        {% for c in top_clientes %}
+        <tr>
+          <td style="width:32px;padding-right:8px">
+            <span class="top-rank {% if loop.index == 1 %}rank-1{% elif loop.index == 2 %}rank-2{% elif loop.index == 3 %}rank-3{% else %}rank-n{% endif %}">
+              {{ loop.index }}
+            </span>
+          </td>
+          <td>
+            <div style="font-weight:600;font-size:.82rem;color:var(--black)">{{ c.nombre }}</div>
+            <div class="prog-bar">
+              <div class="prog-fill" style="width:{{ c.pct }}%"></div>
+            </div>
+          </td>
+          <td style="text-align:right;padding-left:12px;white-space:nowrap">
+            <div style="font-weight:700;font-size:.82rem;color:var(--red)">{{ "%.0f"|format(c.total_gasto) }} €</div>
+            <div style="font-size:.7rem;color:var(--gray-400)">{{ c.total_reservas }} reserva{{ 's' if c.total_reservas != 1 }}</div>
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+      {% else %}
+      <div class="empty-state">
+        <i class="bi bi-award"></i>
+        <p>Sin datos de clientes</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div><!-- /charts-grid -->
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ── Opciones globales Chart.js ───────────────────────── */
+Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+Chart.defaults.font.size   = 11;
+Chart.defaults.color       = '#A0A0A0';
+
+const TOOLTIP = {
+  backgroundColor: '#0D0D0D',
+  titleColor:      '#ffffff',
+  bodyColor:       '#A0A0A0',
+  padding:         10,
+  borderColor:     'rgba(255,255,255,.08)',
+  borderWidth:     1,
+  cornerRadius:    8,
+  displayColors:   false,
+};
+
+const GRID_COLOR  = 'rgba(0,0,0,.05)';
+const RED         = '#AD1726';
+const RED_SOFT    = 'rgba(173,23,38,.12)';
+
+/* ── Data desde Jinja ─────────────────────────────────── */
+const ingresosLabels  = {{ ingresos_mensuales | map(attribute='mes') | list | tojson }};
+const ingresosData    = {{ ingresos_mensuales | map(attribute='total') | list | tojson }};
+const reservasMesData = {{ reservas_mensuales | map(attribute='count') | list | tojson }};
+
+const estadosLabels = {{ estados_data.keys() | list | tojson }};
+const estadosData   = {{ estados_data.values() | list | tojson }};
+const estadosColors = {
+  pendiente:  '#F59E0B',
+  reservado:  '#AD1726',
+  disfrutado: '#10B981',
+  cancelado:  '#9CA3AF',
+};
+const estadosBg = estadosLabels.map(e => estadosColors[e] || '#9CA3AF');
+
+const expLabels   = {{ por_tipo | map(attribute='nombre') | list | tojson }};
+const expCounts   = {{ por_tipo | map(attribute='count') | list | tojson }};
+const expIngresos = {{ por_tipo | map(attribute='ingresos') | list | tojson }};
+const expColors   = {{ por_tipo | map(attribute='color') | list | tojson }};
+
+const diasLabels = {{ dias_data | map(attribute='dia') | list | tojson }};
+const diasData   = {{ dias_data | map(attribute='count') | list | tojson }};
+
+const clientesLabels = {{ clientes_mensuales | map(attribute='mes') | list | tojson }};
+const clientesData   = {{ clientes_mensuales | map(attribute='count') | list | tojson }};
+
+/* ── 1. Ingresos 12 meses — Area chart ───────────────── */
+(function() {
+  const ctx = document.getElementById('chartIngresos');
+  if (!ctx) return;
+  const grad = ctx.getContext('2d').createLinearGradient(0, 0, 0, 200);
+  grad.addColorStop(0,   'rgba(173,23,38,.25)');
+  grad.addColorStop(1,   'rgba(173,23,38,.00)');
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ingresosLabels,
+      datasets: [{
+        label: 'Ingresos (€)',
+        data: ingresosData,
+        fill: true,
+        backgroundColor: grad,
+        borderColor: RED,
+        borderWidth: 2.5,
+        pointRadius: 4,
+        pointBackgroundColor: RED,
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        tension: .4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false }, tooltip: { ...TOOLTIP,
+        callbacks: {
+          label: ctx => `  ${ctx.parsed.y.toLocaleString('es-ES')} €`
+        }
+      }},
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: GRID_COLOR },
+          ticks: { callback: v => v === 0 ? '0' : (v >= 1000 ? (v/1000).toFixed(1) + 'k' : v) + ' €' },
+        },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+})();
+
+/* ── 2. Reservas por mes — Bar ────────────────────────── */
+(function() {
+  const ctx = document.getElementById('chartReservasMes');
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ingresosLabels,
+      datasets: [{
+        label: 'Reservas',
+        data: reservasMesData,
+        backgroundColor: 'rgba(173,23,38,.15)',
+        borderColor: RED,
+        borderWidth: 1.5,
+        borderRadius: 5,
+        hoverBackgroundColor: 'rgba(173,23,38,.30)',
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false }, tooltip: TOOLTIP },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: GRID_COLOR } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+})();
+
+/* ── 3. Estados — Donut ───────────────────────────────── */
+(function() {
+  const ctx = document.getElementById('chartEstados');
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: estadosLabels,
+      datasets: [{
+        data: estadosData,
+        backgroundColor: estadosBg,
+        borderWidth: 0,
+        hoverOffset: 6,
+      }]
+    },
+    options: {
+      cutout: '68%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { ...TOOLTIP, displayColors: true,
+          callbacks: {
+            label: ctx => `  ${ctx.label}: ${ctx.raw}`
+          }
+        }
+      }
+    }
+  });
+})();
+
+/* ── 4. Experiencias — Grouped bar ───────────────────── */
+(function() {
+  const ctx = document.getElementById('chartExperiencias');
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: expLabels,
+      datasets: [
+        {
+          label: 'Reservas',
+          data: expCounts,
+          backgroundColor: expColors.map(c => c + '33'),
+          borderColor: expColors,
+          borderWidth: 1.5,
+          borderRadius: 5,
+          yAxisID: 'yCount',
+        },
+        {
+          label: 'Ingresos (€)',
+          data: expIngresos,
+          backgroundColor: 'rgba(173,23,38,.08)',
+          borderColor: RED,
+          borderWidth: 1.5,
+          borderRadius: 5,
+          type: 'bar',
+          yAxisID: 'yIngresos',
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          align: 'end',
+          labels: { font: { size: 11 }, boxWidth: 10, boxHeight: 10, borderRadius: 3 }
+        },
+        tooltip: { ...TOOLTIP, displayColors: true }
+      },
+      scales: {
+        yCount: {
+          beginAtZero: true,
+          position: 'left',
+          ticks: { stepSize: 1 },
+          grid: { color: GRID_COLOR },
+          title: { display: true, text: 'Reservas', color: '#A0A0A0', font: { size: 10 } }
+        },
+        yIngresos: {
+          beginAtZero: true,
+          position: 'right',
+          grid: { display: false },
+          ticks: { callback: v => v >= 1000 ? (v/1000).toFixed(0) + 'k €' : v + ' €' },
+          title: { display: true, text: 'Ingresos', color: '#A0A0A0', font: { size: 10 } }
+        },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+})();
+
+/* ── 5. Días de la semana — Bar ───────────────────────── */
+(function() {
+  const ctx = document.getElementById('chartDias');
+  if (!ctx) return;
+  const maxVal = Math.max(...diasData) || 1;
+  const bgs = diasData.map(v =>
+    v === maxVal ? RED : 'rgba(173,23,38,.15)'
+  );
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: diasLabels,
+      datasets: [{
+        label: 'Experiencias',
+        data: diasData,
+        backgroundColor: bgs,
+        borderColor: bgs.map(c => c === RED ? RED : 'rgba(173,23,38,.4)'),
+        borderWidth: 1,
+        borderRadius: 5,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false }, tooltip: TOOLTIP },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: GRID_COLOR } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+})();
+
+/* ── 6. Nuevos clientes — Bar ─────────────────────────── */
+(function() {
+  const ctx = document.getElementById('chartClientes');
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: clientesLabels,
+      datasets: [{
+        label: 'Clientes nuevos',
+        data: clientesData,
+        backgroundColor: 'rgba(124,58,237,.15)',
+        borderColor: '#7C3AED',
+        borderWidth: 1.5,
+        borderRadius: 5,
+        hoverBackgroundColor: 'rgba(124,58,237,.30)',
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false }, tooltip: TOOLTIP },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: GRID_COLOR } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+})();
+</script>
+{% endblock %}

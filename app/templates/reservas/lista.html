@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}Reservas{% endblock %}
+{% block page_title %}Reservas{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('reservas.nueva') }}" class="btn btn-primary btn-sm">
+  <i class="bi bi-plus-lg me-1"></i>Nueva reserva
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+
+  <!-- Filtros -->
+  <div class="filter-bar">
+    <form method="GET" class="d-flex align-items-center gap-2 flex-wrap w-100">
+      <div class="input-group input-group-sm" style="max-width:260px">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" class="form-control"
+               placeholder="Buscar cliente…" value="{{ q }}" />
+      </div>
+      <select name="tipo_id" class="form-select form-select-sm"
+              style="max-width:200px" onchange="this.form.submit()">
+        <option value="">Todos los tipos</option>
+        {% for t in tipos %}
+          <option value="{{ t.id }}" {% if t.id == tipo_id %}selected{% endif %}>
+            {{ t.nombre }}
+          </option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
+      {% if q or estado or tipo_id %}
+        <a href="{{ url_for('reservas.lista') }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-x me-1"></i>Limpiar
+        </a>
+      {% endif %}
+      <div class="ms-auto d-flex align-items-center gap-2">
+        <span class="text-xs text-muted">{{ reservas.total }} reserva{{ 's' if reservas.total != 1 }}</span>
+        <a href="{{ url_for('reservas.exportar', estado=estado, tipo_id=tipo_id, q=q) }}"
+           class="btn btn-xs btn-outline-secondary" title="Exportar CSV">
+          <i class="bi bi-download me-1"></i>CSV
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Tabs de estado -->
+  <div class="status-tabs">
+    <a href="{{ url_for('reservas.lista', q=q, tipo_id=tipo_id) }}"
+       class="status-tab {% if not estado %}active-tab{% endif %}">
+      Todas
+    </a>
+    {% for e in estados %}
+    <a href="{{ url_for('reservas.lista', estado=e, q=q, tipo_id=tipo_id) }}"
+       class="status-tab estado-btn-{{ e }} {% if e == estado %}active{% endif %}">
+      {{ e | title }}
+    </a>
+    {% endfor %}
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th style="width:40px">#</th>
+          <th>Cliente</th>
+          <th>Experiencia</th>
+          <th>Compra</th>
+          <th>Fecha disfrute</th>
+          <th>Estado</th>
+          <th>Precio</th>
+          <th style="width:60px">WC</th>
+          <th style="width:80px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reservas.items %}
+        <tr>
+          <td class="text-muted text-xs">{{ r.id }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="row-avatar">{{ r.cliente.nombre[0]|upper }}</div>
+              <div class="min-w-0">
+                <a href="{{ url_for('clientes.detalle', id=r.cliente_id) }}"
+                   class="fw-semibold text-decoration-none d-block"
+                   style="color:var(--black);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                  {{ r.cliente.nombre_completo }}
+                </a>
+                <div class="text-xs text-muted">{{ r.cliente.email }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span style="font-weight:500;font-size:.83rem">{{ r.tipo_experiencia.nombre }}</span>
+            {% if r.variante %}
+            <div class="text-xs text-muted">{{ r.variante }}</div>
+            {% endif %}
+          </td>
+          <td class="text-muted text-sm">
+            {{ r.fecha_compra.strftime('%d/%m/%Y') if r.fecha_compra }}
+          </td>
+          <td>
+            {% if r.fecha_disfrute %}
+              <span class="fw-semibold text-sm">{{ r.fecha_disfrute.strftime('%d/%m/%Y') }}</span>
+              {% if r.horario %}
+              <div class="text-xs text-muted">{{ r.horario }}</div>
+              {% endif %}
+              {% if r.dias_hasta_disfrute == 0 %}
+                <span class="badge bg-danger ms-1" style="background:var(--red)!important">Hoy</span>
+              {% elif r.dias_hasta_disfrute == 1 %}
+                <span class="badge bg-warning-soft ms-1" style="color:#92400E">Mañana</span>
+              {% elif r.dias_hasta_disfrute is not none and r.dias_hasta_disfrute < 0 %}
+                <div class="text-xs text-muted">(pasado)</div>
+              {% endif %}
+            {% else %}
+              <a href="{{ url_for('reservas.editar', id=r.id) }}"
+                 class="badge bg-warning-soft text-decoration-none"
+                 style="color:#92400E;border:1px solid #FDE68A">
+                <i class="bi bi-calendar-plus me-1"></i>Asignar
+              </a>
+            {% endif %}
+          </td>
+          <td><span class="badge estado-{{ r.estado }}">{{ r.estado }}</span></td>
+          <td class="text-sm fw-semibold">{{ "%.0f"|format(r.precio) }}€</td>
+          <td>
+            {% if r.woo_order_id %}
+              <span class="text-xs text-muted">#{{ r.woo_order_id }}</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('reservas.detalle', id=r.id) }}"
+                 class="btn btn-xs btn-outline-secondary" title="Ver">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="{{ url_for('reservas.editar', id=r.id) }}"
+                 class="btn btn-xs btn-outline-primary" title="Editar">
+                <i class="bi bi-pencil"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9">
+            <div class="empty-state">
+              <i class="bi bi-calendar-x"></i>
+              <p>No se encontraron reservas{% if estado %} con estado "{{ estado }}"{% endif %}</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if reservas.pages > 1 %}
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <span class="text-xs text-muted">
+      Página {{ reservas.page }} de {{ reservas.pages }}
+    </span>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% if reservas.has_prev %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('reservas.lista', page=reservas.prev_num, estado=estado, q=q) }}">
+              <i class="bi bi-chevron-left"></i>
+            </a>
+          </li>
+        {% endif %}
+        {% for p in reservas.iter_pages() %}
+          {% if p %}
+            <li class="page-item {% if p == reservas.page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('reservas.lista', page=p, estado=estado, q=q) }}">{{ p }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+        {% if reservas.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('reservas.lista', page=reservas.next_num, estado=estado, q=q) }}">
+              <i class="bi bi-chevron-right"></i>
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

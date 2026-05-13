@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Acceso{% endblock %}
+
+{% block auth_content %}
+<div class="login-wrapper">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="login-logo">
+        <img src="{{ url_for('static', filename='img/logo_completo.png') }}"
+             alt="Feeling Experience" style="height:44px;width:auto;" />
+      </div>
+      <p class="login-subtitle">Panel de gestión interno</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ cat }} mb-3">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('auth.login') }}">
+      <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+          <input type="email" class="form-control" id="email" name="email"
+                 placeholder="tu@email.com" required autofocus />
+        </div>
+      </div>
+      <div class="mb-4">
+        <label for="password" class="form-label">Contraseña</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-lock"></i></span>
+          <input type="password" class="form-control" id="password" name="password"
+                 placeholder="••••••••" required />
+        </div>
+      </div>
+      <div class="mb-4">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="remember" name="remember" />
+          <label class="form-check-label" for="remember">Recordar sesión</label>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary w-100 btn-login">
+        Entrar
+      </button>
+    </form>
+
+    <div class="login-hint">
+      Acceso restringido al personal autorizado de<br>
+      <strong>Feeling Experience</strong>
+    </div>
+  </div>
+</div>
+{% endblock %}

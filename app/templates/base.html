@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}CRM{% endblock %} — Feeling Experience</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/crm.css') }}" />
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+{% if current_user.is_authenticated %}
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+
+  <!-- Logo -->
+  <a href="{{ url_for('dashboard.index') }}" class="sidebar-brand">
+    <img src="{{ url_for('static', filename='img/logo_completo.png') }}"
+         alt="Feeling Experience" />
+    <span class="sidebar-logo-mini">FE</span>
+  </a>
+
+  <!-- Navegación -->
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Principal</div>
+
+    <a href="{{ url_for('dashboard.index') }}"
+       class="nav-item {% if request.endpoint == 'dashboard.index' %}active{% endif %}"
+       data-tooltip="Dashboard">
+      <i class="bi bi-speedometer2"></i><span>Dashboard</span>
+    </a>
+
+    <a href="{{ url_for('clientes.lista') }}"
+       class="nav-item {% if 'clientes' in (request.endpoint or '') %}active{% endif %}"
+       data-tooltip="Clientes">
+      <i class="bi bi-people"></i><span>Clientes</span>
+    </a>
+
+    <a href="{{ url_for('reservas.lista') }}"
+       class="nav-item {% if 'reservas' in (request.endpoint or '') %}active{% endif %}"
+       data-tooltip="Reservas">
+      <i class="bi bi-calendar-check"></i><span>Reservas</span>
+    </a>
+
+    <a href="{{ url_for('calendario.index') }}"
+       class="nav-item {% if 'calendario' in (request.endpoint or '') %}active{% endif %}"
+       data-tooltip="Calendario">
+      <i class="bi bi-calendar3"></i><span>Calendario</span>
+    </a>
+
+    <a href="{{ url_for('estadisticas.index') }}"
+       class="nav-item {% if 'estadisticas' in (request.endpoint or '') %}active{% endif %}"
+       data-tooltip="Estadísticas">
+      <i class="bi bi-bar-chart-line"></i><span>Estadísticas</span>
+    </a>
+
+    <div class="nav-section-label">Integración</div>
+
+    <a href="{{ url_for('woocommerce.index') }}"
+       class="nav-item {% if 'woocommerce' in (request.endpoint or '') %}active{% endif %}"
+       data-tooltip="WooCommerce">
+      <i class="bi bi-shop"></i><span>WooCommerce</span>
+    </a>
+
+    <div class="nav-divider"></div>
+
+    <a href="{{ url_for('auth.logout') }}" class="nav-item nav-item-danger" data-tooltip="Cerrar sesión">
+      <i class="bi bi-box-arrow-right"></i><span>Cerrar sesión</span>
+    </a>
+  </nav>
+
+  <!-- Usuario -->
+  <div class="sidebar-user">
+    <div class="sidebar-user-avatar">
+      {{ current_user.nombre[0] | upper }}
+    </div>
+    <div class="sidebar-user-info">
+      <div class="sidebar-user-name">{{ current_user.nombre }}</div>
+      <div class="sidebar-user-role">{{ current_user.rol | title }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <button class="sidebar-toggle" onclick="toggleSidebar()">
+    <i class="bi bi-list fs-4"></i>
+  </button>
+  <button class="sidebar-collapse-btn d-none d-lg-flex" onclick="toggleSidebarCollapse()" title="Colapsar menú">
+    <i class="bi bi-layout-sidebar" id="sidebarCollapseIcon"></i>
+  </button>
+  <div class="topbar-title">{% block page_title %}{% endblock %}</div>
+  <div class="ms-auto d-flex align-items-center gap-3">
+    <button class="search-trigger-btn d-none d-md-flex" onclick="openSearch()" title="Buscar (Ctrl+K)">
+      <i class="bi bi-search"></i>
+      <span>Buscar…</span>
+      <kbd class="search-trigger-kbd">Ctrl K</kbd>
+    </button>
+    {% block topbar_actions %}{% endblock %}
+  </div>
+</div>
+
+<!-- SEARCH OVERLAY (Cmd+K) -->
+<div class="search-overlay" id="searchOverlay">
+  <div class="search-modal">
+    <div class="search-input-wrap">
+      <i class="bi bi-search search-icon-main"></i>
+      <input type="text" id="searchInput" class="search-input"
+             placeholder="Buscar clientes, reservas…" autocomplete="off" spellcheck="false" />
+      <button class="search-kbd-esc" onclick="closeSearch()">Esc</button>
+    </div>
+    <div id="searchResults" class="search-results"></div>
+  </div>
+</div>
+
+<!-- CONTENIDO -->
+<main class="main-content">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-container">
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ cat }} alert-dismissible fade show" role="alert">
+            {{ msg }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</main>
+
+{% else %}
+  {% block auth_content %}{% endblock %}
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/crm.js') }}"></script>
+{% block scripts %}{% endblock %}
+
+</body>
+</html>

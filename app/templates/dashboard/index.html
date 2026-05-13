@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<!-- STAT CARDS -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-icon bg-primary-soft text-primary">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div class="stat-body">
+        <div class="stat-value" data-count-to="{{ stats.total_clientes }}">{{ stats.total_clientes }}</div>
+        <div class="stat-label">Clientes</div>
+        <div class="stat-sub">
+          <span class="text-success fw-600">+{{ stats.clientes_mes }}</span>
+          <span class="text-muted"> este mes</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-icon bg-warning-soft text-warning">
+        <i class="bi bi-hourglass-split"></i>
+      </div>
+      <div class="stat-body">
+        <div class="stat-value" data-count-to="{{ stats.reservas_pendientes }}">{{ stats.reservas_pendientes }}</div>
+        <div class="stat-label">Sin fecha</div>
+        <div class="stat-sub text-muted">Pendientes de asignar</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-icon bg-info-soft text-info">
+        <i class="bi bi-calendar-week-fill"></i>
+      </div>
+      <div class="stat-body">
+        <div class="stat-value" data-count-to="{{ stats.proximas_7_dias }}">{{ stats.proximas_7_dias }}</div>
+        <div class="stat-label">Próximos 7 días</div>
+        <div class="stat-sub text-muted">Experiencias programadas</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-icon bg-success-soft text-success">
+        <i class="bi bi-currency-euro"></i>
+      </div>
+      <div class="stat-body">
+        <div class="stat-value"
+             data-count-to="{{ "%.0f"|format(stats.ingresos_mes) }}"
+             data-suffix="€">{{ "%.0f"|format(stats.ingresos_mes) }}€</div>
+        <div class="stat-label">Ingresos 30 días</div>
+        <div class="stat-sub text-muted">De WooCommerce y manual</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <!-- Gráfico -->
+  <div class="col-xl-8">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">
+          <i class="bi bi-bar-chart-fill me-2 text-primary"></i>Reservas por mes
+        </h6>
+        <span class="text-xs text-muted">Últimos 6 meses</span>
+      </div>
+      <div class="card-body" style="padding-top:12px !important">
+        <canvas id="graficoReservas" height="95"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alertas -->
+  <div class="col-xl-4">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">
+          <i class="bi bi-bell-fill me-2 text-warning"></i>Sin fecha asignada
+        </h6>
+        {% if sin_fecha %}
+        <span class="badge bg-warning-soft" style="color:#92400E;font-size:.7rem">{{ sin_fecha|length }}</span>
+        {% endif %}
+      </div>
+      <div class="card-body p-0 !important" style="padding:0 !important">
+        {% if sin_fecha %}
+          <div class="list-group list-group-flush">
+            {% for r in sin_fecha %}
+            <a href="{{ url_for('reservas.editar', id=r.id) }}"
+               class="list-group-item list-group-item-action px-4 py-3 border-0"
+               style="border-bottom:1px solid var(--border-light) !important;font-size:.84rem">
+              <div class="d-flex align-items-center gap-2">
+                <div class="row-avatar">{{ r.cliente.nombre[0]|upper }}</div>
+                <div class="min-w-0">
+                  <div class="fw-600" style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                    {{ r.cliente.nombre_completo }}
+                  </div>
+                  <div class="text-muted text-xs">{{ r.tipo_experiencia.nombre }}</div>
+                </div>
+                <i class="bi bi-chevron-right text-muted ms-auto" style="font-size:.7rem"></i>
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <i class="bi bi-check-circle text-success"></i>
+            <p>Todas las reservas tienen fecha</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Próximas reservas -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0">
+      <i class="bi bi-calendar-event-fill me-2 text-primary"></i>Próximas reservas
+    </h6>
+    <a href="{{ url_for('calendario.index') }}" class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-calendar3 me-1"></i>Ver calendario
+    </a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Experiencia</th>
+          <th>Fecha disfrute</th>
+          <th>Estado</th>
+          <th>Días</th>
+          <th style="width:44px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in proximas %}
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="row-avatar">{{ r.cliente.nombre[0]|upper }}</div>
+              <div class="min-w-0">
+                <a href="{{ url_for('clientes.detalle', id=r.cliente_id) }}"
+                   class="fw-semibold text-decoration-none d-block"
+                   style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--black)">
+                  {{ r.cliente.nombre_completo }}
+                </a>
+                <div class="text-muted text-xs">{{ r.cliente.telefono or r.cliente.email }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span style="font-weight:500">{{ r.tipo_experiencia.nombre }}</span>
+            {% if r.variante %}
+            <div class="text-xs text-muted">{{ r.variante }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {% if r.fecha_disfrute %}
+              <span class="fw-semibold">{{ r.fecha_disfrute.strftime('%d/%m/%Y') }}</span>
+              {% if r.horario %}
+              <div class="text-xs text-muted">{{ r.horario }}</div>
+              {% endif %}
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td><span class="badge estado-{{ r.estado }}">{{ r.estado }}</span></td>
+          <td>
+            {% if r.dias_hasta_disfrute is not none %}
+              {% if r.dias_hasta_disfrute == 0 %}
+                <span class="badge bg-danger" style="background:var(--red)!important">Hoy</span>
+              {% elif r.dias_hasta_disfrute == 1 %}
+                <span class="badge bg-warning-soft" style="color:#92400E">Mañana</span>
+              {% else %}
+                <span class="text-muted text-xs">{{ r.dias_hasta_disfrute }}d</span>
+              {% endif %}
+            {% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('reservas.detalle', id=r.id) }}"
+               class="btn btn-xs btn-outline-secondary">
+              <i class="bi bi-arrow-right"></i>
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6">
+            <div class="empty-state">
+              <i class="bi bi-calendar-x"></i>
+              <p>No hay reservas próximas</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const labels = {{ meses_data | map(attribute='mes') | list | tojson }};
+const values = {{ meses_data | map(attribute='count') | list | tojson }};
+
+new Chart(document.getElementById('graficoReservas'), {
+  type: 'bar',
+  data: {
+    labels,
+    datasets: [{
+      label: 'Reservas',
+      data: values,
+      backgroundColor: 'rgba(173,23,38,.15)',
+      borderColor: '#AD1726',
+      borderWidth: 2,
+      borderRadius: 6,
+      borderSkipped: false,
+      hoverBackgroundColor: 'rgba(173,23,38,.30)',
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#0D0D0D',
+        titleColor: '#fff',
+        bodyColor: '#A0A0A0',
+        padding: 10,
+        borderColor: 'rgba(255,255,255,.08)',
+        borderWidth: 1,
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { stepSize: 1, color: '#A0A0A0', font: { size: 11 } },
+        grid: { color: 'rgba(0,0,0,.05)' },
+      },
+      x: {
+        ticks: { color: '#737373', font: { size: 11 } },
+        grid: { display: false },
+      }
+    }
+  }
+});
+</script>
+{% endblock %}

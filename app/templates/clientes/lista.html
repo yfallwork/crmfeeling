@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}Clientes{% endblock %}
+{% block page_title %}Clientes{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('clientes.nuevo') }}" class="btn btn-primary btn-sm">
+  <i class="bi bi-plus-lg me-1"></i>Nuevo cliente
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <!-- Filtros -->
+  <div class="filter-bar">
+    <form method="GET" class="d-flex align-items-center gap-2 flex-wrap w-100">
+      <div class="input-group input-group-sm" style="max-width:320px">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" class="form-control"
+               placeholder="Nombre, email o teléfono…" value="{{ q }}" />
+      </div>
+      <select name="fuente" class="form-select form-select-sm"
+              style="max-width:180px" onchange="this.form.submit()">
+        <option value="">Todos los orígenes</option>
+        <option value="woocommerce" {% if fuente=='woocommerce' %}selected{% endif %}>
+          <i class="bi bi-shop"></i> WooCommerce
+        </option>
+        <option value="manual" {% if fuente=='manual' %}selected{% endif %}>Manual</option>
+      </select>
+      <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
+      {% if q or fuente %}
+        <a href="{{ url_for('clientes.lista') }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-x me-1"></i>Limpiar
+        </a>
+      {% endif %}
+      <div class="ms-auto d-flex align-items-center gap-2">
+        <span class="text-xs text-muted">
+          {{ clientes.total }} cliente{{ 's' if clientes.total != 1 }}
+        </span>
+        <a href="{{ url_for('clientes.exportar', q=q, fuente=fuente) }}"
+           class="btn btn-xs btn-outline-secondary" title="Exportar CSV">
+          <i class="bi bi-download me-1"></i>CSV
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th style="width:44px"></th>
+          <th>Nombre</th>
+          <th>Email</th>
+          <th>Teléfono</th>
+          <th>Origen</th>
+          <th>Reservas</th>
+          <th>Alta</th>
+          <th style="width:80px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in clientes.items %}
+        <tr>
+          <td>
+            <div class="row-avatar">{{ c.nombre[0]|upper }}</div>
+          </td>
+          <td>
+            <a href="{{ url_for('clientes.detalle', id=c.id) }}"
+               class="fw-semibold text-decoration-none"
+               style="color:var(--black)">
+              {{ c.nombre_completo }}
+            </a>
+          </td>
+          <td>
+            {% if c.email %}
+              <a href="mailto:{{ c.email }}" class="text-muted text-decoration-none text-sm">
+                {{ c.email }}
+              </a>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if c.telefono %}
+              <a href="tel:{{ c.telefono }}" class="text-decoration-none text-sm">{{ c.telefono }}</a>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if c.fuente == 'woocommerce' %}
+              <span class="badge bg-primary-soft" style="color:var(--red-dark)">
+                <i class="bi bi-shop me-1"></i>WooCommerce
+              </span>
+            {% else %}
+              <span class="badge bg-dark-soft" style="color:var(--gray-600)">Manual</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge bg-primary-soft text-primary rounded-pill"
+                  style="font-size:.72rem;font-weight:700">
+              {{ c.total_reservas }}
+            </span>
+          </td>
+          <td class="text-muted text-sm">
+            {{ c.creado_en.strftime('%d/%m/%Y') if c.creado_en }}
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('clientes.detalle', id=c.id) }}"
+                 class="btn btn-xs btn-outline-secondary" title="Ver detalle">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="{{ url_for('clientes.editar', id=c.id) }}"
+                 class="btn btn-xs btn-outline-primary" title="Editar">
+                <i class="bi bi-pencil"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8">
+            <div class="empty-state">
+              <i class="bi bi-people"></i>
+              <p>No se encontraron clientes{% if q %} para "{{ q }}"{% endif %}</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if clientes.pages > 1 %}
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <span class="text-xs text-muted">
+      Página {{ clientes.page }} de {{ clientes.pages }}
+    </span>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% if clientes.has_prev %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('clientes.lista', page=clientes.prev_num, q=q, fuente=fuente) }}">
+              <i class="bi bi-chevron-left"></i>
+            </a>
+          </li>
+        {% endif %}
+        {% for p in clientes.iter_pages() %}
+          {% if p %}
+            <li class="page-item {% if p == clientes.page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('clientes.lista', page=p, q=q, fuente=fuente) }}">{{ p }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+        {% if clientes.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('clientes.lista', page=clientes.next_num, q=q, fuente=fuente) }}">
+              <i class="bi bi-chevron-right"></i>
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}{% if reserva %}Editar reserva{% else %}Nueva reserva{% endif %}{% endblock %}
+{% block page_title %}{% if reserva %}Editar reserva #{{ reserva.id }}{% else %}Nueva reserva{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white border-bottom">
+        <h6 class="mb-0 fw-semibold">
+          <i class="bi bi-calendar-plus me-2 text-primary"></i>
+          {% if reserva %}Editar reserva{% else %}Nueva reserva{% endif %}
+        </h6>
+      </div>
+      <div class="card-body">
+        <form method="POST">
+          <div class="row g-3">
+            <!-- Cliente -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Cliente <span class="text-danger">*</span></label>
+              <select name="cliente_id" class="form-select" required>
+                <option value="">Seleccionar cliente...</option>
+                {% for c in clientes %}
+                  <option value="{{ c.id }}"
+                    {% if (reserva and reserva.cliente_id == c.id) or (cliente_id_preselecto == c.id) %}selected{% endif %}>
+                    {{ c.nombre_completo }} ({{ c.email }})
+                  </option>
+                {% endfor %}
+              </select>
+              <div class="mt-1">
+                <a href="{{ url_for('clientes.nuevo') }}" class="small text-primary">
+                  <i class="bi bi-plus-circle me-1"></i>Crear nuevo cliente
+                </a>
+              </div>
+            </div>
+
+            <!-- Tipo de experiencia -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Experiencia <span class="text-danger">*</span></label>
+              <select name="tipo_experiencia_id" class="form-select" required id="tipoSelect">
+                <option value="">Seleccionar experiencia...</option>
+                {% for t in tipos %}
+                  <option value="{{ t.id }}" data-precio="{{ t.precio_base }}"
+                    {% if reserva and reserva.tipo_experiencia_id == t.id %}selected{% endif %}>
+                    {{ t.nombre }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Fecha de disfrute (la más importante) -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">
+                <i class="bi bi-star-fill text-warning me-1"></i>
+                Fecha de disfrute
+              </label>
+              <input type="datetime-local" name="fecha_disfrute" class="form-control"
+                     value="{{ reserva.fecha_disfrute.strftime('%Y-%m-%dT%H:%M') if reserva and reserva.fecha_disfrute else '' }}" />
+              <div class="form-text">Cuándo se va a disfrutar la experiencia</div>
+            </div>
+
+            <!-- Fecha de compra -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Fecha de compra</label>
+              <input type="date" name="fecha_compra" class="form-control"
+                     value="{{ reserva.fecha_compra.strftime('%Y-%m-%d') if reserva and reserva.fecha_compra else '' }}" />
+            </div>
+
+            <!-- Estado -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Estado</label>
+              <select name="estado" class="form-select">
+                {% for e in estados %}
+                  <option value="{{ e }}" {% if (reserva and reserva.estado == e) or (not reserva and e == 'pendiente') %}selected{% endif %}>
+                    {{ e | title }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Precio -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Precio (€)</label>
+              <div class="input-group">
+                <input type="number" name="precio" class="form-control" id="precioInput" step="0.01" min="0"
+                       value="{{ reserva.precio if reserva else '' }}" placeholder="0.00" />
+                <span class="input-group-text">€</span>
+              </div>
+            </div>
+
+            <!-- Notas -->
+            <div class="col-12">
+              <label class="form-label fw-semibold">Notas</label>
+              <textarea name="notas" class="form-control" rows="3"
+                        placeholder="Cualquier observación sobre esta reserva...">{{ reserva.notas if reserva else '' }}</textarea>
+            </div>
+          </div>
+
+          <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-lg me-1"></i>
+              {% if reserva %}Guardar cambios{% else %}Crear reserva{% endif %}
+            </button>
+            <a href="{{ url_for('reservas.lista') }}" class="btn btn-outline-secondary">Cancelar</a>
+            {% if reserva %}
+            <form method="POST" action="{{ url_for('reservas.eliminar', id=reserva.id) }}" class="ms-auto"
+                  onsubmit="return confirm('¿Eliminar esta reserva?')">
+              <button type="submit" class="btn btn-outline-danger">
+                <i class="bi bi-trash me-1"></i>Eliminar
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-rellenar precio al seleccionar experiencia
+document.getElementById('tipoSelect').addEventListener('change', function() {
+  const opt = this.options[this.selectedIndex];
+  const precio = opt.dataset.precio;
+  if (precio && !document.getElementById('precioInput').value) {
+    document.getElementById('precioInput').value = precio;
+  }
+});
+</script>
+{% endblock %}

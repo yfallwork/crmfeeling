@@ -1,0 +1,481 @@
+{% extends "base.html" %}
+{% block title %}Reserva #{{ reserva.id }}{% endblock %}
+{% block page_title %}Reserva #{{ reserva.id }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('reservas.lista') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i>Volver
+</a>
+<a href="{{ url_for('reservas.editar', id=reserva.id) }}" class="btn btn-sm btn-outline-primary">
+  <i class="bi bi-pencil me-1"></i>Editar
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+
+  <!-- Columna izquierda -->
+  <div class="col-lg-4">
+
+    <!-- Detalles de la reserva -->
+    <div class="card card-accent mb-3">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-receipt me-2 text-primary"></i>Detalle reserva</h6>
+      </div>
+      <div class="card-body" style="padding:0 20px !important">
+        <div class="detail-grid">
+          <div class="detail-row">
+            <span class="detail-label">Estado</span>
+            <span class="detail-value">
+              <span class="badge estado-{{ reserva.estado }}">{{ reserva.estado | title }}</span>
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Experiencia</span>
+            <span class="detail-value fw-semibold">{{ reserva.tipo_experiencia.nombre }}</span>
+          </div>
+          {% if reserva.variante %}
+          <div class="detail-row">
+            <span class="detail-label">Variante</span>
+            <span class="detail-value text-muted">{{ reserva.variante }}</span>
+          </div>
+          {% endif %}
+          <div class="detail-row">
+            <span class="detail-label">Compra</span>
+            <span class="detail-value">{{ reserva.fecha_compra.strftime('%d/%m/%Y') if reserva.fecha_compra else '—' }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Disfrute</span>
+            <span class="detail-value">
+              {% if reserva.fecha_disfrute %}
+                <span class="fw-semibold">{{ reserva.fecha_disfrute.strftime('%d/%m/%Y') }}</span>
+                {% if reserva.horario %}
+                  <span class="ms-1 badge bg-primary-soft" style="color:var(--red-dark)">{{ reserva.horario }}</span>
+                {% endif %}
+                {% if reserva.dias_hasta_disfrute is not none %}
+                  <div class="text-xs mt-1
+                    {% if reserva.dias_hasta_disfrute == 0 %}text-danger
+                    {% elif reserva.dias_hasta_disfrute > 0 %}text-info
+                    {% else %}text-muted{% endif %}">
+                    {% if reserva.dias_hasta_disfrute == 0 %}Hoy
+                    {% elif reserva.dias_hasta_disfrute > 0 %}En {{ reserva.dias_hasta_disfrute }} días
+                    {% else %}Hace {{ reserva.dias_hasta_disfrute | abs }} días{% endif %}
+                  </div>
+                {% endif %}
+              {% else %}
+                <span class="text-warning fw-semibold">Sin asignar</span>
+              {% endif %}
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Precio</span>
+            <span class="detail-value fw-semibold">{{ "%.2f"|format(reserva.precio) }} EUR</span>
+          </div>
+          {% if reserva.woo_order_id %}
+          <div class="detail-row">
+            <span class="detail-label">Pedido WC</span>
+            <span class="detail-value text-muted">#{{ reserva.woo_order_id }}</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Cambiar estado -->
+    <div class="card mb-3">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-arrow-left-right me-2 text-muted"></i>Cambiar estado</h6>
+      </div>
+      <div class="card-body">
+        <div class="d-flex flex-wrap gap-2">
+          {% for e in estados %}
+          <form method="POST" action="{{ url_for('reservas.cambiar_estado', id=reserva.id) }}">
+            <input type="hidden" name="estado" value="{{ e }}" />
+            <button type="submit"
+                    class="btn btn-sm estado-btn-{{ e }} {% if e == reserva.estado %}active{% endif %}">
+              {% if e == reserva.estado %}<i class="bi bi-check-circle me-1"></i>{% endif %}
+              {{ e | title }}
+            </button>
+          </form>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Notificaciones -->
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-send me-2 text-muted"></i>Enviar notificación</h6>
+      </div>
+      <div class="card-body d-grid gap-2">
+        <button class="btn btn-outline-primary btn-sm" onclick="abrirPreview('confirmacion','email')">
+          <i class="bi bi-envelope me-2"></i>Confirmación por email
+        </button>
+        <button class="btn btn-sm" style="background:#25D366;color:#fff;border:none"
+                onclick="abrirPreview('confirmacion','whatsapp')">
+          <i class="bi bi-whatsapp me-2"></i>Confirmación por WhatsApp
+        </button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="abrirPreview('recordatorio','email')">
+          <i class="bi bi-bell me-2"></i>Recordatorio por email
+        </button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="abrirPreview('recordatorio','whatsapp')">
+          <i class="bi bi-bell me-2"></i>Recordatorio por WhatsApp
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Columna derecha -->
+  <div class="col-lg-8">
+
+    <!-- Cliente -->
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-person me-2 text-primary"></i>Cliente</h6>
+        <a href="{{ url_for('clientes.detalle', id=reserva.cliente_id) }}"
+           class="btn btn-xs btn-outline-primary">
+          Ver perfil <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+      </div>
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-3">
+          <div class="avatar-md">{{ reserva.cliente.nombre[0] | upper }}</div>
+          <div class="flex-1 min-w-0">
+            <h6 class="mb-1 fw-bold" style="font-size:.95rem">
+              {{ reserva.cliente.nombre_completo }}
+            </h6>
+            {% if reserva.cliente.email %}
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <i class="bi bi-envelope text-muted" style="font-size:.8rem"></i>
+              <a href="mailto:{{ reserva.cliente.email }}"
+                 class="text-muted text-decoration-none text-sm">
+                {{ reserva.cliente.email }}
+              </a>
+            </div>
+            {% endif %}
+            {% if reserva.cliente.telefono %}
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-telephone text-muted" style="font-size:.8rem"></i>
+              <a href="tel:{{ reserva.cliente.telefono }}"
+                 class="text-muted text-decoration-none text-sm">
+                {{ reserva.cliente.telefono }}
+              </a>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notas -->
+    {% if reserva.notas %}
+    <div class="card mb-3">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-chat-text me-2 text-muted"></i>Notas internas</h6>
+      </div>
+      <div class="card-body">
+        <p class="mb-0 text-sm" style="line-height:1.7;color:var(--gray-700)">
+          {{ reserva.notas }}
+        </p>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Log de comunicaciones -->
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-clock-history me-2 text-muted"></i>Historial de comunicaciones</h6>
+        {% set logs = reserva.comunicaciones.limit(30).all() %}
+        {% if logs %}
+        <span class="badge bg-dark-soft" style="color:var(--gray-600);font-size:.7rem">
+          {{ logs|length }} envío{{ 's' if logs|length != 1 }}
+        </span>
+        {% endif %}
+      </div>
+      <div class="card-body" style="padding:0 !important">
+        {% set logs = reserva.comunicaciones.limit(30).all() %}
+        {% if logs %}
+        <div style="padding:4px 0">
+          {% for entry in logs %}
+          <div class="d-flex align-items-start gap-3"
+               style="padding:12px 20px;border-bottom:1px solid var(--border-light)">
+            <!-- Icono canal -->
+            <div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;
+                        justify-content:center;flex-shrink:0;font-size:.85rem;
+                        background:{{ 'var(--bg-success-soft,#D1FAE5)' if entry.ok else '#FEE2E2' }};
+                        color:{{ '#065F46' if entry.ok else '#991B1B' }}">
+              <i class="bi {{ entry.canal_icon }}"></i>
+            </div>
+            <!-- Detalle -->
+            <div class="flex-1 min-w-0">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span style="font-weight:700;font-size:.82rem;color:var(--black)">
+                  {{ entry.tipo_label }}
+                </span>
+                <span class="badge"
+                      style="background:{{ 'var(--bg-success-soft,#D1FAE5)' if entry.ok else '#FEE2E2' }};
+                             color:{{ '#065F46' if entry.ok else '#991B1B' }};font-size:.68rem">
+                  {{ 'Enviado' if entry.ok else 'Error' }}
+                </span>
+                <span class="badge bg-dark-soft" style="color:var(--gray-500);font-size:.68rem">
+                  <i class="bi {{ entry.canal_icon }} me-1"></i>{{ entry.canal_label }}
+                </span>
+              </div>
+              {% if not entry.ok and entry.error %}
+              <div class="text-xs text-muted mt-1"
+                   style="color:#991B1B !important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                {{ entry.error[:120] }}
+              </div>
+              {% endif %}
+            </div>
+            <!-- Fecha -->
+            <div class="text-xs text-muted" style="white-space:nowrap;flex-shrink:0">
+              {{ entry.enviado_en.strftime('%d/%m/%Y') }}<br>
+              <span style="color:var(--gray-400)">{{ entry.enviado_en.strftime('%H:%M') }}</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state" style="padding:28px 24px">
+          <i class="bi bi-send" style="font-size:1.6rem;opacity:.3"></i>
+          <p>Sin comunicaciones enviadas todavía</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="notif-toast" class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+  <div id="notif-toast-inner" class="toast align-items-center" role="alert">
+    <div class="d-flex">
+      <div class="toast-body" id="notif-body" style="font-weight:500"></div>
+      <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL PREVIEW ── -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+
+      <div class="modal-header" style="border-bottom:1px solid var(--border)">
+        <div class="d-flex align-items-center gap-3">
+          <div id="pvModalIcon" style="width:36px;height:36px;border-radius:50%;
+               display:flex;align-items:center;justify-content:center;font-size:1rem"></div>
+          <div>
+            <h6 class="modal-title mb-0 fw-bold" id="pvModalTitle">Vista previa</h6>
+            <div class="text-xs text-muted" id="pvModalSub"></div>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <!-- EMAIL layout -->
+      <div id="pvEmail" class="modal-body p-0" style="display:none">
+        <!-- Asunto -->
+        <div style="padding:14px 20px;border-bottom:1px solid var(--border);background:var(--gray-50)">
+          <div class="d-flex align-items-center gap-2">
+            <span class="text-xs text-muted fw-semibold" style="min-width:72px">Asunto</span>
+            <input id="pvAsunto" type="text" class="form-control form-control-sm"
+                   style="font-weight:600" />
+          </div>
+          <div class="d-flex align-items-center gap-2 mt-2">
+            <span class="text-xs text-muted fw-semibold" style="min-width:72px">Para</span>
+            <span id="pvDestinatario" class="text-sm text-muted"></span>
+          </div>
+        </div>
+        <!-- Tabs -->
+        <ul class="nav nav-tabs px-3 pt-2" style="border-bottom:1px solid var(--border)">
+          <li class="nav-item">
+            <button class="nav-link active text-sm" id="pvTabPreview"
+                    onclick="pvSwitchTab('preview')">
+              <i class="bi bi-eye me-1"></i>Vista previa
+            </button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link text-sm" id="pvTabEdit"
+                    onclick="pvSwitchTab('edit')">
+              <i class="bi bi-pencil me-1"></i>Editar HTML
+            </button>
+          </li>
+        </ul>
+        <div id="pvTabContentPreview" style="height:520px;overflow:hidden">
+          <iframe id="pvIframe" style="width:100%;height:100%;border:none"
+                  sandbox="allow-same-origin"></iframe>
+        </div>
+        <div id="pvTabContentEdit" style="display:none;padding:16px">
+          <div class="text-xs text-muted mb-2">
+            <i class="bi bi-info-circle me-1"></i>
+            Edita el HTML del email. Los cambios solo afectan a este envío.
+          </div>
+          <textarea id="pvHtmlEdit" class="form-control font-monospace"
+                    style="height:440px;font-size:.75rem;line-height:1.5;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <!-- WHATSAPP layout -->
+      <div id="pvWhatsapp" class="modal-body" style="display:none">
+        <div class="d-flex align-items-center gap-2 mb-3 pb-3"
+             style="border-bottom:1px solid var(--border)">
+          <i class="bi bi-telephone text-muted"></i>
+          <span class="text-sm text-muted">Enviar a</span>
+          <strong id="pvTelefono" class="text-sm"></strong>
+        </div>
+        <!-- Burbuja estilo WhatsApp -->
+        <div style="background:#ECE5DD;border-radius:12px;padding:20px 16px;margin-bottom:16px;min-height:120px">
+          <div style="background:#fff;border-radius:8px;padding:12px 14px;
+                      max-width:420px;box-shadow:0 1px 3px rgba(0,0,0,.12);
+                      font-size:.88rem;line-height:1.55;color:#111;white-space:pre-wrap"
+               id="pvWaBubble"></div>
+        </div>
+        <div class="text-xs text-muted mb-2">
+          <i class="bi bi-pencil me-1"></i>Puedes editar el mensaje antes de enviarlo:
+        </div>
+        <textarea id="pvWaText" class="form-control"
+                  style="height:160px;font-size:.88rem;line-height:1.55;resize:vertical"
+                  oninput="document.getElementById('pvWaBubble').textContent=this.value"></textarea>
+      </div>
+
+      <div class="modal-footer" style="border-top:1px solid var(--border)">
+        <button type="button" class="btn btn-outline-secondary btn-sm"
+                data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-sm" id="pvEnviarBtn"
+                onclick="pvEnviar()">
+          <i class="bi bi-send me-2"></i>Enviar ahora
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const RESERVA_ID = {{ reserva.id }};
+let _pvTipo  = '';
+let _pvCanal = '';
+
+function abrirPreview(tipo, canal) {
+  _pvTipo  = tipo;
+  _pvCanal = canal;
+
+  const btn = document.getElementById('pvEnviarBtn');
+  btn.disabled = false;
+  btn.innerHTML = '<i class="bi bi-send me-2"></i>Enviar ahora';
+
+  // Mostrar spinner mientras carga
+  const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+
+  const iconEl = document.getElementById('pvModalIcon');
+  const titleEl = document.getElementById('pvModalTitle');
+  const subEl = document.getElementById('pvModalSub');
+
+  const tipoLabel = tipo === 'confirmacion' ? 'Confirmación' : 'Recordatorio';
+  titleEl.textContent = tipoLabel;
+
+  if (canal === 'email') {
+    iconEl.style.background = '#EFF6FF';
+    iconEl.innerHTML = '<i class="bi bi-envelope-fill" style="color:#2563EB"></i>';
+    subEl.textContent = 'Email — vista previa editable';
+  } else {
+    iconEl.style.background = '#DCFCE7';
+    iconEl.innerHTML = '<i class="bi bi-whatsapp" style="color:#16A34A"></i>';
+    subEl.textContent = 'WhatsApp — edita el mensaje antes de enviar';
+  }
+
+  document.getElementById('pvEmail').style.display    = 'none';
+  document.getElementById('pvWhatsapp').style.display = 'none';
+
+  modal.show();
+
+  fetch(`/api/reservas/${RESERVA_ID}/preview?tipo=${tipo}&canal=${canal}`)
+    .then(r => r.json())
+    .then(data => {
+      if (canal === 'email') {
+        document.getElementById('pvEmail').style.display = '';
+        document.getElementById('pvAsunto').value = data.asunto || '';
+        document.getElementById('pvDestinatario').textContent = data.destinatario || '';
+        document.getElementById('pvHtmlEdit').value = data.html || '';
+        pvSwitchTab('preview');
+        const iframe = document.getElementById('pvIframe');
+        iframe.srcdoc = data.html || '';
+      } else {
+        document.getElementById('pvWhatsapp').style.display = '';
+        document.getElementById('pvTelefono').textContent = data.telefono || '(sin teléfono)';
+        document.getElementById('pvWaBubble').textContent = data.mensaje || '';
+        document.getElementById('pvWaText').value = data.mensaje || '';
+      }
+    })
+    .catch(() => {
+      subEl.textContent = 'Error al cargar la vista previa';
+    });
+}
+
+function pvSwitchTab(tab) {
+  const previewPane = document.getElementById('pvTabContentPreview');
+  const editPane    = document.getElementById('pvTabContentEdit');
+  const tabPreview  = document.getElementById('pvTabPreview');
+  const tabEdit     = document.getElementById('pvTabEdit');
+
+  if (tab === 'preview') {
+    // Sync iframe with any edits made in textarea
+    const html = document.getElementById('pvHtmlEdit').value;
+    document.getElementById('pvIframe').srcdoc = html;
+    previewPane.style.display = '';
+    editPane.style.display    = 'none';
+    tabPreview.classList.add('active');
+    tabEdit.classList.remove('active');
+  } else {
+    previewPane.style.display = 'none';
+    editPane.style.display    = '';
+    tabPreview.classList.remove('active');
+    tabEdit.classList.add('active');
+  }
+}
+
+function pvEnviar() {
+  const btn = document.getElementById('pvEnviarBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando…';
+
+  let body = { tipo: _pvTipo, canal: _pvCanal };
+
+  if (_pvCanal === 'email') {
+    body.asunto = document.getElementById('pvAsunto').value.trim();
+    body.html   = document.getElementById('pvHtmlEdit').value;
+  } else {
+    body.mensaje = document.getElementById('pvWaText').value;
+  }
+
+  fetch(`/api/reservas/${RESERVA_ID}/notificar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  .then(r => r.json())
+  .then(data => {
+    bootstrap.Modal.getInstance(document.getElementById('previewModal'))?.hide();
+
+    const notifBody = document.getElementById('notif-body');
+    notifBody.textContent = data.ok
+      ? (_pvCanal === 'email' ? 'Email enviado correctamente' : 'WhatsApp enviado correctamente')
+      : 'Error: ' + (data.error || 'no se pudo enviar');
+    notifBody.style.color = data.ok ? '#065F46' : '#991B1B';
+    new bootstrap.Toast(document.getElementById('notif-toast-inner')).show();
+
+    if (data.ok) setTimeout(() => location.reload(), 1800);
+  })
+  .catch(() => {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-send me-2"></i>Enviar ahora';
+  });
+}
+</script>
+{% endblock %}

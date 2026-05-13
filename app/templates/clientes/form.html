@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}{% if cliente %}Editar{% else %}Nuevo{% endif %} cliente{% endblock %}
+{% block page_title %}{% if cliente %}Editar cliente{% else %}Nuevo cliente{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white border-bottom">
+        <h6 class="mb-0 fw-semibold">
+          <i class="bi bi-person-{% if cliente %}gear{% else %}plus{% endif %} me-2 text-primary"></i>
+          {% if cliente %}Editar {{ cliente.nombre_completo }}{% else %}Nuevo cliente{% endif %}
+        </h6>
+      </div>
+      <div class="card-body">
+        <form method="POST">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
+              <input type="text" name="nombre" class="form-control"
+                     value="{{ datos.get('nombre') or (cliente.nombre if cliente else '') }}" required />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Apellidos</label>
+              <input type="text" name="apellido" class="form-control"
+                     value="{{ datos.get('apellido') or (cliente.apellido if cliente else '') }}" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
+              <input type="email" name="email" class="form-control"
+                     value="{{ datos.get('email') or (cliente.email if cliente else '') }}" required />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Teléfono</label>
+              <input type="tel" name="telefono" class="form-control" placeholder="+34 600 000 000"
+                     value="{{ datos.get('telefono') or (cliente.telefono if cliente else '') }}" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">DNI / NIF</label>
+              <input type="text" name="dni" class="form-control" placeholder="12345678A"
+                     value="{{ datos.get('dni') or (cliente.dni if cliente else '') }}" />
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Notas internas</label>
+              <textarea name="notas" class="form-control" rows="3"
+                        placeholder="Comentarios sobre el cliente...">{{ datos.get('notas') or (cliente.notas if cliente else '') }}</textarea>
+            </div>
+          </div>
+
+          <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-lg me-1"></i>
+              {% if cliente %}Guardar cambios{% else %}Crear cliente{% endif %}
+            </button>
+            <a href="{{ url_for('clientes.detalle', id=cliente.id) if cliente else url_for('clientes.lista') }}"
+               class="btn btn-outline-secondary">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

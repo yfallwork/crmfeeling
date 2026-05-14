@@ -5,6 +5,7 @@ from flask_login import login_required
 from app.extensions import db
 from app.models.cliente import Cliente
 from app.models.reserva import Reserva
+from app.services.log_service import registrar_log
 
 clientes_bp = Blueprint("clientes", __name__)
 
@@ -56,6 +57,7 @@ def nuevo():
         )
         db.session.add(cliente)
         db.session.commit()
+        registrar_log("crear", "cliente", cliente.id, f"Cliente creado: {cliente.nombre_completo} ({cliente.email})")
         flash(f"Cliente {cliente.nombre_completo} creado correctamente.", "success")
         return redirect(url_for("clientes.detalle", id=cliente.id))
 
@@ -89,6 +91,7 @@ def editar(id):
         cliente.dni = request.form.get("dni", "").strip()
         cliente.notas = request.form.get("notas", "").strip()
         db.session.commit()
+        registrar_log("editar", "cliente", cliente.id, f"Cliente editado: {cliente.nombre_completo}")
         flash("Cliente actualizado correctamente.", "success")
         return redirect(url_for("clientes.detalle", id=cliente.id))
 
@@ -136,5 +139,6 @@ def eliminar(id):
     nombre = cliente.nombre_completo
     db.session.delete(cliente)
     db.session.commit()
+    registrar_log("eliminar", "cliente", id, f"Cliente eliminado: {nombre}")
     flash(f"Cliente {nombre} eliminado.", "info")
     return redirect(url_for("clientes.lista"))

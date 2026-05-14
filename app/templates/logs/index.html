@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+{% block title %}Actividad{% endblock %}
+{% block page_title %}Actividad{% endblock %}
+
+{% block head %}
+<style>
+/* ── TIMELINE ──────────────────────────────────────────── */
+.timeline { position: relative; padding-left: 40px; }
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 15px; top: 0; bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--red) 0%, var(--border) 100%);
+  border-radius: 2px;
+}
+
+.tl-item {
+  position: relative;
+  margin-bottom: 6px;
+  animation: fadeUp .25s ease both;
+}
+
+.tl-dot {
+  position: absolute;
+  left: -32px; top: 14px;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .58rem;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,.2);
+  border: 2px solid #fff;
+  z-index: 1;
+}
+
+.tl-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  transition: box-shadow .12s, border-color .12s;
+}
+.tl-card:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--gray-200);
+}
+
+.tl-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: .69rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tl-meta {
+  font-size: .74rem;
+  color: var(--gray-400);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tl-usuario {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--black);
+}
+
+.tl-avatar-xs {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--red);
+  color: #fff;
+  font-size: .6rem;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.tl-detalle {
+  font-size: .78rem;
+  color: var(--gray-600);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── ORIGEN PILLS ──────────────────────────────────────── */
+.origen-manual     { background:#EFF6FF; color:#1D4ED8; border:1px solid #BFDBFE; }
+.origen-woocommerce{ background:#F5F3FF; color:#6D28D9; border:1px solid #DDD6FE; }
+.origen-webhook    { background:#FDF4FF; color:#A21CAF; border:1px solid #F0ABFC; }
+.origen-sistema    { background:var(--gray-100); color:var(--gray-600); border:1px solid var(--gray-200); }
+
+/* ── STATS BAR ─────────────────────────────────────────── */
+.log-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.log-stat {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  text-align: center;
+}
+.log-stat-value { font-size: 1.5rem; font-weight: 800; line-height: 1; }
+.log-stat-label { font-size: .69rem; color: var(--gray-400); margin-top: 3px; font-weight: 500; text-transform: uppercase; letter-spacing: .4px; }
+
+/* ── FECHA SEPARADOR ───────────────────────────────────── */
+.date-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 8px;
+  color: var(--gray-400);
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+}
+.date-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 767px) {
+  .log-stats { grid-template-columns: repeat(2, 1fr); }
+  .tl-meta { display: none; }
+  .tl-card { flex-wrap: wrap; gap: 6px; }
+  .tl-detalle { white-space: normal; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- KPI bar -->
+<div class="log-stats mb-3">
+  <div class="log-stat">
+    <div class="log-stat-value text-primary">{{ logs.total }}</div>
+    <div class="log-stat-label">Total eventos</div>
+  </div>
+  <div class="log-stat">
+    <div class="log-stat-value" style="color:#10B981">
+      {{ logs.items | selectattr('accion', 'equalto', 'login') | list | length }}
+      / {{ logs.items | selectattr('accion', 'equalto', 'login_fallido') | list | length }}
+    </div>
+    <div class="log-stat-label">Logins ok / fallidos</div>
+  </div>
+  <div class="log-stat">
+    <div class="log-stat-value" style="color:#7C3AED">
+      {{ logs.items | selectattr('origen', 'equalto', 'woocommerce') | list | length }}
+    </div>
+    <div class="log-stat-label">Entradas WooCommerce</div>
+  </div>
+  <div class="log-stat">
+    <div class="log-stat-value" style="color:#F59E0B">
+      {{ logs.items | selectattr('accion', 'in', ['editar','cambiar_estado','asignar_fecha']) | list | length }}
+    </div>
+    <div class="log-stat-label">Ediciones</div>
+  </div>
+</div>
+
+<!-- Card principal -->
+<div class="card">
+
+  <!-- Filtros -->
+  <div class="filter-bar">
+    <form method="GET" class="d-flex align-items-center gap-2 flex-wrap w-100">
+      <input type="text" name="usuario" class="form-control form-control-sm"
+             placeholder="Usuario..." value="{{ filtro_usuario }}" style="max-width:150px" />
+
+      <select name="accion" class="form-select form-select-sm" style="max-width:180px"
+              onchange="this.form.submit()">
+        <option value="">Todas las acciones</option>
+        {% for a in acciones %}
+          <option value="{{ a }}" {% if a == filtro_accion %}selected{% endif %}>{{ a }}</option>
+        {% endfor %}
+      </select>
+
+      <select name="origen" class="form-select form-select-sm" style="max-width:150px"
+              onchange="this.form.submit()">
+        <option value="">Todos los orígenes</option>
+        <option value="manual"      {% if filtro_origen=='manual' %}selected{% endif %}>Manual</option>
+        <option value="woocommerce" {% if filtro_origen=='woocommerce' %}selected{% endif %}>WooCommerce</option>
+        <option value="webhook"     {% if filtro_origen=='webhook' %}selected{% endif %}>Webhook</option>
+        <option value="sistema"     {% if filtro_origen=='sistema' %}selected{% endif %}>Sistema</option>
+      </select>
+
+      <input type="date" name="fecha_ini" class="form-control form-control-sm"
+             value="{{ filtro_fecha_ini }}" style="max-width:145px" />
+      <input type="date" name="fecha_fin" class="form-control form-control-sm"
+             value="{{ filtro_fecha_fin }}" style="max-width:145px" />
+
+      <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
+      {% if filtro_usuario or filtro_accion or filtro_origen or filtro_fecha_ini or filtro_fecha_fin %}
+        <a href="{{ url_for('logs.index') }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-x me-1"></i>Limpiar
+        </a>
+      {% endif %}
+
+      <div class="ms-auto">
+        <span class="text-xs text-muted">{{ logs.total }} evento{{ 's' if logs.total != 1 }}</span>
+      </div>
+    </form>
+  </div>
+
+  <!-- Timeline -->
+  <div style="padding: 20px 24px">
+    {% if logs.items %}
+      {% set ns = namespace(fecha_actual='') %}
+      <div class="timeline">
+        {% for log in logs.items %}
+          {% set fecha_str = log.fecha.strftime('%d/%m/%Y') %}
+          {% if fecha_str != ns.fecha_actual %}
+            {% set ns.fecha_actual = fecha_str %}
+            <div class="date-divider">{{ fecha_str }}</div>
+          {% endif %}
+
+          <div class="tl-item">
+            <!-- Dot de la línea de tiempo -->
+            <div class="tl-dot" style="background:{{ log.color }}">
+              <i class="bi {{ log.icono }}"></i>
+            </div>
+
+            <div class="tl-card">
+              <!-- Badge acción -->
+              <span class="tl-badge" style="background:{{ log.color }}20; color:{{ log.color }}; border:1px solid {{ log.color }}40">
+                <i class="bi {{ log.icono }}"></i>
+                {{ log.accion_label }}
+              </span>
+
+              <!-- Entidad -->
+              {% if log.entidad %}
+                <span class="badge" style="background:var(--gray-100);color:var(--gray-600);border:1px solid var(--border);font-size:.67rem">
+                  {{ log.entidad_label }}
+                  {% if log.entidad_id %}#{{ log.entidad_id }}{% endif %}
+                </span>
+              {% endif %}
+
+              <!-- Detalle -->
+              <span class="tl-detalle">{{ log.detalle }}</span>
+
+              <!-- Usuario -->
+              <div class="tl-usuario flex-shrink-0">
+                <div class="tl-avatar-xs"
+                     style="background:{% if log.origen == 'woocommerce' or log.origen == 'webhook' %}#7C3AED{% else %}var(--red){% endif %}">
+                  {% if log.origen in ['woocommerce','webhook'] %}
+                    <i class="bi bi-shop" style="font-size:.5rem"></i>
+                  {% else %}
+                    {{ (log.usuario_nombre or 'S')[0]|upper }}
+                  {% endif %}
+                </div>
+                {{ log.usuario_nombre }}
+              </div>
+
+              <!-- Origen pill -->
+              <span class="tl-badge origen-{{ log.origen }}" style="font-size:.62rem">
+                {{ log.origen }}
+              </span>
+
+              <!-- Hora -->
+              <span class="tl-meta">{{ log.fecha.strftime('%H:%M:%S') }}</span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <i class="bi bi-journal-x"></i>
+        <p>No se encontraron eventos{% if filtro_accion or filtro_usuario %} con los filtros aplicados{% endif %}</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Paginación -->
+  {% if logs.pages > 1 %}
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <span class="text-xs text-muted">Página {{ logs.page }} de {{ logs.pages }}</span>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% if logs.has_prev %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('logs.index', page=logs.prev_num,
+               usuario=filtro_usuario, accion=filtro_accion, origen=filtro_origen,
+               fecha_ini=filtro_fecha_ini, fecha_fin=filtro_fecha_fin) }}">
+              <i class="bi bi-chevron-left"></i>
+            </a>
+          </li>
+        {% endif %}
+        {% for p in logs.iter_pages() %}
+          {% if p %}
+            <li class="page-item {% if p == logs.page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('logs.index', page=p,
+                 usuario=filtro_usuario, accion=filtro_accion, origen=filtro_origen,
+                 fecha_ini=filtro_fecha_ini, fecha_fin=filtro_fecha_fin) }}">{{ p }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+        {% if logs.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('logs.index', page=logs.next_num,
+               usuario=filtro_usuario, accion=filtro_accion, origen=filtro_origen,
+               fecha_ini=filtro_fecha_ini, fecha_fin=filtro_fecha_fin) }}">
+              <i class="bi bi-chevron-right"></i>
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

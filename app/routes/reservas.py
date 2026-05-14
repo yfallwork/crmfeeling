@@ -7,6 +7,7 @@ from app.extensions import db
 from app.models.reserva import Reserva, ESTADOS
 from app.models.cliente import Cliente
 from app.models.experiencia import TipoExperiencia
+from app.services.log_service import registrar_log
 
 reservas_bp = Blueprint("reservas", __name__)
 
@@ -149,6 +150,8 @@ def nueva():
         )
         db.session.add(reserva)
         db.session.commit()
+        registrar_log("crear", "reserva", reserva.id,
+                      f"Reserva creada: {reserva.cliente.nombre_completo} — {reserva.tipo_experiencia.nombre}")
         flash("Reserva creada correctamente.", "success")
         return redirect(url_for("reservas.detalle", id=reserva.id))
 
@@ -195,6 +198,8 @@ def editar(id):
         reserva.precio = float(request.form.get("precio", reserva.precio) or 0)
         reserva.notas = request.form.get("notas", "").strip()
         db.session.commit()
+        registrar_log("editar", "reserva", reserva.id,
+                      f"Reserva editada: {reserva.cliente.nombre_completo} — {reserva.estado}")
         flash("Reserva actualizada correctamente.", "success")
         return redirect(url_for("reservas.detalle", id=reserva.id))
 
@@ -214,8 +219,11 @@ def cambiar_estado(id):
     reserva = Reserva.query.get_or_404(id)
     nuevo_estado = request.form.get("estado")
     if nuevo_estado in ESTADOS:
+        estado_anterior = reserva.estado
         reserva.estado = nuevo_estado
         db.session.commit()
+        registrar_log("cambiar_estado", "reserva", id,
+                      f"Estado: {estado_anterior} → {nuevo_estado} ({reserva.cliente.nombre_completo})")
         flash(f"Estado cambiado a {nuevo_estado}.", "success")
     return redirect(request.referrer or url_for("reservas.detalle", id=id))
 
@@ -224,7 +232,9 @@ def cambiar_estado(id):
 @login_required
 def eliminar(id):
     reserva = Reserva.query.get_or_404(id)
+    detalle = f"Reserva eliminada: {reserva.cliente.nombre_completo} — {reserva.tipo_experiencia.nombre}"
     db.session.delete(reserva)
     db.session.commit()
+    registrar_log("eliminar", "reserva", id, detalle)
     flash("Reserva eliminada.", "info")
     return redirect(url_for("reservas.lista"))

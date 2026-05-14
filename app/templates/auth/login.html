@@ -22,11 +22,11 @@
 
     <form method="POST" action="{{ url_for('auth.login') }}">
       <div class="mb-3">
-        <label for="email" class="form-label">Email</label>
+        <label for="email" class="form-label">Usuario o email</label>
         <div class="input-group">
-          <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-          <input type="email" class="form-control" id="email" name="email"
-                 placeholder="tu@email.com" required autofocus />
+          <span class="input-group-text"><i class="bi bi-person"></i></span>
+          <input type="text" class="form-control" id="email" name="email"
+                 placeholder="usuario o email" required autofocus autocomplete="username" />
         </div>
       </div>
       <div class="mb-4">

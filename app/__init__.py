@@ -20,6 +20,7 @@ def create_app(env="default"):
     from app.routes.woocommerce import woo_bp
     from app.routes.api import api_bp
     from app.routes.estadisticas import estadisticas_bp
+    from app.routes.logs import logs_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -29,13 +30,13 @@ def create_app(env="default"):
     app.register_blueprint(woo_bp, url_prefix="/woocommerce")
     app.register_blueprint(api_bp, url_prefix="/api")
     app.register_blueprint(estadisticas_bp)
+    app.register_blueprint(logs_bp)
 
     with app.app_context():
-        # Importar modelos para que SQLAlchemy los registre antes de create_all
-        from app.models import comunicacion  # noqa: F401
+        from app.models import comunicacion, log  # noqa: F401
         db.create_all()
         _migrate_columns()
-        _seed_admin()
+        _seed_usuarios()
 
     # Iniciar scheduler solo en el proceso principal (evita doble arranque con reloader)
     if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
@@ -49,8 +50,9 @@ def _migrate_columns():
     """Añade columnas nuevas a tablas existentes sin borrar datos."""
     from sqlalchemy import text
     nuevas = [
-        ("reservas", "horario",  "VARCHAR(20) DEFAULT ''"),
-        ("reservas", "variante", "VARCHAR(150) DEFAULT ''"),
+        ("reservas",  "horario",  "VARCHAR(20) DEFAULT ''"),
+        ("reservas",  "variante", "VARCHAR(150) DEFAULT ''"),
+        ("usuarios",  "username", "VARCHAR(50)"),
     ]
     with db.engine.connect() as conn:
         for tabla, columna, tipo in nuevas:
@@ -61,10 +63,28 @@ def _migrate_columns():
                 pass  # La columna ya existe
 
 
-def _seed_admin():
+def _seed_usuarios():
     from app.models.usuario import Usuario
+    # Admin por defecto
     if not Usuario.query.filter_by(email="admin@crm.local").first():
         admin = Usuario(nombre="Admin", email="admin@crm.local", rol="admin")
         admin.set_password("admin123")
         db.session.add(admin)
-        db.session.commit()
+
+    # María
+    if not Usuario.query.filter(
+        (Usuario.username == "maria") | (Usuario.email == "maria@fe.local")
+    ).first():
+        maria = Usuario(nombre="María", username="maria", email="maria@fe.local", rol="admin")
+        maria.set_password("maria2024")
+        db.session.add(maria)
+
+    # Andrés
+    if not Usuario.query.filter(
+        (Usuario.username == "andres") | (Usuario.email == "andres@fe.local")
+    ).first():
+        andres = Usuario(nombre="Andrés", username="andres", email="andres@fe.local", rol="admin")
+        andres.set_password("andres2024")
+        db.session.add(andres)
+
+    db.session.commit()

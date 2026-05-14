@@ -33,8 +33,13 @@ def index():
 @woo_bp.route("/sync", methods=["POST"])
 @login_required
 def sync():
+    from app.services.log_service import registrar_log
     try:
         stats = sync_orders(max_pages=20)
+        registrar_log("sync_woo", "sistema", detalle=(
+            f"Sync manual: {stats['nuevas']} nuevas, "
+            f"{stats['actualizadas']} actualizadas, {stats['errores']} errores"
+        ), origen="woocommerce")
         flash(
             f"Sincronización completada: {stats['nuevas']} nuevas, "
             f"{stats['actualizadas']} actualizadas, {stats['errores']} errores.",
@@ -144,8 +149,12 @@ def webhook():
     stats = {"nuevas": 0, "actualizadas": 0, "errores": 0}
     try:
         from app.services.woo_sync import _process_order
+        from app.services.log_service import registrar_log
         _process_order(order, stats)
         db.session.commit()
+        registrar_log("webhook", "sistema",
+                      detalle=f"Webhook {topic} pedido #{order.get('id')}: {stats['nuevas']} nuevas, {stats['actualizadas']} actualizadas",
+                      origen="webhook")
         current_app.logger.info(f"Webhook {topic} pedido #{order.get('id')} → {stats}")
     except Exception as e:
         db.session.rollback()

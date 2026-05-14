@@ -48,6 +48,9 @@ def api_actualizar_fecha(id):
             if reserva.estado == "pendiente":
                 reserva.estado = "reservado"
         db.session.commit()
+        from app.services.log_service import registrar_log
+        registrar_log("asignar_fecha", "reserva", id,
+                      f"Fecha asignada vía sidebar calendario: {reserva.fecha_disfrute.strftime('%d/%m/%Y %H:%M')} — {reserva.cliente.nombre_completo}")
         return jsonify({"ok": True, "reserva": reserva.to_dict()})
     except Exception as e:
         db.session.rollback()

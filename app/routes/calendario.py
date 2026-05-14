@@ -3,6 +3,7 @@ from flask import Blueprint, render_template, jsonify, request
 from flask_login import login_required
 from app.extensions import db
 from app.models.reserva import Reserva
+from app.services.log_service import registrar_log
 
 calendario_bp = Blueprint("calendario", __name__)
 
@@ -67,6 +68,8 @@ def mover(id):
         if reserva.estado == "pendiente":
             reserva.estado = "reservado"
         db.session.commit()
+        registrar_log("asignar_fecha", "reserva", id,
+                      f"Fecha asignada vía calendario: {reserva.fecha_disfrute.strftime('%d/%m/%Y %H:%M')} — {reserva.cliente.nombre_completo}")
         return jsonify({"ok": True, "estado": reserva.estado})
     except Exception as e:
         db.session.rollback()

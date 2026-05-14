@@ -65,6 +65,12 @@
       <i class="bi bi-shop"></i><span>WooCommerce</span>
     </a>
 
+    <a href="{{ url_for('logs.index') }}"
+       class="nav-item {% if 'logs' in (request.endpoint or '') %}active{% endif %}"
+       data-tooltip="Actividad">
+      <i class="bi bi-journal-text"></i><span>Actividad</span>
+    </a>
+
     <div class="nav-divider"></div>
 
     <a href="{{ url_for('auth.logout') }}" class="nav-item nav-item-danger" data-tooltip="Cerrar sesión">

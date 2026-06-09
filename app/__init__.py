@@ -21,6 +21,7 @@ def create_app(env="default"):
     from app.routes.api import api_bp
     from app.routes.estadisticas import estadisticas_bp
     from app.routes.logs import logs_bp
+    from app.routes.agenda import agenda_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -31,9 +32,11 @@ def create_app(env="default"):
     app.register_blueprint(api_bp, url_prefix="/api")
     app.register_blueprint(estadisticas_bp)
     app.register_blueprint(logs_bp)
+    app.register_blueprint(agenda_bp, url_prefix="/agenda")
 
     with app.app_context():
         from app.models import comunicacion, log  # noqa: F401
+        from app.models import agenda  # noqa: F401
         db.create_all()
         _migrate_columns()
         _seed_usuarios()

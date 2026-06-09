@@ -1,0 +1,503 @@
+{% extends "base.html" %}
+{% block title %}Agenda{% endblock %}
+{% block page_title %}Agenda Social{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('agenda.tematicas') }}" class="btn btn-outline-secondary btn-sm me-1">
+  <i class="bi bi-bookmarks me-1"></i>Temáticas
+</a>
+<a href="{{ url_for('agenda.nueva_entrada') }}" class="btn btn-primary btn-sm">
+  <i class="bi bi-plus-lg me-1"></i>Nueva entrada
+</a>
+{% endblock %}
+
+{% block head %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<style>
+/* ── LAYOUT ───────────────────────────────────────────────── */
+.ag-wrapper { display: flex; gap: 16px; align-items: flex-start; }
+.ag-sidebar { width: 244px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
+.ag-main    { flex: 1; min-width: 0; background:#fff; border:1px solid var(--border); border-radius:12px; padding:16px; }
+
+/* ── STATS ────────────────────────────────────────────────── */
+.ag-stats {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.ag-stat {
+  background:#fff; border:1px solid var(--border); border-radius:10px;
+  padding:12px 14px; display:flex; align-items:center; gap:10px;
+}
+.ag-stat-icon { width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0; }
+.ag-stat-val  { font-size:1.35rem;font-weight:800;line-height:1; }
+.ag-stat-lbl  { font-size:.68rem;color:var(--gray-400);margin-top:2px;font-weight:500; }
+
+/* ── PANEL LATERAL ────────────────────────────────────────── */
+.ag-panel {
+  background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden;
+}
+.ag-panel-hdr {
+  padding:11px 14px; border-bottom:1px solid var(--border);
+  background:var(--gray-50);
+  font-size:.72rem; font-weight:700; text-transform:uppercase;
+  letter-spacing:.6px; color:var(--gray-600);
+}
+.ag-panel-body { padding:12px 14px; }
+
+/* Filtros empresa */
+.empresa-btn {
+  display:flex; align-items:center; gap:8px;
+  padding:7px 10px; border-radius:8px; cursor:pointer;
+  border:2px solid transparent; background:var(--gray-50);
+  font-size:.8rem; font-weight:600; color:var(--gray-600);
+  transition:all .15s; user-select:none; width:100%; margin-bottom:6px;
+}
+.empresa-btn:last-child { margin-bottom:0; }
+.empresa-btn .dot { width:10px;height:10px;border-radius:50%;flex-shrink:0; }
+.empresa-btn.active { background:#fff; color:var(--black); }
+.empresa-btn.active[data-empresa="autoclub"] { border-color:#2563EB; }
+.empresa-btn.active[data-empresa="feeling"]  { border-color:#AD1726; }
+.empresa-btn.active[data-empresa="ambas"]    { border-color:#7C3AED; }
+
+/* Lista temáticas */
+.tem-chip {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:3px 9px; border-radius:20px; font-size:.72rem; font-weight:600;
+  margin:3px 3px 3px 0; cursor:pointer; border:2px solid transparent;
+  opacity:.55; transition:opacity .15s, border-color .15s;
+}
+.tem-chip.active { opacity:1; }
+.tem-chip.active { border-color:rgba(0,0,0,.18); }
+.tem-chip .tem-dot { width:7px;height:7px;border-radius:50%;flex-shrink:0; }
+
+/* ── FULLCALENDAR OVERRIDES ───────────────────────────────── */
+.fc { font-family:'Segoe UI',system-ui,sans-serif !important; }
+.fc .fc-toolbar { margin-bottom:14px !important; gap:6px; }
+.fc .fc-toolbar-title { font-size:1rem !important;font-weight:800 !important;color:var(--black) !important;letter-spacing:-.2px; }
+.fc .fc-toolbar-chunk { display:flex;align-items:center;gap:4px; }
+.fc .fc-button {
+  background:#fff !important; border:1px solid var(--border) !important;
+  color:var(--black) !important; border-radius:8px !important;
+  font-size:.78rem !important; font-weight:600 !important;
+  padding:6px 12px !important; box-shadow:none !important; transition:all .12s !important;
+}
+.fc .fc-button:hover { background:var(--gray-50) !important; }
+.fc .fc-button:focus { box-shadow:0 0 0 3px rgba(173,23,38,.15) !important; }
+.fc .fc-today-button { background:var(--red) !important;border-color:var(--red) !important;color:#fff !important; }
+.fc .fc-today-button:hover { background:#8f1220 !important;border-color:#8f1220 !important; }
+.fc .fc-today-button:disabled { background:var(--gray-100) !important;border-color:var(--border) !important;color:var(--gray-400) !important; }
+.fc .fc-prev-button,.fc .fc-next-button { padding:6px 10px !important; }
+.fc .fc-button-active { background:var(--black) !important;border-color:var(--black) !important;color:#fff !important; }
+.fc .fc-scrollgrid { border-color:var(--border) !important;border-radius:8px;overflow:hidden; }
+.fc .fc-scrollgrid-section > * { border-color:var(--border) !important; }
+.fc .fc-col-header-cell { background:var(--gray-50) !important;padding:8px 0 !important;border-color:var(--border) !important; }
+.fc .fc-col-header-cell-cushion { font-size:.72rem !important;font-weight:700 !important;text-transform:uppercase !important;letter-spacing:.5px !important;color:var(--gray-600) !important;text-decoration:none !important; }
+.fc .fc-daygrid-day { border-color:var(--gray-100) !important;cursor:pointer; }
+.fc .fc-daygrid-day:hover { background:rgba(173,23,38,.025) !important; }
+.fc .fc-daygrid-day-number { font-size:.78rem !important;font-weight:600 !important;color:var(--gray-600) !important;text-decoration:none !important;padding:5px 7px !important; }
+.fc .fc-day-today { background:rgba(173,23,38,.04) !important; }
+.fc .fc-day-today .fc-daygrid-day-number {
+  color:#fff !important;background:var(--red) !important;border-radius:50% !important;
+  width:22px;height:22px !important;display:flex !important;align-items:center !important;
+  justify-content:center !important;margin:3px !important;padding:0 !important;
+}
+.fc .fc-day-sat .fc-daygrid-day-number,
+.fc .fc-day-sun .fc-daygrid-day-number { color:var(--red) !important; }
+.fc .fc-day-sat.fc-day-today .fc-daygrid-day-number,
+.fc .fc-day-sun.fc-day-today .fc-daygrid-day-number { color:#fff !important; }
+.fc .fc-event { border:none !important;border-radius:5px !important;margin:1px 3px !important;cursor:pointer !important;transition:transform .1s !important; }
+.fc .fc-event:hover { transform:translateY(-1px) !important; }
+.fc .fc-daygrid-more-link { font-size:.7rem !important;color:var(--red) !important;font-weight:600 !important; }
+.fc .fc-list { border:none !important;border-radius:10px !important;overflow:hidden !important;border:1px solid var(--border) !important; }
+.fc .fc-list-day-cushion { background:var(--black) !important;padding:7px 12px !important; }
+.fc .fc-list-day-text,.fc .fc-list-day-side-text { font-size:.78rem !important;font-weight:700 !important;color:#fff !important;text-decoration:none !important; }
+.fc .fc-list-event { cursor:pointer !important; }
+.fc .fc-list-event:hover td { background:rgba(173,23,38,.05) !important; }
+
+/* Pill de evento */
+.ag-ev { display:flex;align-items:center;gap:4px;padding:2px 5px;overflow:hidden; }
+.ag-ev-ico { font-size:.65rem;flex-shrink:0;opacity:.85; }
+.ag-ev-title { font-size:.72rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1; }
+.ag-ev-rs { font-size:.58rem;opacity:.8;flex-shrink:0;background:rgba(0,0,0,.18);border-radius:3px;padding:1px 3px;line-height:1.4; }
+
+/* Estado dot en evento */
+.ag-ev-estado { width:5px;height:5px;border-radius:50%;flex-shrink:0; }
+
+/* ── MODAL ────────────────────────────────────────────────── */
+.modal-content { border:none !important;border-radius:14px !important;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.15) !important; }
+.modal-header { padding:18px 22px 14px !important;border-bottom:1px solid var(--border) !important; }
+.modal-footer { padding:12px 22px !important;border-top:1px solid var(--border) !important;background:var(--gray-50); }
+
+.ag-modal-hdr {
+  padding:16px 22px; background:var(--black); color:#fff;
+  display:flex; align-items:flex-start; gap:12px;
+}
+.ag-modal-ico {
+  width:40px;height:40px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;font-size:1.1rem;flex-shrink:0;
+}
+.ag-modal-title  { font-weight:700;font-size:.95rem;line-height:1.3; }
+.ag-modal-fecha  { font-size:.75rem;color:rgba(255,255,255,.6);margin-top:2px; }
+.ag-modal-badges { display:flex;gap:6px;flex-wrap:wrap;margin-top:6px; }
+.ag-badge {
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 8px;border-radius:20px;font-size:.68rem;font-weight:700;
+  background:rgba(255,255,255,.15);color:#fff;
+}
+
+.ag-detail-grid { display:grid;grid-template-columns:1fr 1fr;gap:0; }
+.ag-detail-item { padding:11px 18px;border-bottom:1px solid var(--gray-50);border-right:1px solid var(--gray-50); }
+.ag-detail-item:nth-child(even) { border-right:none; }
+.ag-detail-lbl  { font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-400);margin-bottom:3px; }
+.ag-detail-val  { font-size:.82rem;font-weight:600;color:var(--black); }
+
+.ag-estado-pill {
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 9px;border-radius:20px;font-size:.76rem;font-weight:700;
+}
+.ag-tems { padding:12px 18px;border-bottom:1px solid var(--gray-50); }
+.ag-tems-lbl { font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-400);margin-bottom:7px; }
+.ag-desc { padding:12px 18px; }
+.ag-desc-lbl { font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-400);margin-bottom:5px; }
+.ag-desc-txt { font-size:.82rem;color:var(--gray-600);line-height:1.5; }
+
+/* ── MOBILE ───────────────────────────────────────────────── */
+@media (max-width:767px) {
+  .ag-stats { grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px; }
+  .ag-stat  { padding:10px 12px; }
+  .ag-stat-val { font-size:1.15rem; }
+  .ag-wrapper { flex-direction:column;gap:10px; }
+  .ag-sidebar { display:none; }
+  .ag-main { width:100%; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- STATS -->
+<div class="ag-stats">
+  <div class="ag-stat">
+    <div class="ag-stat-icon" style="background:#fef3c7;color:#b45309"><i class="bi bi-calendar-day"></i></div>
+    <div><div class="ag-stat-val" id="statHoy">—</div><div class="ag-stat-lbl">Hoy</div></div>
+  </div>
+  <div class="ag-stat">
+    <div class="ag-stat-icon" style="background:#dbeafe;color:#1d4ed8"><i class="bi bi-calendar-week"></i></div>
+    <div><div class="ag-stat-val" id="statSemana">—</div><div class="ag-stat-lbl">Esta semana</div></div>
+  </div>
+  <div class="ag-stat">
+    <div class="ag-stat-icon" style="background:#dcfce7;color:#16a34a"><i class="bi bi-calendar-month"></i></div>
+    <div><div class="ag-stat-val" id="statMes">—</div><div class="ag-stat-lbl">Este mes</div></div>
+  </div>
+  <div class="ag-stat">
+    <div class="ag-stat-icon" style="background:#f3e8ff;color:#7c3aed"><i class="bi bi-collection"></i></div>
+    <div><div class="ag-stat-val" id="statTotal">—</div><div class="ag-stat-lbl">Total</div></div>
+  </div>
+</div>
+
+<div class="ag-wrapper">
+
+  <!-- SIDEBAR -->
+  <div class="ag-sidebar">
+
+    <!-- Filtro empresa -->
+    <div class="ag-panel">
+      <div class="ag-panel-hdr"><i class="bi bi-funnel me-1"></i>Filtrar empresa</div>
+      <div class="ag-panel-body">
+        <button class="empresa-btn active" data-empresa="autoclub">
+          <span class="dot" style="background:#2563EB"></span>Autoclub
+        </button>
+        <button class="empresa-btn active" data-empresa="feeling">
+          <span class="dot" style="background:#AD1726"></span>Feeling
+        </button>
+        <button class="empresa-btn active" data-empresa="ambas">
+          <span class="dot" style="background:#7C3AED"></span>Ambas empresas
+        </button>
+      </div>
+    </div>
+
+    <!-- Leyenda temáticas -->
+    {% if tematicas %}
+    <div class="ag-panel">
+      <div class="ag-panel-hdr"><i class="bi bi-bookmarks me-1"></i>Temáticas</div>
+      <div class="ag-panel-body" style="padding-bottom:8px">
+        {% for t in tematicas %}
+        <span class="tem-chip active" data-tid="{{ t.id }}"
+              style="background:{{ t.color }}22;color:{{ t.color }}">
+          <span class="tem-dot" style="background:{{ t.color }}"></span>
+          {{ t.nombre }}
+        </span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Leyenda estados -->
+    <div class="ag-panel">
+      <div class="ag-panel-hdr"><i class="bi bi-circle-half me-1"></i>Estados</div>
+      <div class="ag-panel-body" style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:center;gap:7px;font-size:.78rem;font-weight:500;color:var(--gray-600)">
+          <span style="width:9px;height:9px;border-radius:50%;background:#F59E0B;flex-shrink:0"></span>Planificado
+        </div>
+        <div style="display:flex;align-items:center;gap:7px;font-size:.78rem;font-weight:500;color:var(--gray-600)">
+          <span style="width:9px;height:9px;border-radius:50%;background:#10B981;flex-shrink:0"></span>Publicado
+        </div>
+        <div style="display:flex;align-items:center;gap:7px;font-size:.78rem;font-weight:500;color:var(--gray-600)">
+          <span style="width:9px;height:9px;border-radius:50%;background:#6B7280;flex-shrink:0"></span>Cancelado
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CALENDARIO -->
+  <div class="ag-main">
+    <div id="agenda-cal"></div>
+  </div>
+
+</div>
+
+<!-- ── MODAL DETALLE ── -->
+<div class="modal fade" id="entradaModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:440px">
+    <div class="modal-content">
+      <div class="ag-modal-hdr" id="modalHdr">
+        <div class="ag-modal-ico" id="modalIco"><i class="bi bi-calendar-event"></i></div>
+        <div style="flex:1;min-width:0">
+          <div class="ag-modal-title" id="modalTitle">—</div>
+          <div class="ag-modal-fecha" id="modalFecha">—</div>
+          <div class="ag-modal-badges" id="modalBadges"></div>
+        </div>
+        <button type="button" class="btn-close btn-close-white ms-2 mt-1" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="ag-detail-grid">
+        <div class="ag-detail-item">
+          <div class="ag-detail-lbl">Empresa</div>
+          <div class="ag-detail-val" id="modalEmpresa">—</div>
+        </div>
+        <div class="ag-detail-item">
+          <div class="ag-detail-lbl">Tipo</div>
+          <div class="ag-detail-val" id="modalTipo">—</div>
+        </div>
+        <div class="ag-detail-item" id="modalRSRow">
+          <div class="ag-detail-lbl">Red social</div>
+          <div class="ag-detail-val" id="modalRS">—</div>
+        </div>
+        <div class="ag-detail-item">
+          <div class="ag-detail-lbl">Estado</div>
+          <div class="ag-detail-val" id="modalEstado">—</div>
+        </div>
+      </div>
+
+      <div class="ag-tems d-none" id="modalTemsWrap">
+        <div class="ag-tems-lbl">Temáticas</div>
+        <div id="modalTems"></div>
+      </div>
+
+      <div class="ag-desc d-none" id="modalDescWrap">
+        <div class="ag-desc-lbl">Descripción</div>
+        <div class="ag-desc-txt" id="modalDesc"></div>
+      </div>
+
+      <div class="modal-footer">
+        <a href="#" id="modalEditarBtn" class="btn btn-primary btn-sm">
+          <i class="bi bi-pencil me-1"></i>Editar
+        </a>
+        <form id="modalEliminarForm" method="POST" style="display:inline" onsubmit="return confirm('¿Eliminar esta entrada?')">
+          <button type="submit" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-trash me-1"></i>Eliminar
+          </button>
+        </form>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const modal = new bootstrap.Modal(document.getElementById('entradaModal'));
+
+  // ── FILTROS ──────────────────────────────────────────────
+  const empresasActivas = new Set(['autoclub', 'feeling', 'ambas']);
+
+  document.querySelectorAll('.empresa-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const emp = this.dataset.empresa;
+      if (empresasActivas.has(emp)) {
+        empresasActivas.delete(emp);
+        this.classList.remove('active');
+      } else {
+        empresasActivas.add(emp);
+        this.classList.add('active');
+      }
+      calInstance && calInstance.refetchEvents();
+    });
+  });
+
+  // ── STATS ────────────────────────────────────────────────
+  function calcStats(eventos) {
+    const hoy  = new Date().toDateString();
+    const ahora= new Date();
+    const lun  = new Date(ahora); lun.setDate(ahora.getDate() - ((ahora.getDay()+6)%7));
+    const dom  = new Date(lun); dom.setDate(lun.getDate()+6);
+    const mesI = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+    const mesF = new Date(ahora.getFullYear(), ahora.getMonth()+1, 0);
+
+    let cH=0,cS=0,cM=0;
+    eventos.forEach(ev => {
+      const d = new Date(ev.start);
+      if (d.toDateString()===hoy) cH++;
+      if (d>=lun && d<=dom)       cS++;
+      if (d>=mesI && d<=mesF)     cM++;
+    });
+    document.getElementById('statHoy').textContent    = cH;
+    document.getElementById('statSemana').textContent = cS;
+    document.getElementById('statMes').textContent    = cM;
+    document.getElementById('statTotal').textContent  = eventos.length;
+  }
+
+  // ── RENDER EVENTO ────────────────────────────────────────
+  function renderEvento(arg) {
+    const p = arg.event.extendedProps;
+    const wrap = document.createElement('div');
+    wrap.className = 'ag-ev';
+
+    const iconClass = p.icono || 'bi-calendar-event';
+    const rs = p.red_social ? `<span class="ag-ev-rs">${p.red_social}</span>` : '';
+    wrap.innerHTML = `
+      <i class="bi ${iconClass} ag-ev-ico"></i>
+      <span class="ag-ev-title">${arg.event.title}</span>
+      ${rs}
+    `;
+    return { domNodes: [wrap] };
+  }
+
+  // ── CALENDARIO ───────────────────────────────────────────
+  let calInstance = null;
+  const isMobile  = () => window.innerWidth < 768;
+
+  const cal = new FullCalendar.Calendar(document.getElementById('agenda-cal'), {
+    locale: 'es',
+    initialView: isMobile() ? 'listMonth' : 'dayGridMonth',
+    firstDay: 1,
+    headerToolbar: isMobile()
+      ? { left:'prev,next', center:'title', right:'today' }
+      : { left:'prev,next today', center:'title', right:'dayGridMonth,listMonth' },
+    buttonText: { today:'Hoy', month:'Mes', list:'Lista' },
+    dayMaxEvents: 5,
+    nowIndicator: true,
+    height: 'auto',
+    eventContent: renderEvento,
+
+    eventSources: [{
+      url: '/agenda/api/eventos',
+      method: 'GET',
+      success: function(evs) { calcStats(evs); },
+    }],
+
+    // Filtro client-side después de cargar
+    eventDidMount: function(info) {
+      const emp = info.event.extendedProps.empresa;
+      if (!empresasActivas.has(emp)) {
+        info.el.style.display = 'none';
+      }
+    },
+
+    // Click en día vacío → nueva entrada con fecha
+    dateClick: function(info) {
+      window.location.href = `/agenda/entradas/nueva?fecha=${info.dateStr}`;
+    },
+
+    // Click en evento → modal detalle
+    eventClick: function(info) {
+      const ev = info.event;
+      const p  = ev.extendedProps;
+      const id = ev.id;
+
+      // Color header según empresa
+      const empColors = { autoclub:'#2563EB', feeling:'#AD1726', ambas:'#7C3AED' };
+      const hdrColor  = empColors[p.empresa] || '#0D0D0D';
+      document.getElementById('modalHdr').style.background = hdrColor;
+
+      // Icono
+      const ico = document.getElementById('modalIco');
+      ico.style.background = 'rgba(255,255,255,.18)';
+      ico.innerHTML = `<i class="bi ${p.icono || 'bi-calendar-event'}"></i>`;
+
+      document.getElementById('modalTitle').textContent = ev.title;
+
+      // Fecha formateada
+      const f = ev.start;
+      const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+      document.getElementById('modalFecha').textContent =
+        `${f.getDate()} de ${meses[f.getMonth()]} de ${f.getFullYear()}`;
+
+      // Badges header
+      const badgesEl = document.getElementById('modalBadges');
+      badgesEl.innerHTML = `<span class="ag-badge">${p.empresa_label}</span><span class="ag-badge">${p.tipo_label}</span>`;
+
+      // Grid detalle
+      document.getElementById('modalEmpresa').textContent = p.empresa_label;
+      document.getElementById('modalTipo').textContent    = p.tipo_label;
+
+      const rsRow = document.getElementById('modalRSRow');
+      if (p.red_social) {
+        document.getElementById('modalRS').textContent = p.red_social_label || p.red_social;
+        rsRow.classList.remove('d-none');
+      } else {
+        rsRow.classList.add('d-none');
+      }
+
+      // Estado
+      const estadoColors = { planificado:'#F59E0B', publicado:'#10B981', cancelado:'#6B7280' };
+      const ec = estadoColors[p.estado] || '#6B7280';
+      document.getElementById('modalEstado').innerHTML =
+        `<span class="ag-estado-pill" style="background:${ec}22;color:${ec}">${p.estado_label}</span>`;
+
+      // Temáticas
+      const temsWrap = document.getElementById('modalTemsWrap');
+      const temsEl   = document.getElementById('modalTems');
+      if (p.tematicas && p.tematicas.length > 0) {
+        temsEl.innerHTML = p.tematicas.map(t =>
+          `<span class="tem-chip active" style="background:${t.color}22;color:${t.color};border-color:${t.color}44">
+            <span class="tem-dot" style="background:${t.color}"></span>${t.nombre}
+          </span>`
+        ).join('');
+        temsWrap.classList.remove('d-none');
+      } else {
+        temsWrap.classList.add('d-none');
+      }
+
+      // Descripción
+      const descWrap = document.getElementById('modalDescWrap');
+      if (p.descripcion) {
+        document.getElementById('modalDesc').textContent = p.descripcion;
+        descWrap.classList.remove('d-none');
+      } else {
+        descWrap.classList.add('d-none');
+      }
+
+      // Botones
+      document.getElementById('modalEditarBtn').href = `/agenda/entradas/${id}/editar`;
+      document.getElementById('modalEliminarForm').action = `/agenda/entradas/${id}/eliminar`;
+
+      modal.show();
+    },
+  });
+
+  cal.render();
+  calInstance = cal;
+
+  // Re-aplicar filtro empresa cuando cambian
+  // (refetchEvents vuelve a llamar eventDidMount)
+});
+</script>
+{% endblock %}

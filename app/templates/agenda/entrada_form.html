@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+{% block title %}{% if entrada %}Editar entrada{% else %}Nueva entrada{% endif %}{% endblock %}
+{% block page_title %}{% if entrada %}Editar entrada{% else %}Nueva entrada en agenda{% endif %}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('agenda.index') }}" class="btn btn-outline-secondary btn-sm">
+  <i class="bi bi-arrow-left me-1"></i>Volver
+</a>
+{% endblock %}
+
+{% block head %}
+<style>
+.form-card {
+  background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden;
+  max-width:760px;
+}
+.form-card-hdr {
+  padding:18px 24px 14px; border-bottom:1px solid var(--border);
+  background:var(--gray-50); display:flex; align-items:center; gap:10px;
+}
+.form-card-hdr-icon {
+  width:36px;height:36px;border-radius:9px;display:flex;align-items:center;
+  justify-content:center;font-size:.95rem;background:var(--red-light);color:var(--red);flex-shrink:0;
+}
+.form-card-hdr-title { font-size:.9rem;font-weight:700;color:var(--black); }
+.form-card-body { padding:22px 24px; }
+.form-section-title {
+  font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;
+  color:var(--gray-400);margin-bottom:12px;margin-top:20px;padding-top:20px;
+  border-top:1px solid var(--border);
+}
+.form-section-title:first-child { margin-top:0;padding-top:0;border-top:none; }
+
+/* Empresa selector */
+.empresa-radio-grp { display:flex;gap:8px;flex-wrap:wrap; }
+.empresa-radio-item { display:none; }
+.empresa-radio-label {
+  display:flex;align-items:center;gap:7px;
+  padding:8px 14px;border-radius:8px;cursor:pointer;
+  border:2px solid var(--border);background:#fff;
+  font-size:.82rem;font-weight:600;color:var(--gray-600);
+  transition:all .15s; user-select:none;
+}
+.empresa-radio-label .dot { width:10px;height:10px;border-radius:50%;flex-shrink:0; }
+.empresa-radio-item:checked + .empresa-radio-label { color:var(--black); }
+.empresa-radio-item[value="autoclub"]:checked + .empresa-radio-label { border-color:#2563EB;background:#eff6ff; }
+.empresa-radio-item[value="feeling"]:checked  + .empresa-radio-label { border-color:#AD1726;background:#fff1f2; }
+.empresa-radio-item[value="ambas"]:checked    + .empresa-radio-label { border-color:#7C3AED;background:#f5f3ff; }
+
+/* Temáticas multi-select */
+.tematica-checks { display:flex;flex-wrap:wrap;gap:7px; }
+.tematica-cb { display:none; }
+.tematica-lbl {
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:20px;cursor:pointer;
+  border:2px solid transparent;font-size:.75rem;font-weight:600;
+  transition:all .15s;opacity:.5;
+}
+.tematica-cb:checked + .tematica-lbl { opacity:1; }
+
+.tematica-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+
+.rs-wrap { display:none; }
+.rs-wrap.show { display:block; }
+
+/* Estado pills */
+.estado-radio-grp { display:flex;gap:8px;flex-wrap:wrap; }
+.estado-radio-item { display:none; }
+.estado-radio-label {
+  padding:7px 14px;border-radius:8px;cursor:pointer;
+  border:2px solid var(--border);background:#fff;
+  font-size:.82rem;font-weight:600;color:var(--gray-600);
+  transition:all .15s;user-select:none;display:flex;align-items:center;gap:6px;
+}
+.estado-radio-item[value="planificado"]:checked + .estado-radio-label { border-color:#F59E0B;background:#fffbeb;color:#b45309; }
+.estado-radio-item[value="publicado"]:checked   + .estado-radio-label { border-color:#10B981;background:#ecfdf5;color:#065f46; }
+.estado-radio-item[value="cancelado"]:checked   + .estado-radio-label { border-color:#6B7280;background:#f9fafb;color:#374151; }
+.estado-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% set vals = prefill if not entrada else {} %}
+{% set fecha_val  = entrada.fecha.isoformat()  if entrada else vals.get('fecha','') %}
+{% set titulo_val = entrada.titulo             if entrada else vals.get('titulo','') %}
+{% set emp_val    = entrada.empresa            if entrada else vals.get('empresa','feeling') %}
+{% set tipo_val   = entrada.tipo               if entrada else vals.get('tipo','rrss_evento') %}
+{% set rs_val     = entrada.red_social         if entrada else vals.get('red_social','') %}
+{% set desc_val   = entrada.descripcion        if entrada else vals.get('descripcion','') %}
+{% set url_val    = entrada.url                if entrada else vals.get('url','') %}
+{% set estado_val = entrada.estado             if entrada else vals.get('estado','planificado') %}
+{% set notas_val  = entrada.notas              if entrada else vals.get('notas','') %}
+{% set sel_tems   = entrada.tematicas|map(attribute='id')|list if entrada else [] %}
+
+<div class="form-card">
+  <div class="form-card-hdr">
+    <div class="form-card-hdr-icon"><i class="bi bi-calendar-plus"></i></div>
+    <div>
+      <div class="form-card-hdr-title">
+        {% if entrada %}Editar entrada — {{ entrada.fecha.strftime('%d/%m/%Y') }}{% else %}Nueva entrada en agenda{% endif %}
+      </div>
+      <div style="font-size:.74rem;color:var(--gray-400);margin-top:1px">
+        Completa los campos y asigna las temáticas correspondientes
+      </div>
+    </div>
+  </div>
+
+  <div class="form-card-body">
+    <form method="POST">
+
+      <!-- ── DATOS BÁSICOS ── -->
+      <div class="form-section-title">Datos básicos</div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold" style="font-size:.82rem">Fecha <span class="text-danger">*</span></label>
+          <input type="date" name="fecha" class="form-control form-control-sm"
+                 value="{{ fecha_val }}" required />
+        </div>
+        <div class="col-md-8">
+          <label class="form-label fw-semibold" style="font-size:.82rem">Título <span class="text-danger">*</span></label>
+          <input type="text" name="titulo" class="form-control form-control-sm"
+                 placeholder="Ej: Post carrera Circuito de Jerez…"
+                 value="{{ titulo_val }}" required maxlength="200" />
+        </div>
+      </div>
+
+      <!-- ── EMPRESA ── -->
+      <div class="form-section-title">Empresa</div>
+      <div class="empresa-radio-grp mb-3">
+        {% for val, lbl in empresas %}
+        {% set dot_colors = {'autoclub':'#2563EB','feeling':'#AD1726','ambas':'#7C3AED'} %}
+        <input type="radio" class="empresa-radio-item" name="empresa"
+               id="emp_{{ val }}" value="{{ val }}"
+               {% if emp_val == val %}checked{% endif %} />
+        <label class="empresa-radio-label" for="emp_{{ val }}">
+          <span class="dot" style="background:{{ dot_colors[val] }}"></span>
+          {{ lbl }}
+        </label>
+        {% endfor %}
+      </div>
+
+      <!-- ── TIPO ── -->
+      <div class="form-section-title">Tipo de publicación / actividad</div>
+
+      <div class="row g-3 mb-0">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold" style="font-size:.82rem">Tipo</label>
+          <select name="tipo" id="tipoSelect" class="form-select form-select-sm">
+            <optgroup label="Publicaciones RRSS">
+              {% for val, lbl in tipos %}{% if val.startswith('rrss_') %}
+              <option value="{{ val }}" {% if tipo_val==val %}selected{% endif %}>{{ lbl }}</option>
+              {% endif %}{% endfor %}
+            </optgroup>
+            <optgroup label="Circuito">
+              {% for val, lbl in tipos %}{% if val in ('pista_abierta','actividad_circuito') %}
+              <option value="{{ val }}" {% if tipo_val==val %}selected{% endif %}>{{ lbl }}</option>
+              {% endif %}{% endfor %}
+            </optgroup>
+            <optgroup label="Otros">
+              {% for val, lbl in tipos %}{% if val not in ('pista_abierta','actividad_circuito') and not val.startswith('rrss_') %}
+              <option value="{{ val }}" {% if tipo_val==val %}selected{% endif %}>{{ lbl }}</option>
+              {% endif %}{% endfor %}
+            </optgroup>
+          </select>
+        </div>
+
+        <div class="col-md-6 rs-wrap" id="rsWrap">
+          <label class="form-label fw-semibold" style="font-size:.82rem">Red social</label>
+          <select name="red_social" class="form-select form-select-sm">
+            <option value="">— Sin especificar —</option>
+            {% for val, lbl in redes %}
+            <option value="{{ val }}" {% if rs_val==val %}selected{% endif %}>{{ lbl }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- ── ESTADO ── -->
+      <div class="form-section-title">Estado</div>
+      <div class="estado-radio-grp mb-3">
+        {% set estado_dots = {'planificado':'#F59E0B','publicado':'#10B981','cancelado':'#6B7280'} %}
+        {% for val, lbl in estados %}
+        <input type="radio" class="estado-radio-item" name="estado"
+               id="est_{{ val }}" value="{{ val }}"
+               {% if estado_val == val %}checked{% endif %} />
+        <label class="estado-radio-label" for="est_{{ val }}">
+          <span class="estado-dot" style="background:{{ estado_dots[val] }}"></span>
+          {{ lbl }}
+        </label>
+        {% endfor %}
+      </div>
+
+      <!-- ── TEMÁTICAS ── -->
+      {% if tematicas %}
+      <div class="form-section-title">Temáticas asociadas</div>
+      <div class="tematica-checks mb-1">
+        {% for t in tematicas %}
+        <input type="checkbox" class="tematica-cb" name="tematicas"
+               id="tem_{{ t.id }}" value="{{ t.id }}"
+               {% if t.id in sel_tems %}checked{% endif %} />
+        <label class="tematica-lbl" for="tem_{{ t.id }}"
+               style="background:{{ t.color }}22;color:{{ t.color }};border-color:{{ t.color }}55">
+          <span class="tematica-dot" style="background:{{ t.color }}"></span>
+          {{ t.nombre }}
+          <small style="opacity:.7;font-size:.65rem">({{ t.empresa_label }})</small>
+        </label>
+        {% endfor %}
+      </div>
+      <p style="font-size:.72rem;color:var(--gray-400);margin-bottom:0">
+        Puedes crear más en <a href="{{ url_for('agenda.tematicas') }}">Gestión de temáticas</a>.
+      </p>
+      {% else %}
+      <div class="form-section-title">Temáticas</div>
+      <p style="font-size:.82rem;color:var(--gray-400)">
+        Aún no hay temáticas. <a href="{{ url_for('agenda.tematicas') }}">Créalas aquí</a> para poder asignarlas.
+      </p>
+      {% endif %}
+
+      <!-- ── DESCRIPCIÓN / NOTAS ── -->
+      <div class="form-section-title">Descripción y notas</div>
+      <div class="row g-3 mb-3">
+        <div class="col-12">
+          <label class="form-label fw-semibold" style="font-size:.82rem">Descripción del contenido</label>
+          <textarea name="descripcion" class="form-control form-control-sm" rows="3"
+                    placeholder="Texto del post, ideas, copy…">{{ desc_val }}</textarea>
+        </div>
+        <div class="col-md-8">
+          <label class="form-label fw-semibold" style="font-size:.82rem">URL del post</label>
+          <input type="url" name="url" class="form-control form-control-sm"
+                 placeholder="https://instagram.com/p/…"
+                 value="{{ url_val }}" />
+          <div class="form-text" style="font-size:.72rem">Opcional. Enlace a la publicación una vez esté publicada.</div>
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold" style="font-size:.82rem">Notas internas</label>
+          <textarea name="notas" class="form-control form-control-sm" rows="2"
+                    placeholder="Observaciones, pendientes, ideas adicionales…">{{ notas_val }}</textarea>
+        </div>
+      </div>
+
+      <!-- ── ACCIONES ── -->
+      <div class="d-flex gap-2 pt-2 border-top" style="margin-top:4px">
+        <button type="submit" class="btn btn-primary btn-sm">
+          <i class="bi bi-check-lg me-1"></i>
+          {% if entrada %}Guardar cambios{% else %}Añadir a agenda{% endif %}
+        </button>
+        <a href="{{ url_for('agenda.index') }}" class="btn btn-outline-secondary btn-sm">Cancelar</a>
+        {% if entrada %}
+        <form method="POST" action="{{ url_for('agenda.eliminar_entrada', id=entrada.id) }}"
+              class="ms-auto" onsubmit="return confirm('¿Eliminar esta entrada?')">
+          <button type="submit" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-trash me-1"></i>Eliminar
+          </button>
+        </form>
+        {% endif %}
+      </div>
+
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const tipoSel = document.getElementById('tipoSelect');
+  const rsWrap  = document.getElementById('rsWrap');
+
+  function toggleRS() {
+    if (tipoSel.value.startsWith('rrss_')) {
+      rsWrap.classList.add('show');
+    } else {
+      rsWrap.classList.remove('show');
+    }
+  }
+
+  tipoSel.addEventListener('change', toggleRS);
+  toggleRS();
+})();
+</script>
+{% endblock %}

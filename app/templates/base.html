@@ -57,6 +57,12 @@
       <i class="bi bi-bar-chart-line"></i><span>Estadísticas</span>
     </a>
 
+    <a href="{{ url_for('agenda.index') }}"
+       class="nav-item {% if 'agenda' in (request.endpoint or '') %}active{% endif %}"
+       data-tooltip="Agenda social">
+      <i class="bi bi-megaphone"></i><span>Agenda social</span>
+    </a>
+
     <div class="nav-section-label">Integración</div>
 
     <a href="{{ url_for('woocommerce.index') }}"

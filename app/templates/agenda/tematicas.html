@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+{% block title %}Temáticas{% endblock %}
+{% block page_title %}Temáticas de agenda{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('agenda.index') }}" class="btn btn-outline-secondary btn-sm me-1">
+  <i class="bi bi-arrow-left me-1"></i>Agenda
+</a>
+<button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalNueva">
+  <i class="bi bi-plus-lg me-1"></i>Nueva temática
+</button>
+{% endblock %}
+
+{% block head %}
+<style>
+.tems-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px; }
+.tem-card {
+  background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;
+  transition:box-shadow .15s;
+}
+.tem-card:hover { box-shadow:0 4px 18px rgba(0,0,0,.09); }
+.tem-card-stripe { height:4px; }
+.tem-card-body { padding:14px 16px; }
+.tem-card-name { font-size:.88rem;font-weight:700;color:var(--black);margin-bottom:3px; }
+.tem-card-meta { font-size:.73rem;color:var(--gray-400);display:flex;gap:10px;flex-wrap:wrap; }
+.tem-card-desc { font-size:.78rem;color:var(--gray-500);margin-top:6px;line-height:1.45; }
+.tem-card-foot {
+  padding:10px 14px;border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--gray-50);
+}
+.inactivo-badge { font-size:.68rem;font-weight:600;padding:2px 7px;border-radius:20px;background:#f3f4f6;color:var(--gray-500); }
+
+.emp-group-label {
+  font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;
+  color:var(--gray-500);margin-bottom:10px;margin-top:22px;display:flex;align-items:center;gap:7px;
+}
+.emp-group-label:first-child { margin-top:0; }
+.emp-dot { width:9px;height:9px;border-radius:50%; }
+
+.color-swatch { width:22px;height:22px;border-radius:5px;border:1px solid rgba(0,0,0,.12);flex-shrink:0; }
+
+/* Modal */
+.modal-content { border:none !important;border-radius:14px !important;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.15) !important; }
+.modal-header { padding:18px 22px 14px !important;border-bottom:1px solid var(--border) !important;background:var(--gray-50); }
+.modal-footer { padding:12px 22px !important;border-top:1px solid var(--border) !important;background:var(--gray-50); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Stats row -->
+{% set tot       = tematicas|length %}
+{% set n_auto    = tematicas|selectattr('empresa','eq','autoclub')|list|length %}
+{% set n_feel    = tematicas|selectattr('empresa','eq','feeling')|list|length %}
+{% set n_ambas   = tematicas|selectattr('empresa','eq','ambas')|list|length %}
+{% set n_inact   = tematicas|rejectattr('activo')|list|length %}
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:22px">
+  <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px">
+    <div style="width:34px;height:34px;border-radius:8px;background:#f5f3ff;color:#7c3aed;display:flex;align-items:center;justify-content:center;font-size:.9rem">
+      <i class="bi bi-bookmarks"></i>
+    </div>
+    <div><div style="font-size:1.3rem;font-weight:800;line-height:1">{{ tot }}</div><div style="font-size:.7rem;color:var(--gray-400);font-weight:500">Total</div></div>
+  </div>
+  <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px">
+    <div style="width:34px;height:34px;border-radius:8px;background:#dbeafe;color:#2563EB;display:flex;align-items:center;justify-content:center;font-size:.9rem">
+      <i class="bi bi-building"></i>
+    </div>
+    <div><div style="font-size:1.3rem;font-weight:800;line-height:1">{{ n_auto }}</div><div style="font-size:.7rem;color:var(--gray-400);font-weight:500">Autoclub</div></div>
+  </div>
+  <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px">
+    <div style="width:34px;height:34px;border-radius:8px;background:#fff1f2;color:#AD1726;display:flex;align-items:center;justify-content:center;font-size:.9rem">
+      <i class="bi bi-heart"></i>
+    </div>
+    <div><div style="font-size:1.3rem;font-weight:800;line-height:1">{{ n_feel }}</div><div style="font-size:.7rem;color:var(--gray-400);font-weight:500">Feeling</div></div>
+  </div>
+  <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px">
+    <div style="width:34px;height:34px;border-radius:8px;background:#f5f3ff;color:#7C3AED;display:flex;align-items:center;justify-content:center;font-size:.9rem">
+      <i class="bi bi-layers"></i>
+    </div>
+    <div><div style="font-size:1.3rem;font-weight:800;line-height:1">{{ n_ambas }}</div><div style="font-size:.7rem;color:var(--gray-400);font-weight:500">Ambas</div></div>
+  </div>
+</div>
+
+{% if tematicas %}
+
+{% set grupos = [
+  ('autoclub', 'Autoclub',       '#2563EB'),
+  ('feeling',  'Feeling',        '#AD1726'),
+  ('ambas',    'Ambas empresas', '#7C3AED'),
+] %}
+
+{% for emp_val, emp_lbl, emp_color in grupos %}
+{% set items = tematicas|selectattr('empresa','eq',emp_val)|list %}
+{% if items %}
+<div class="emp-group-label">
+  <span class="emp-dot" style="background:{{ emp_color }}"></span>{{ emp_lbl }}
+  <span style="font-size:.68rem;font-weight:600;background:{{ emp_color }}18;color:{{ emp_color }};padding:1px 7px;border-radius:20px">{{ items|length }}</span>
+</div>
+<div class="tems-grid mb-4">
+  {% for t in items %}
+  <div class="tem-card">
+    <div class="tem-card-stripe" style="background:{{ t.color }}"></div>
+    <div class="tem-card-body">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+        <span class="color-swatch" style="background:{{ t.color }}"></span>
+        <div class="tem-card-name">{{ t.nombre }}</div>
+        {% if not t.activo %}
+        <span class="inactivo-badge ms-auto">Inactiva</span>
+        {% endif %}
+      </div>
+      <div class="tem-card-meta">
+        <span><i class="bi bi-tag me-1"></i>{{ t.tipo_label }}</span>
+        <span><i class="bi bi-collection me-1"></i>{{ t.entradas|length }} entrada{{ 's' if t.entradas|length != 1 else '' }}</span>
+      </div>
+      {% if t.descripcion %}
+      <div class="tem-card-desc">{{ t.descripcion }}</div>
+      {% endif %}
+    </div>
+    <div class="tem-card-foot">
+      <span style="font-size:.7rem;color:var(--gray-400)">
+        Creada {{ t.creado_en.strftime('%d/%m/%Y') }}
+      </span>
+      <div class="d-flex gap-1">
+        <button class="btn btn-outline-secondary btn-sm py-0 px-2"
+                style="font-size:.75rem"
+                onclick="abrirEditar(
+                  {{ t.id }},
+                  '{{ t.nombre|e }}',
+                  '{{ t.descripcion|e }}',
+                  '{{ t.empresa }}',
+                  '{{ t.tipo }}',
+                  '{{ t.color }}',
+                  {{ 1 if t.activo else 0 }}
+                )">
+          <i class="bi bi-pencil"></i>
+        </button>
+        <form method="POST" action="{{ url_for('agenda.eliminar_tematica', id=t.id) }}"
+              onsubmit="return confirm('¿Eliminar «{{ t.nombre }}»? Se desasociará de todas las entradas.')">
+          <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2" style="font-size:.75rem">
+            <i class="bi bi-trash"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endfor %}
+
+{% else %}
+<div style="text-align:center;padding:60px 20px;background:#fff;border:1px solid var(--border);border-radius:12px">
+  <i class="bi bi-bookmarks" style="font-size:2.5rem;color:var(--gray-200);display:block;margin-bottom:14px"></i>
+  <div style="font-size:.95rem;font-weight:700;color:var(--gray-600);margin-bottom:6px">Sin temáticas</div>
+  <div style="font-size:.82rem;color:var(--gray-400);margin-bottom:20px">
+    Crea temáticas reutilizables para organizar y etiquetar las entradas de la agenda.
+  </div>
+  <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalNueva">
+    <i class="bi bi-plus-lg me-1"></i>Crear primera temática
+  </button>
+</div>
+{% endif %}
+
+
+<!-- ── MODAL NUEVA TEMÁTICA ── -->
+<div class="modal fade" id="modalNueva" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:480px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title fw-bold" style="font-size:.9rem">
+          <i class="bi bi-bookmark-plus text-primary me-2"></i>Nueva temática
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('agenda.nueva_tematica') }}">
+        <div class="modal-body" style="padding:20px 22px">
+          <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size:.82rem">Nombre <span class="text-danger">*</span></label>
+            <input type="text" name="nombre" class="form-control form-control-sm"
+                   placeholder="Ej: GP Jerez, Carrera Autoclub, Black Friday…" required maxlength="120" />
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" style="font-size:.82rem">Empresa</label>
+              <select name="empresa" class="form-select form-select-sm">
+                {% for val, lbl in empresas %}
+                <option value="{{ val }}">{{ lbl }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" style="font-size:.82rem">Tipo</label>
+              <select name="tipo" class="form-select form-select-sm">
+                {% for val, lbl in tipos %}
+                <option value="{{ val }}">{{ lbl }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size:.82rem">Color identificativo</label>
+            <div style="display:flex;align-items:center;gap:10px">
+              <input type="color" name="color" value="#6B7280"
+                     style="width:40px;height:34px;border:1px solid var(--border);border-radius:7px;cursor:pointer;padding:2px" />
+              <span style="font-size:.78rem;color:var(--gray-400)">Elige un color para identificarla visualmente en la agenda</span>
+            </div>
+          </div>
+          <div>
+            <label class="form-label fw-semibold" style="font-size:.82rem">Descripción</label>
+            <textarea name="descripcion" class="form-control form-control-sm" rows="2"
+                      placeholder="Notas opcionales sobre esta temática…"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Crear temática</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── MODAL EDITAR TEMÁTICA ── -->
+<div class="modal fade" id="modalEditar" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:480px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title fw-bold" style="font-size:.9rem">
+          <i class="bi bi-pencil text-primary me-2"></i>Editar temática
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" id="formEditar">
+        <div class="modal-body" style="padding:20px 22px">
+          <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size:.82rem">Nombre <span class="text-danger">*</span></label>
+            <input type="text" name="nombre" id="editNombre" class="form-control form-control-sm" required maxlength="120" />
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" style="font-size:.82rem">Empresa</label>
+              <select name="empresa" id="editEmpresa" class="form-select form-select-sm">
+                {% for val, lbl in empresas %}
+                <option value="{{ val }}">{{ lbl }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" style="font-size:.82rem">Tipo</label>
+              <select name="tipo" id="editTipo" class="form-select form-select-sm">
+                {% for val, lbl in tipos %}
+                <option value="{{ val }}">{{ lbl }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" style="font-size:.82rem">Color</label>
+              <div style="display:flex;align-items:center;gap:10px">
+                <input type="color" name="color" id="editColor"
+                       style="width:40px;height:34px;border:1px solid var(--border);border-radius:7px;cursor:pointer;padding:2px" />
+              </div>
+            </div>
+            <div class="col-md-6 d-flex align-items-end">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="activo" id="editActivo" value="1" />
+                <label class="form-check-label" for="editActivo" style="font-size:.82rem;font-weight:600">
+                  Activa
+                </label>
+              </div>
+            </div>
+          </div>
+          <div>
+            <label class="form-label fw-semibold" style="font-size:.82rem">Descripción</label>
+            <textarea name="descripcion" id="editDesc" class="form-control form-control-sm" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Guardar</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function abrirEditar(id, nombre, desc, empresa, tipo, color, activo) {
+  document.getElementById('formEditar').action = `/agenda/tematicas/${id}/editar`;
+  document.getElementById('editNombre').value  = nombre;
+  document.getElementById('editDesc').value    = desc;
+  document.getElementById('editColor').value   = color;
+  document.getElementById('editActivo').checked = activo === 1;
+  document.getElementById('editEmpresa').value = empresa;
+  document.getElementById('editTipo').value    = tipo;
+  new bootstrap.Modal(document.getElementById('modalEditar')).show();
+}
+</script>
+{% endblock %}

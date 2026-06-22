@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}Trazabilidad — Marketing{% endblock %}
+{% block page_title %}Trazabilidad de marketing{% endblock %}
+
+{% block content %}
+<div class="card mb-3">{% include 'marketing/_logs_tabs.html' %}</div>
+
+<!-- ── Buscador ──────────────────────────────────────────────────────────── -->
+<form method="GET" action="{{ url_for('marketing.trazabilidad') }}" id="filterForm">
+<div class="card mb-3">
+  <div class="card-body py-3">
+    <div class="row g-2 align-items-end">
+
+      <div class="col-md-6">
+        <label class="form-label form-label-sm fw-semibold">
+          <i class="bi bi-search me-1"></i>Buscar cliente o empresa
+        </label>
+        <div class="input-group input-group-sm">
+          <input type="text" name="q" class="form-control" value="{{ q }}"
+                 placeholder="Nombre…" autocomplete="off">
+          <button class="btn btn-primary" type="submit">
+            <i class="bi bi-search"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label form-label-sm fw-semibold">Tipo</label>
+        <select name="tipo" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value=""         {% if not tipo %}selected{% endif %}>Todos</option>
+          <option value="cliente"  {% if tipo=='cliente'  %}selected{% endif %}>Clientes B2C</option>
+          <option value="empresa"  {% if tipo=='empresa'  %}selected{% endif %}>Empresas B2B</option>
+        </select>
+      </div>
+
+      <div class="col-md-3 d-flex align-items-end gap-2">
+        {% if q or tipo %}
+        <a href="{{ url_for('marketing.trazabilidad') }}"
+           class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-x-circle me-1"></i>Limpiar
+        </a>
+        {% endif %}
+        <span class="text-xs text-muted ms-auto">
+          {{ total_entidades }} con actividad
+        </span>
+      </div>
+
+    </div>
+  </div>
+</div>
+</form>
+
+<!-- ── Resultados ─────────────────────────────────────────────────────────── -->
+{% if not resultados.items %}
+<div class="card">
+  <div class="card-body text-center py-5">
+    <i class="bi bi-person-lines-fill" style="font-size:2.5rem;opacity:.2"></i>
+    <p class="text-muted mt-3 mb-1">
+      {% if q %}No se encontraron resultados para «{{ q }}»{% else %}Sin actividad de marketing registrada{% endif %}
+    </p>
+    {% if q %}
+    <a href="{{ url_for('marketing.trazabilidad') }}" class="btn btn-sm btn-outline-secondary mt-2">
+      Ver todos
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+{% else %}
+<div class="card">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="bi bi-person-lines-fill" style="color:var(--red)"></i>
+    <h6 class="mb-0">Fichas de trazabilidad</h6>
+    <span class="badge ms-auto" style="background:var(--red-light);color:var(--red)">
+      {{ resultados.total }}
+    </span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0" style="font-size:.85rem">
+      <thead>
+        <tr>
+          <th style="width:36px"></th>
+          <th>Nombre</th>
+          <th style="width:90px">Tipo</th>
+          <th style="width:80px">Acciones</th>
+          <th style="width:140px">Última actividad</th>
+          <th style="width:44px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in resultados.items %}
+        {% set es_cliente = row.entidad == 'cliente' %}
+        <tr style="cursor:pointer"
+            onclick="window.location='{{ url_for('marketing.trazabilidad_detalle', entidad=row.entidad, eid=row.entidad_id) }}'">
+
+          <!-- Avatar -->
+          <td>
+            <div style="width:30px;height:30px;border-radius:8px;flex-shrink:0;
+                        display:flex;align-items:center;justify-content:center;
+                        background:{{ 'rgba(99,102,241,.1)' if es_cliente else 'rgba(173,23,38,.08)' }}">
+              <i class="bi {{ 'bi-person-fill' if es_cliente else 'bi-building' }}"
+                 style="font-size:.8rem;color:{{ '#6366F1' if es_cliente else 'var(--red)' }}"></i>
+            </div>
+          </td>
+
+          <!-- Nombre -->
+          <td>
+            <div class="fw-semibold" style="color:var(--black)">{{ row.entidad_nombre }}</div>
+          </td>
+
+          <!-- Tipo -->
+          <td>
+            <span class="badge" style="font-size:.68rem;
+              background:{{ 'rgba(99,102,241,.1)' if es_cliente else 'rgba(173,23,38,.08)' }};
+              color:{{ '#4F46E5' if es_cliente else 'var(--red)' }}">
+              {{ 'B2C' if es_cliente else 'B2B' }}
+            </span>
+          </td>
+
+          <!-- Total acciones -->
+          <td>
+            <span class="fw-semibold">{{ row.total }}</span>
+            <span class="text-muted text-xs ms-1">eventos</span>
+          </td>
+
+          <!-- Última actividad -->
+          <td class="text-xs text-muted">
+            {% if row.ultima %}
+              {{ row.ultima.strftime('%d/%m/%Y') }}
+              <span style="opacity:.55">· {{ row.ultima.strftime('%H:%M') }}</span>
+            {% else %}—{% endif %}
+          </td>
+
+          <!-- Acción -->
+          <td>
+            <a href="{{ url_for('marketing.trazabilidad_detalle', entidad=row.entidad, eid=row.entidad_id) }}"
+               class="btn btn-xs btn-outline-secondary"
+               onclick="event.stopPropagation()">
+              <i class="bi bi-arrow-right"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginación -->
+  {% if resultados.pages > 1 %}
+  <div class="card-footer d-flex align-items-center justify-content-between py-2">
+    <span class="text-xs text-muted">
+      {{ resultados.total }} resultados · página {{ resultados.page }} de {{ resultados.pages }}
+    </span>
+    <div class="d-flex gap-1">
+      {% if resultados.has_prev %}
+      <a href="{{ url_for('marketing.trazabilidad', q=q, tipo=tipo, page=resultados.prev_num) }}"
+         class="btn btn-xs btn-outline-secondary">
+        <i class="bi bi-chevron-left"></i>
+      </a>
+      {% endif %}
+      {% if resultados.has_next %}
+      <a href="{{ url_for('marketing.trazabilidad', q=q, tipo=tipo, page=resultados.next_num) }}"
+         class="btn btn-xs btn-outline-secondary">
+        <i class="bi bi-chevron-right"></i>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endif %}
+{% endblock %}

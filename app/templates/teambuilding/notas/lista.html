@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Notas de empresas — Team Building{% endblock %}
+{% block page_title %}Notas de empresas{% endblock %}
+
+{% block content %}
+
+<!-- ── Buscador + stats ──────────────────────────────────────────────────── -->
+<div class="card mb-3">
+  <div class="card-body py-3">
+    <div class="row g-2 align-items-center">
+      <div class="col-md-6">
+        <form method="GET" action="{{ url_for('teambuilding.notas_lista') }}">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-white">
+              <i class="bi bi-search text-muted"></i>
+            </span>
+            <input type="text" name="q" class="form-control border-start-0"
+                   value="{{ q }}" placeholder="Buscar por empresa o contenido…"
+                   autocomplete="off">
+            <button class="btn btn-primary" type="submit">Buscar</button>
+            {% if q %}
+            <a href="{{ url_for('teambuilding.notas_lista') }}"
+               class="btn btn-outline-secondary">
+              <i class="bi bi-x"></i>
+            </a>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+      <div class="col-auto ms-auto">
+        <div class="d-flex align-items-center gap-2">
+          <div style="width:32px;height:32px;border-radius:8px;
+                      background:rgba(245,158,11,.12);
+                      display:flex;align-items:center;justify-content:center">
+            <i class="bi bi-journal-text" style="color:#F59E0B;font-size:.9rem"></i>
+          </div>
+          <div>
+            <div class="fw-semibold" style="font-size:.88rem">{{ total }} nota{{ 's' if total != 1 }}</div>
+            <div class="text-xs text-muted">en total</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Lista de notas ────────────────────────────────────────────────────── -->
+{% if not notas.items %}
+<div class="card">
+  <div class="card-body text-center py-5">
+    <i class="bi bi-journal-x" style="font-size:2.5rem;opacity:.2"></i>
+    <p class="text-muted mt-3 mb-1">
+      {% if q %}Sin resultados para «{{ q }}»{% else %}Aún no hay notas registradas{% endif %}
+    </p>
+    <p class="text-xs text-muted">
+      Usa el botón <i class="bi bi-journal-plus text-warning"></i> en la lista de empresas para añadir una nota.
+    </p>
+  </div>
+</div>
+
+{% else %}
+<div class="card">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="bi bi-journal-text" style="color:#F59E0B"></i>
+    <h6 class="mb-0">Notas recientes</h6>
+    <span class="badge ms-auto" style="background:rgba(245,158,11,.12);color:#92400E">
+      {{ notas.total }}
+    </span>
+  </div>
+
+  <div class="card-body p-0">
+    {% for nota in notas.items %}
+    <div class="d-flex gap-3 px-4 py-3"
+         style="border-bottom:1px solid var(--border-light){% if loop.last %};border-bottom:none{% endif %}">
+
+      <!-- Avatar empresa -->
+      <div style="flex-shrink:0;padding-top:2px">
+        <div style="width:34px;height:34px;border-radius:9px;
+                    display:flex;align-items:center;justify-content:center;
+                    background:var(--red-light)">
+          {% if nota.empresa and nota.empresa.logo_principal %}
+          <img src="{{ url_for('static', filename='uploads/teambuilding/empresas/' + nota.empresa.logo_principal) }}"
+               style="width:22px;height:22px;object-fit:contain">
+          {% else %}
+          <i class="bi bi-building" style="font-size:.85rem;color:var(--red)"></i>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Contenido -->
+      <div class="flex-grow-1 min-w-0">
+        <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+          <a href="{{ url_for('teambuilding.empresas_detalle', id=nota.empresa_id) }}#notas"
+             class="fw-semibold text-decoration-none"
+             style="font-size:.85rem;color:var(--black)">
+            {{ nota.empresa.nombre if nota.empresa else '—' }}
+          </a>
+          <span class="text-xs text-muted">
+            {{ nota.creado_en.strftime('%d/%m/%Y · %H:%M') }}
+          </span>
+          {% if nota.usuario_nombre %}
+          <span class="text-xs text-muted">
+            <i class="bi bi-person me-1"></i>{{ nota.usuario_nombre }}
+          </span>
+          {% endif %}
+        </div>
+        <p class="mb-0" style="font-size:.83rem;color:var(--gray-700);
+                                white-space:pre-wrap;line-height:1.55">{{ nota.contenido }}</p>
+      </div>
+
+      <!-- Eliminar -->
+      <div style="flex-shrink:0">
+        <form method="POST"
+              action="{{ url_for('teambuilding.empresas_nota_eliminar', id=nota.empresa_id, nid=nota.id) }}"
+              onsubmit="return confirm('¿Eliminar esta nota?')">
+          <input type="hidden" name="return_to" value="lista">
+          <button type="submit" class="btn btn-xs btn-outline-danger" title="Eliminar nota">
+            <i class="bi bi-trash"></i>
+          </button>
+        </form>
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Paginación -->
+  {% if notas.pages > 1 %}
+  <div class="card-footer d-flex align-items-center justify-content-between py-2">
+    <span class="text-xs text-muted">
+      {{ notas.total }} notas · página {{ notas.page }} de {{ notas.pages }}
+    </span>
+    <div class="d-flex gap-1">
+      {% if notas.has_prev %}
+      <a href="{{ url_for('teambuilding.notas_lista', q=q, page=notas.prev_num) }}"
+         class="btn btn-xs btn-outline-secondary">
+        <i class="bi bi-chevron-left"></i>
+      </a>
+      {% endif %}
+      {% if notas.has_next %}
+      <a href="{{ url_for('teambuilding.notas_lista', q=q, page=notas.next_num) }}"
+         class="btn btn-xs btn-outline-secondary">
+        <i class="bi bi-chevron-right"></i>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endif %}
+{% endblock %}

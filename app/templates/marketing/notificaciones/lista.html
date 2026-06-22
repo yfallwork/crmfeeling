@@ -1,0 +1,456 @@
+{% extends "base.html" %}
+{% block title %}Notificaciones — Marketing{% endblock %}
+{% block page_title %}Notificaciones internas{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalNueva">
+  <i class="bi bi-plus-lg me-1"></i>Nueva notificación
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-3">{% include 'marketing/_tabs.html' %}</div>
+
+<div class="card">
+
+  <!-- Filtros -->
+  <div class="filter-bar">
+    <div class="d-flex align-items-center gap-2 flex-wrap w-100">
+
+      <!-- Estado -->
+      <div class="d-flex gap-1">
+        <a href="{{ url_for('marketing.notificaciones_lista', estado='pendiente', tipo=tipo, prioridad=prioridad) }}"
+           class="btn btn-sm {% if estado == 'pendiente' %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+          <i class="bi bi-clock me-1"></i>Pendientes
+          {% if pendientes > 0 %}
+          <span class="badge rounded-pill ms-1" style="background:#EF4444;font-size:.65rem">{{ pendientes }}</span>
+          {% endif %}
+        </a>
+        <a href="{{ url_for('marketing.notificaciones_lista', estado='resuelta', tipo=tipo, prioridad=prioridad) }}"
+           class="btn btn-sm {% if estado == 'resuelta' %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+          <i class="bi bi-check-circle me-1"></i>Resueltas
+        </a>
+        <a href="{{ url_for('marketing.notificaciones_lista', estado='todas', tipo=tipo, prioridad=prioridad) }}"
+           class="btn btn-sm {% if estado == 'todas' %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+          Todas
+        </a>
+      </div>
+
+      <!-- Tipo -->
+      <div class="d-flex gap-1" style="border-left:1px solid var(--border-light);padding-left:.75rem">
+        <a href="{{ url_for('marketing.notificaciones_lista', estado=estado, prioridad=prioridad) }}"
+           class="btn btn-sm {% if not tipo %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+          Todos
+        </a>
+        <a href="{{ url_for('marketing.notificaciones_lista', estado=estado, tipo='llamada', prioridad=prioridad) }}"
+           class="btn btn-sm {% if tipo == 'llamada' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+          <i class="bi bi-telephone-fill me-1"></i>Llamada
+        </a>
+        <a href="{{ url_for('marketing.notificaciones_lista', estado=estado, tipo='recordatorio', prioridad=prioridad) }}"
+           class="btn btn-sm {% if tipo == 'recordatorio' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+          <i class="bi bi-clock-fill me-1"></i>Recordatorio
+        </a>
+        <a href="{{ url_for('marketing.notificaciones_lista', estado=estado, tipo='alerta', prioridad=prioridad) }}"
+           class="btn btn-sm {% if tipo == 'alerta' %}btn-danger{% else %}btn-outline-secondary{% endif %}">
+          <i class="bi bi-exclamation-triangle-fill me-1"></i>Alerta
+        </a>
+      </div>
+
+      <!-- Prioridad -->
+      <div class="d-flex gap-1" style="border-left:1px solid var(--border-light);padding-left:.75rem">
+        <a href="{{ url_for('marketing.notificaciones_lista', estado=estado, tipo=tipo) }}"
+           class="btn btn-sm {% if not prioridad %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+          Todas
+        </a>
+        <a href="{{ url_for('marketing.notificaciones_lista', estado=estado, tipo=tipo, prioridad='alta') }}"
+           class="btn btn-sm {% if prioridad == 'alta' %}btn-danger{% else %}btn-outline-secondary{% endif %}">
+          <i class="bi bi-exclamation-circle me-1"></i>Alta
+        </a>
+        <a href="{{ url_for('marketing.notificaciones_lista', estado=estado, tipo=tipo, prioridad='media') }}"
+           class="btn btn-sm {% if prioridad == 'media' %}btn-warning{% else %}btn-outline-secondary{% endif %}">
+          <i class="bi bi-dash-circle me-1"></i>Media
+        </a>
+        <a href="{{ url_for('marketing.notificaciones_lista', estado=estado, tipo=tipo, prioridad='baja') }}"
+           class="btn btn-sm {% if prioridad == 'baja' %}btn-success{% else %}btn-outline-secondary{% endif %}">
+          <i class="bi bi-info-circle me-1"></i>Baja
+        </a>
+      </div>
+
+      <span class="ms-auto text-xs text-muted">
+        {{ notificaciones|length }} notificación{{ 'es' if notificaciones|length != 1 }}
+      </span>
+    </div>
+  </div>
+
+  {% if not notificaciones %}
+  <div class="empty-state" style="padding:56px">
+    <i class="bi bi-bell-slash" style="font-size:2rem;opacity:.25"></i>
+    <p>No hay notificaciones {% if estado == 'pendiente' %}pendientes{% elif estado == 'resuelta' %}resueltas{% endif %}</p>
+  </div>
+  {% else %}
+
+  {% for n in notificaciones %}
+  <div class="d-flex align-items-start gap-3 p-4 {% if not loop.last %}border-bottom{% endif %}
+              {% if n.resuelta %}opacity-60{% endif %}"
+       style="border-color:var(--border-light);
+              border-left:4px solid {{ n.prioridad_color }};
+              padding-left:calc(1.5rem - 4px) !important">
+
+    <!-- Icono tipo -->
+    <div class="d-flex align-items-center justify-content-center flex-shrink-0 rounded"
+         style="width:40px;height:40px;font-size:1rem;
+                background:{{ n.tipo_color }}18;color:{{ n.tipo_color }}">
+      <i class="bi {{ n.tipo_icono }}"></i>
+    </div>
+
+    <!-- Contenido -->
+    <div class="flex-grow-1 min-w-0">
+
+      <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+        <!-- Prioridad -->
+        <span class="badge d-inline-flex align-items-center gap-1"
+              style="background:{{ n.prioridad_color }}18;color:{{ n.prioridad_color }};
+                     border:1px solid {{ n.prioridad_color }}40;font-size:.68rem;font-weight:700;
+                     padding:2px 8px;border-radius:4px">
+          <i class="bi {{ n.prioridad_icono }}"></i>{{ n.prioridad | capitalize }}
+        </span>
+        <!-- Tipo -->
+        <span class="badge rounded-pill"
+              style="background:{{ n.tipo_color }}18;color:{{ n.tipo_color }};font-size:.68rem">
+          {{ n.tipo_label }}
+        </span>
+        <!-- Entidad -->
+        {% if n.entidad_nombre %}
+        <span class="text-xs fw-semibold" style="color:var(--gray-600)">
+          <i class="bi bi-person me-1"></i>{{ n.entidad_nombre }}
+        </span>
+        {% endif %}
+        {% if n.resuelta %}
+        <span class="badge rounded-pill" style="background:rgba(16,185,129,.1);color:#10B981;font-size:.65rem">
+          <i class="bi bi-check-circle-fill me-1"></i>Resuelta
+        </span>
+        {% endif %}
+      </div>
+
+      <div class="fw-semibold mb-1" style="color:var(--black);font-size:.9rem">
+        {{ n.titulo }}
+      </div>
+
+      {% if n.mensaje %}
+      <div class="text-xs text-muted" style="max-width:600px;line-height:1.5">
+        {{ n.mensaje }}
+      </div>
+      {% endif %}
+
+      <div class="d-flex gap-3 mt-2 flex-wrap">
+        <span class="text-xs text-muted">
+          <i class="bi bi-clock me-1"></i>{{ n.creado_en.strftime('%d/%m/%Y %H:%M') }}
+        </span>
+        {% if n.rule %}
+        <span class="text-xs text-muted">
+          <i class="bi bi-diagram-3 me-1"></i>
+          <a href="{{ url_for('marketing.normas_editar', id=n.rule_id) }}"
+             class="text-muted text-decoration-none">{{ n.rule.nombre }}</a>
+        </span>
+        {% endif %}
+        {% if n.resuelta and n.resuelta_en %}
+        <span class="text-xs" style="color:#10B981">
+          <i class="bi bi-check me-1"></i>Resuelta {{ n.resuelta_en.strftime('%d/%m/%Y %H:%M') }}
+        </span>
+        {% endif %}
+      </div>
+
+    </div>
+
+    <!-- Acciones -->
+    <div class="d-flex gap-1 flex-shrink-0">
+      {% if not n.resuelta %}
+      <form method="POST"
+            action="{{ url_for('marketing.notificaciones_resolver', id=n.id, estado=estado, tipo=tipo, prioridad=prioridad) }}">
+        <button class="btn btn-xs btn-outline-success" title="Marcar como resuelta">
+          <i class="bi bi-check-lg"></i>
+        </button>
+      </form>
+      {% endif %}
+      <form method="POST" action="{{ url_for('marketing.notificaciones_eliminar', id=n.id) }}"
+            onsubmit="return confirm('Eliminar esta notificación?')">
+        <button class="btn btn-xs btn-outline-danger" title="Eliminar">
+          <i class="bi bi-trash"></i>
+        </button>
+      </form>
+    </div>
+
+  </div>
+  {% endfor %}
+
+  {% endif %}
+</div>
+
+<!-- Modal nueva notificación -->
+<div class="modal fade" id="modalNueva" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:520px">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('marketing.notificaciones_nueva') }}" id="formNueva">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-bell-fill me-2"></i>Nueva notificación</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+
+            <!-- Título -->
+            <div class="col-12">
+              <label class="form-label fw-semibold">Título <span class="text-danger">*</span></label>
+              <input type="text" name="titulo" class="form-control"
+                     placeholder="Llamar al cliente para seguimiento" required />
+            </div>
+
+            <!-- Tipo -->
+            <div class="col-12">
+              <label class="form-label fw-semibold">Tipo de acción</label>
+              <input type="hidden" name="tipo" id="notifTipo" value="llamada" />
+              <div class="d-flex gap-2">
+                <button type="button" id="ntbtn-llamada" onclick="setNotifTipo('llamada')"
+                        class="flex-fill btn btn-sm"
+                        style="background:rgba(59,130,246,.12);color:#3B82F6;border:1.5px solid #3B82F6;border-radius:8px">
+                  <i class="bi bi-telephone-fill d-block mb-1" style="font-size:1.1rem"></i>
+                  <span style="font-size:.75rem;font-weight:700">Llamada</span>
+                </button>
+                <button type="button" id="ntbtn-recordatorio" onclick="setNotifTipo('recordatorio')"
+                        class="flex-fill btn btn-sm"
+                        style="background:transparent;color:var(--gray-500);border:1.5px solid var(--border-light);border-radius:8px">
+                  <i class="bi bi-clock-fill d-block mb-1" style="font-size:1.1rem"></i>
+                  <span style="font-size:.75rem;font-weight:700">Recordatorio</span>
+                </button>
+                <button type="button" id="ntbtn-alerta" onclick="setNotifTipo('alerta')"
+                        class="flex-fill btn btn-sm"
+                        style="background:transparent;color:var(--gray-500);border:1.5px solid var(--border-light);border-radius:8px">
+                  <i class="bi bi-exclamation-triangle-fill d-block mb-1" style="font-size:1.1rem"></i>
+                  <span style="font-size:.75rem;font-weight:700">Alerta</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Prioridad -->
+            <div class="col-12">
+              <label class="form-label fw-semibold">Prioridad</label>
+              <input type="hidden" name="prioridad" id="notifPrioridad" value="media" />
+              <div class="d-flex gap-2">
+                <button type="button" id="npbtn-alta" onclick="setNotifPrioridad('alta')"
+                        class="flex-fill btn btn-sm"
+                        style="background:transparent;color:var(--gray-500);border:1.5px solid var(--border-light);border-radius:8px;padding:.5rem">
+                  <i class="bi bi-exclamation-circle-fill d-block mb-1" style="font-size:1rem;color:#EF4444"></i>
+                  <span style="font-size:.75rem;font-weight:700">Alta</span>
+                </button>
+                <button type="button" id="npbtn-media" onclick="setNotifPrioridad('media')"
+                        class="flex-fill btn btn-sm"
+                        style="background:rgba(245,158,11,.12);color:#F59E0B;border:1.5px solid #F59E0B;border-radius:8px;padding:.5rem">
+                  <i class="bi bi-dash-circle-fill d-block mb-1" style="font-size:1rem"></i>
+                  <span style="font-size:.75rem;font-weight:700">Media</span>
+                </button>
+                <button type="button" id="npbtn-baja" onclick="setNotifPrioridad('baja')"
+                        class="flex-fill btn btn-sm"
+                        style="background:transparent;color:var(--gray-500);border:1.5px solid var(--border-light);border-radius:8px;padding:.5rem">
+                  <i class="bi bi-info-circle-fill d-block mb-1" style="font-size:1rem;color:#10B981"></i>
+                  <span style="font-size:.75rem;font-weight:700">Baja</span>
+                </button>
+              </div>
+              <div class="text-xs text-muted mt-1">
+                <strong>Alta</strong> = acción urgente hoy · <strong>Media</strong> = esta semana · <strong>Baja</strong> = sin prisa
+              </div>
+            </div>
+
+            <!-- Buscador cliente/empresa -->
+            <div class="col-12">
+              <label class="form-label fw-semibold">Cliente o empresa <span class="text-muted fw-normal">(opcional)</span></label>
+              <input type="hidden" name="entidad"        id="notifEntidadTipo"   value="" />
+              <input type="hidden" name="entidad_id"     id="notifEntidadId"     value="" />
+              <input type="hidden" name="entidad_nombre" id="notifEntidadNombre" value="" />
+
+              <div class="position-relative">
+                <div class="input-group">
+                  <span class="input-group-text" style="background:var(--gray-50)">
+                    <i class="bi bi-search text-muted"></i>
+                  </span>
+                  <input type="text" id="entidadSearch" class="form-control"
+                         placeholder="Buscar por nombre, email o teléfono…"
+                         autocomplete="off" oninput="buscarEntidad(this.value)" />
+                  <button type="button" id="entidadClear" class="btn btn-outline-secondary"
+                          style="display:none" onclick="limpiarEntidad()">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </div>
+                <div id="entidadDropdown"
+                     class="position-absolute w-100 border rounded shadow-sm bg-white"
+                     style="top:calc(100% + 4px);left:0;z-index:1060;display:none;max-height:200px;overflow-y:auto">
+                </div>
+              </div>
+
+              <div id="entidadSeleccionada" class="mt-2" style="display:none">
+                <div class="d-flex align-items-center gap-2 px-2 py-1 rounded"
+                     style="background:var(--gray-50);border:1px solid var(--border-light)">
+                  <i id="entidadIcono" class="bi bi-person-fill" style="color:#3B82F6"></i>
+                  <span id="entidadNombreDisplay" class="text-sm fw-semibold" style="color:var(--black)"></span>
+                  <span id="entidadSubDisplay" class="text-xs text-muted"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mensaje -->
+            <div class="col-12">
+              <label class="form-label fw-semibold">Notas / Descripción</label>
+              <textarea name="mensaje" class="form-control" rows="3"
+                        placeholder="Detalles sobre qué hay que hacer…"></textarea>
+            </div>
+
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1"></i>Crear notificación
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Tipo de notificación ─────────────────────────────────────────
+const TIPO_STYLES = {
+  llamada:      { bg:'rgba(59,130,246,.12)',  color:'#3B82F6', border:'#3B82F6' },
+  recordatorio: { bg:'rgba(139,92,246,.12)',  color:'#8B5CF6', border:'#8B5CF6' },
+  alerta:       { bg:'rgba(239,68,68,.12)',   color:'#EF4444', border:'#EF4444' },
+};
+function setNotifTipo(v) {
+  document.getElementById('notifTipo').value = v;
+  ['llamada','recordatorio','alerta'].forEach(function(k) {
+    const btn = document.getElementById('ntbtn-' + k);
+    if (!btn) return;
+    if (k === v) {
+      const s = TIPO_STYLES[k];
+      btn.style.background = s.bg;
+      btn.style.color = s.color;
+      btn.style.borderColor = s.border;
+    } else {
+      btn.style.background = 'transparent';
+      btn.style.color = 'var(--gray-500)';
+      btn.style.borderColor = 'var(--border-light)';
+    }
+  });
+}
+
+// ── Prioridad ────────────────────────────────────────────────────
+const PRIO_STYLES = {
+  alta:  { bg:'rgba(239,68,68,.12)',  color:'#EF4444', border:'#EF4444' },
+  media: { bg:'rgba(245,158,11,.12)', color:'#F59E0B', border:'#F59E0B' },
+  baja:  { bg:'rgba(16,185,129,.12)', color:'#10B981', border:'#10B981' },
+};
+function setNotifPrioridad(v) {
+  document.getElementById('notifPrioridad').value = v;
+  ['alta','media','baja'].forEach(function(k) {
+    const btn = document.getElementById('npbtn-' + k);
+    if (!btn) return;
+    if (k === v) {
+      const s = PRIO_STYLES[k];
+      btn.style.background = s.bg;
+      btn.style.color = s.color;
+      btn.style.borderColor = s.border;
+      // sync icon color too
+      const ico = btn.querySelector('i');
+      if (ico) ico.style.color = s.color;
+    } else {
+      btn.style.background = 'transparent';
+      btn.style.color = 'var(--gray-500)';
+      btn.style.borderColor = 'var(--border-light)';
+      const ico = btn.querySelector('i');
+      if (ico) ico.style.color = PRIO_STYLES[k].color;
+    }
+  });
+}
+
+// ── Buscador de entidad ──────────────────────────────────────────
+let _entidadTimer = null;
+function buscarEntidad(q) {
+  clearTimeout(_entidadTimer);
+  const dd = document.getElementById('entidadDropdown');
+  if (q.length < 2) { dd.style.display = 'none'; return; }
+  _entidadTimer = setTimeout(function() {
+    fetch('{{ url_for("marketing.api_buscar_entidad") }}?q=' + encodeURIComponent(q))
+      .then(function(r) { return r.json(); })
+      .then(function(items) {
+        dd.innerHTML = '';
+        if (!items.length) {
+          dd.innerHTML = '<div class="px-3 py-2 text-xs text-muted">Sin resultados</div>';
+          dd.style.display = '';
+          return;
+        }
+        items.forEach(function(item) {
+          const d = document.createElement('div');
+          d.className = 'px-3 py-2 d-flex align-items-center gap-2';
+          d.style.cssText = 'cursor:pointer;border-bottom:1px solid var(--border-light);font-size:.85rem';
+          const ico  = item.tipo === 'empresa' ? 'bi-buildings-fill' : 'bi-person-fill';
+          const clr  = item.tipo === 'empresa' ? '#8B5CF6' : '#3B82F6';
+          d.innerHTML = '<i class="bi ' + ico + '" style="color:' + clr + ';font-size:.9rem;flex-shrink:0"></i>'
+            + '<div class="min-w-0"><div class="fw-semibold" style="color:var(--black);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
+            + item.nombre + '</div>'
+            + '<div class="text-xs text-muted">' + (item.tipo === 'empresa' ? 'Empresa TB' : 'Cliente') + (item.subtitulo ? ' · ' + item.subtitulo : '') + '</div></div>';
+          d.addEventListener('mouseenter', function() { d.style.background = 'var(--gray-50)'; });
+          d.addEventListener('mouseleave', function() { d.style.background = ''; });
+          d.addEventListener('click', function() { seleccionarEntidad(item); });
+          dd.appendChild(d);
+        });
+        dd.style.display = '';
+      });
+  }, 220);
+}
+
+function seleccionarEntidad(item) {
+  document.getElementById('notifEntidadTipo').value   = item.tipo;
+  document.getElementById('notifEntidadId').value     = item.id;
+  document.getElementById('notifEntidadNombre').value = item.nombre;
+  document.getElementById('entidadSearch').value      = item.nombre;
+  document.getElementById('entidadDropdown').style.display = 'none';
+  document.getElementById('entidadClear').style.display = '';
+
+  const sel = document.getElementById('entidadSeleccionada');
+  document.getElementById('entidadIcono').className =
+    'bi ' + (item.tipo === 'empresa' ? 'bi-buildings-fill' : 'bi-person-fill');
+  document.getElementById('entidadIcono').style.color =
+    item.tipo === 'empresa' ? '#8B5CF6' : '#3B82F6';
+  document.getElementById('entidadNombreDisplay').textContent = item.nombre;
+  document.getElementById('entidadSubDisplay').textContent =
+    (item.tipo === 'empresa' ? 'Empresa TB' : 'Cliente') + (item.subtitulo ? ' · ' + item.subtitulo : '');
+  sel.style.display = '';
+}
+
+function limpiarEntidad() {
+  ['notifEntidadTipo','notifEntidadId','notifEntidadNombre'].forEach(function(id) {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('entidadSearch').value = '';
+  document.getElementById('entidadDropdown').style.display = 'none';
+  document.getElementById('entidadClear').style.display = 'none';
+  document.getElementById('entidadSeleccionada').style.display = 'none';
+}
+
+// Hide dropdown on outside click
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#entidadSearch') && !e.target.closest('#entidadDropdown')) {
+    const dd = document.getElementById('entidadDropdown');
+    if (dd) dd.style.display = 'none';
+  }
+});
+
+// Reset modal when closed
+document.getElementById('modalNueva').addEventListener('hidden.bs.modal', function() {
+  document.getElementById('formNueva').reset();
+  limpiarEntidad();
+  setNotifTipo('llamada');
+  setNotifPrioridad('media');
+});
+</script>
+{% endblock %}

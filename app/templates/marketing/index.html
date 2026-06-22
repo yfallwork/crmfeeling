@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+{% block title %}Marketing{% endblock %}
+{% block page_title %}Marketing Automation{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('marketing.normas_nueva') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-diagram-3 me-1"></i>Nueva norma
+</a>
+<a href="{{ url_for('marketing.notificaciones_lista') }}" class="btn btn-sm btn-primary">
+  <i class="bi bi-bell me-1"></i>Notificaciones
+  {% if stats.notificaciones > 0 %}
+  <span class="badge rounded-pill ms-1" style="background:#fff;color:#EF4444;font-size:.65rem">
+    {{ stats.notificaciones }}
+  </span>
+  {% endif %}
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-3">{% include 'marketing/_tabs.html' %}</div>
+
+<!-- Stats row — 4 módulos -->
+<div class="row g-3 mb-4">
+
+  <div class="col-sm-6 col-xl-3">
+    <a href="{{ url_for('marketing.etiquetas_lista') }}" class="text-decoration-none">
+      <div class="stat-card" style="border-top:3px solid #6366F1">
+        <div class="stat-icon" style="background:rgba(99,102,241,.1);color:#6366F1">
+          <i class="bi bi-tags-fill"></i>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value">{{ stats.total }}</div>
+          <div class="stat-label">Etiquetas activas</div>
+          <div class="stat-sub text-muted">{{ stats.b2c }} B2C · {{ stats.b2b }} B2B</div>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-sm-6 col-xl-3">
+    <a href="{{ url_for('marketing.plantillas_lista') }}" class="text-decoration-none">
+      <div class="stat-card" style="border-top:3px solid #3B82F6">
+        <div class="stat-icon" style="background:rgba(59,130,246,.1);color:#3B82F6">
+          <i class="bi bi-envelope-fill"></i>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value">{{ stats.plantillas }}</div>
+          <div class="stat-label">Plantillas email</div>
+          <div class="stat-sub text-muted">
+            {% if stats.plantillas == 0 %}
+              <span style="color:#F59E0B">Crea la primera →</span>
+            {% else %}
+              Activas y disponibles
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-sm-6 col-xl-3">
+    <a href="{{ url_for('marketing.normas_lista') }}" class="text-decoration-none">
+      <div class="stat-card" style="border-top:3px solid #10B981">
+        <div class="stat-icon" style="background:rgba(16,185,129,.1);color:#10B981">
+          <i class="bi bi-diagram-3-fill"></i>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value">{{ stats.normas }}</div>
+          <div class="stat-label">Normas activas</div>
+          <div class="stat-sub text-muted">
+            {% if stats.normas == 0 %}
+              <span style="color:#F59E0B">Sin automatizaciones →</span>
+            {% else %}
+              Automatizaciones en marcha
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-sm-6 col-xl-3">
+    <a href="{{ url_for('marketing.notificaciones_lista') }}" class="text-decoration-none">
+      <div class="stat-card"
+           style="border-top:3px solid {{ '#EF4444' if stats.notificaciones > 0 else '#6B7280' }}">
+        <div class="stat-icon"
+             style="background:{{ 'rgba(239,68,68,.1)' if stats.notificaciones > 0 else 'var(--gray-100)' }};
+                    color:{{ '#EF4444' if stats.notificaciones > 0 else 'var(--gray-400)' }}">
+          <i class="bi bi-bell{% if stats.notificaciones > 0 %}-fill{% endif %}"></i>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value"
+               style="color:{{ '#EF4444' if stats.notificaciones > 0 else 'var(--black)' }}">
+            {{ stats.notificaciones }}
+          </div>
+          <div class="stat-label">Notif. pendientes</div>
+          <div class="stat-sub">
+            {% if stats.notificaciones > 0 %}
+              <span style="color:#EF4444">Requieren atención →</span>
+            {% else %}
+              <span class="text-muted">Todo al día</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </a>
+  </div>
+
+</div>
+
+<div class="row g-3">
+
+  <!-- Notificaciones pendientes recientes -->
+  <div class="col-xl-5">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">
+          <i class="bi bi-bell-fill me-2" style="color:#EF4444"></i>
+          Pendientes recientes
+        </h6>
+        <a href="{{ url_for('marketing.notificaciones_lista') }}" class="btn btn-xs btn-outline-secondary">
+          Ver todas
+        </a>
+      </div>
+      <div class="card-body p-0">
+        {% if notifs_recientes %}
+        {% for n in notifs_recientes %}
+        <div class="d-flex align-items-start gap-3 px-4 py-3
+                    {% if not loop.last %}border-bottom{% endif %}"
+             style="border-color:var(--border-light);border-left:3px solid {{ n.prioridad_color }};
+                    padding-left:calc(1rem - 3px) !important">
+          <div class="d-flex align-items-center justify-content-center flex-shrink-0 rounded"
+               style="width:34px;height:34px;background:{{ n.tipo_color }}15;
+                      color:{{ n.tipo_color }};font-size:.9rem">
+            <i class="bi {{ n.tipo_icono }}"></i>
+          </div>
+          <div class="flex-grow-1 min-w-0">
+            <div class="d-flex align-items-center gap-1 mb-1">
+              <span class="badge"
+                    style="background:{{ n.prioridad_color }}15;color:{{ n.prioridad_color }};
+                           border:1px solid {{ n.prioridad_color }}30;font-size:.62rem;
+                           font-weight:700;padding:1px 6px">
+                {{ n.prioridad | capitalize }}
+              </span>
+              {% if n.entidad_nombre %}
+              <span class="text-xs text-muted">
+                <i class="bi bi-person me-1"></i>{{ n.entidad_nombre }}
+              </span>
+              {% endif %}
+            </div>
+            <div class="fw-semibold text-sm" style="color:var(--black)">{{ n.titulo }}</div>
+            <div class="text-xs text-muted">{{ n.creado_en.strftime('%d/%m/%Y %H:%M') }}</div>
+          </div>
+          <form method="POST"
+                action="{{ url_for('marketing.notificaciones_resolver', id=n.id) }}"
+                class="flex-shrink-0">
+            <button class="btn btn-xs btn-outline-success" title="Marcar resuelta">
+              <i class="bi bi-check-lg"></i>
+            </button>
+          </form>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="empty-state" style="padding:32px">
+          <i class="bi bi-check-circle" style="font-size:1.6rem;color:#10B981;opacity:.5"></i>
+          <p>Sin notificaciones pendientes</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Normas activas + Etiquetas resumen -->
+  <div class="col-xl-7">
+
+    <!-- Normas en marcha -->
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">
+          <i class="bi bi-diagram-3-fill me-2" style="color:#10B981"></i>
+          Normas en marcha
+        </h6>
+        <a href="{{ url_for('marketing.normas_lista') }}" class="btn btn-xs btn-outline-secondary">
+          Ver todas
+        </a>
+      </div>
+      <div class="card-body p-0">
+        {% if normas_activas %}
+        {% for r in normas_activas %}
+        <div class="d-flex align-items-center gap-3 px-4 py-2
+                    {% if not loop.last %}border-bottom{% endif %}"
+             style="border-color:var(--border-light)">
+          {% set first_accion = r.acciones[0] if r.acciones else none %}
+          <div class="d-flex align-items-center justify-content-center flex-shrink-0 rounded"
+               style="width:32px;height:32px;font-size:.85rem;
+                      background:{{ (first_accion.tipo_color + '18') if first_accion else 'var(--gray-100)' }};
+                      color:{{ first_accion.tipo_color if first_accion else 'var(--gray-400)' }}">
+            <i class="bi {{ first_accion.tipo_icono if first_accion else 'bi-play-fill' }}"></i>
+          </div>
+          <div class="flex-grow-1 min-w-0">
+            <div class="fw-semibold text-sm" style="color:var(--black)">{{ r.nombre }}</div>
+            <div class="text-xs text-muted">
+              {% if r.acciones %}
+                {{ r.acciones|length }} acción{{ 'es' if r.acciones|length != 1 }}
+                {% for a in r.acciones[:3] %}
+                · <span style="color:{{ a.tipo_color }}">{{ a.tipo_label }}</span>
+                {% endfor %}
+              {% else %}
+                <span style="color:#F59E0B">
+                  <i class="bi bi-exclamation-triangle me-1"></i>Sin acciones definidas
+                </span>
+              {% endif %}
+            </div>
+          </div>
+          <span class="badge rounded-pill flex-shrink-0"
+                style="font-size:.62rem;
+                       {% if r.segmento == 'b2c' %}background:rgba(59,130,246,.1);color:#3B82F6
+                       {% elif r.segmento == 'b2b' %}background:rgba(139,92,246,.1);color:#8B5CF6
+                       {% else %}background:var(--gray-100);color:var(--gray-600){% endif %}">
+            {{ r.segmento | upper }}
+          </span>
+          <a href="{{ url_for('marketing.normas_editar', id=r.id) }}"
+             class="btn btn-xs btn-outline-secondary flex-shrink-0">
+            <i class="bi bi-pencil"></i>
+          </a>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="empty-state" style="padding:28px">
+          <i class="bi bi-diagram-3" style="font-size:1.6rem;opacity:.25"></i>
+          <p>Sin normas activas</p>
+          <a href="{{ url_for('marketing.normas_nueva') }}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-plus-lg me-1"></i>Crear primera norma
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Etiquetas resumen compacto -->
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">
+          <i class="bi bi-tags-fill me-2" style="color:#6366F1"></i>
+          Etiquetas
+        </h6>
+        <a href="{{ url_for('marketing.etiquetas_lista') }}" class="btn btn-xs btn-outline-secondary">
+          Ver todas
+        </a>
+      </div>
+      <div class="card-body py-3 px-4">
+        <div class="row g-2">
+          <div class="col-6">
+            <div class="text-xs fw-bold text-uppercase mb-2"
+                 style="color:var(--gray-400);letter-spacing:.07em">
+              <i class="bi bi-person-badge-fill me-1" style="color:#3B82F6"></i>B2C Particulares
+            </div>
+            {% set all_b2c = tags_b2c_sis + tags_b2c_din %}
+            {% if all_b2c %}
+            <div class="d-flex flex-wrap gap-1">
+              {% for t in all_b2c[:8] %}
+              <span class="badge d-inline-flex align-items-center gap-1"
+                    style="background:{{ t.color }}15;color:{{ t.color }};
+                           border:1px solid {{ t.color }}30;font-size:.68rem;font-weight:700;
+                           padding:3px 8px;border-radius:5px">
+                <i class="bi {{ t.icono }}"></i>{{ t.nombre }}
+              </span>
+              {% endfor %}
+              {% if all_b2c|length > 8 %}
+              <span class="text-xs text-muted align-self-center">+{{ all_b2c|length - 8 }} más</span>
+              {% endif %}
+            </div>
+            {% else %}
+            <span class="text-xs text-muted">Sin etiquetas B2C</span>
+            {% endif %}
+          </div>
+          <div class="col-6">
+            <div class="text-xs fw-bold text-uppercase mb-2"
+                 style="color:var(--gray-400);letter-spacing:.07em">
+              <i class="bi bi-buildings-fill me-1" style="color:#8B5CF6"></i>B2B Empresas
+            </div>
+            {% set all_b2b = tags_b2b_sis + tags_b2b_din %}
+            {% if all_b2b %}
+            <div class="d-flex flex-wrap gap-1">
+              {% for t in all_b2b[:8] %}
+              <span class="badge d-inline-flex align-items-center gap-1"
+                    style="background:{{ t.color }}15;color:{{ t.color }};
+                           border:1px solid {{ t.color }}30;font-size:.68rem;font-weight:700;
+                           padding:3px 8px;border-radius:5px">
+                <i class="bi {{ t.icono }}"></i>{{ t.nombre }}
+              </span>
+              {% endfor %}
+              {% if all_b2b|length > 8 %}
+              <span class="text-xs text-muted align-self-center">+{{ all_b2b|length - 8 }} más</span>
+              {% endif %}
+            </div>
+            {% else %}
+            <span class="text-xs text-muted">Sin etiquetas B2B</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="mt-3 pt-2 d-flex gap-4 text-xs text-muted"
+             style="border-top:1px solid var(--border-light)">
+          <span>
+            <i class="bi bi-lightning-fill me-1" style="color:#F59E0B"></i>
+            {{ stats.sistematicas }} sistemáticas
+          </span>
+          <span>
+            <i class="bi bi-filter-circle-fill me-1" style="color:#10B981"></i>
+            {{ stats.dinamicas }} dinámicas
+          </span>
+          <span>
+            <i class="bi bi-diagram-3 me-1" style="color:#6366F1"></i>
+            {{ stats.asig_clientes + stats.asig_empresas }} asignaciones totales
+          </span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

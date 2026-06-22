@@ -1,0 +1,88 @@
+{% extends "autoclub/base.html" %}
+{% block title %}{% if socio %}Editar socio{% else %}Nuevo socio{% endif %} — AutoClub{% endblock %}
+{% block page_title %}{% if socio %}Editar socio{% else %}Nuevo socio{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white border-bottom">
+        <h6 class="mb-0 fw-semibold">
+          <i class="bi bi-person-{% if socio %}gear{% else %}plus{% endif %} me-2 text-primary"></i>
+          {% if socio %}Editar {{ socio.nombre_completo }}{% else %}Nuevo socio{% endif %}
+        </h6>
+      </div>
+      <div class="card-body">
+        <form method="POST">
+          <div class="row g-3">
+
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
+              <input type="text" name="nombre" class="form-control" required
+                     value="{{ datos.get('nombre') or (socio.nombre if socio else '') }}" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Apellidos</label>
+              <input type="text" name="apellido" class="form-control"
+                     value="{{ datos.get('apellido') or (socio.apellido if socio else '') }}" />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Email</label>
+              <input type="email" name="email" class="form-control"
+                     value="{{ datos.get('email') or (socio.email if socio else '') }}" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Teléfono</label>
+              <input type="tel" name="telefono" class="form-control" placeholder="+34 600 000 000"
+                     value="{{ datos.get('telefono') or (socio.telefono if socio else '') }}" />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">DNI / NIF</label>
+              <input type="text" name="dni" class="form-control" placeholder="12345678A"
+                     value="{{ datos.get('dni') or (socio.dni if socio else '') }}" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Tipo de socio</label>
+              <select name="tipo" class="form-select">
+                {% for t in tipos %}
+                  <option value="{{ t }}"
+                    {% if (datos.get('tipo') or (socio.tipo if socio else 'regular')) == t %}selected{% endif %}>
+                    {{ t | capitalize }}
+                  </option>
+                {% endfor %}
+              </select>
+              <div class="form-text">
+                Regular · Premium · Familiar · VIP
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Fecha de alta como socio</label>
+              <input type="date" name="fecha_alta" class="form-control"
+                     value="{{ datos.get('fecha_alta') or (socio.fecha_alta.isoformat() if socio and socio.fecha_alta else '') }}" />
+            </div>
+
+            <div class="col-12">
+              <label class="form-label fw-semibold">Notas internas</label>
+              <textarea name="notas" class="form-control" rows="3"
+                        placeholder="Observaciones sobre el socio...">{{ datos.get('notas') or (socio.notas if socio else '') }}</textarea>
+            </div>
+
+          </div>
+
+          <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-lg me-1"></i>
+              {% if socio %}Guardar cambios{% else %}Crear socio{% endif %}
+            </button>
+            <a href="{{ url_for('autoclub.detalle', id=socio.id) if socio else url_for('autoclub.lista') }}"
+               class="btn btn-outline-secondary">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

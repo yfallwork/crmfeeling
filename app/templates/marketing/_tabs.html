@@ -1,0 +1,36 @@
+<div class="status-tabs mb-0">
+  <a href="{{ url_for('marketing.index') }}"
+     class="status-tab {% if request.endpoint == 'marketing.index' %}active-tab{% endif %}">
+    <i class="bi bi-grid me-1"></i>Dashboard
+  </a>
+  <a href="{{ url_for('marketing.etiquetas_lista') }}"
+     class="status-tab {% if 'etiquetas' in (request.endpoint or '') %}active-tab{% endif %}">
+    <i class="bi bi-tags me-1"></i>Etiquetas
+  </a>
+  <a href="{{ url_for('marketing.plantillas_lista') }}"
+     class="status-tab {% if request.endpoint and 'plantillas' in request.endpoint and 'plantillas_wa' not in request.endpoint %}active-tab{% endif %}">
+    <i class="bi bi-envelope-open me-1"></i>Plantillas Email
+  </a>
+  <a href="{{ url_for('marketing.plantillas_wa_lista') }}"
+     class="status-tab {% if 'plantillas_wa' in (request.endpoint or '') %}active-tab{% endif %}">
+    <i class="bi bi-whatsapp me-1"></i>Plantillas WA
+  </a>
+  <a href="{{ url_for('marketing.campanas_lista') }}"
+     class="status-tab {% if 'campanas' in (request.endpoint or '') %}active-tab{% endif %}">
+    <i class="bi bi-megaphone me-1"></i>Campañas
+  </a>
+  <a href="{{ url_for('marketing.normas_lista') }}"
+     class="status-tab {% if 'normas' in (request.endpoint or '') %}active-tab{% endif %}">
+    <i class="bi bi-diagram-3 me-1"></i>Normas
+  </a>
+  <a href="{{ url_for('marketing.notificaciones_lista') }}"
+     class="status-tab {% if 'notificaciones' in (request.endpoint or '') %}active-tab{% endif %}">
+    <i class="bi bi-bell me-1"></i>Notificaciones
+    {% if notif_pendientes > 0 %}
+    <span class="badge rounded-pill ms-1"
+          style="background:#EF4444;color:#fff;font-size:.6rem;padding:2px 6px">
+      {{ notif_pendientes }}
+    </span>
+    {% endif %}
+  </a>
+</div>

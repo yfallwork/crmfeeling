@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Plantillas de email — Marketing{% endblock %}
+{% block page_title %}Plantillas de email{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('marketing.plantillas_nueva') }}" class="btn btn-sm btn-primary">
+  <i class="bi bi-plus-lg me-1"></i>Nueva plantilla
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-3">{% include 'marketing/_tabs.html' %}</div>
+
+<div class="card">
+  <!-- Filtros -->
+  <div class="filter-bar">
+    <div class="d-flex align-items-center gap-2 flex-wrap w-100">
+      <div class="d-flex gap-1">
+        <a href="{{ url_for('marketing.plantillas_lista') }}"
+           class="btn btn-sm {% if not segmento %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+          Todas
+        </a>
+        <a href="{{ url_for('marketing.plantillas_lista', segmento='b2c') }}"
+           class="btn btn-sm {% if segmento == 'b2c' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+          <i class="bi bi-person-badge-fill me-1"></i>B2C
+        </a>
+        <a href="{{ url_for('marketing.plantillas_lista', segmento='b2b') }}"
+           class="btn btn-sm {% if segmento == 'b2b' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+          <i class="bi bi-buildings-fill me-1"></i>B2B
+        </a>
+      </div>
+      <span class="ms-auto text-xs text-muted">
+        {{ plantillas|length }} plantilla{{ 's' if plantillas|length != 1 }}
+      </span>
+    </div>
+  </div>
+
+  {% if not plantillas %}
+  <div class="empty-state" style="padding:56px">
+    <i class="bi bi-envelope-open" style="font-size:2rem;opacity:.25"></i>
+    <p>No hay plantillas de email todavía</p>
+    <a href="{{ url_for('marketing.plantillas_nueva') }}" class="btn btn-sm btn-primary">
+      <i class="bi bi-plus-lg me-1"></i>Crear primera plantilla
+    </a>
+  </div>
+  {% else %}
+
+  <div class="row g-0">
+    {% for p in plantillas %}
+    <div class="col-12" style="border-bottom:1px solid var(--border-light)">
+      <div class="d-flex align-items-start gap-3 p-4 {% if not p.activo %}opacity-50{% endif %}">
+
+        <!-- Icono -->
+        <div class="d-flex align-items-center justify-content-center flex-shrink-0 rounded"
+             style="width:44px;height:44px;background:rgba(99,102,241,.1);color:#6366F1;font-size:1.2rem">
+          <i class="bi bi-envelope-fill"></i>
+        </div>
+
+        <!-- Info -->
+        <div class="flex-grow-1 min-w-0">
+          <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+            <span class="fw-bold" style="color:var(--black)">{{ p.nombre }}</span>
+            <span class="badge rounded-pill"
+                  style="font-size:.65rem;background:{% if p.segmento == 'b2c' %}rgba(59,130,246,.1);color:#3B82F6{% elif p.segmento == 'b2b' %}rgba(139,92,246,.1);color:#8B5CF6{% else %}var(--gray-100);color:var(--gray-600){% endif %}">
+              {{ p.segmento | upper }}
+            </span>
+            {% if not p.activo %}
+            <span class="badge rounded-pill" style="background:var(--gray-100);color:var(--gray-500);font-size:.65rem">
+              Inactiva
+            </span>
+            {% endif %}
+            {% if p.normas_count > 0 %}
+            <span class="badge rounded-pill" style="background:rgba(16,185,129,.1);color:#10B981;font-size:.65rem">
+              <i class="bi bi-diagram-3 me-1"></i>Usada en {{ p.normas_count }} norma{{ 's' if p.normas_count != 1 }}
+            </span>
+            {% endif %}
+          </div>
+          <div class="text-xs text-muted mb-1">
+            <i class="bi bi-chat-quote me-1"></i>
+            <span class="fw-semibold">Asunto:</span> {{ p.asunto }}
+          </div>
+          {% if p.descripcion %}
+          <div class="text-xs text-muted"
+               style="max-width:580px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            {{ p.descripcion }}
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Acciones -->
+        <div class="d-flex gap-1 flex-shrink-0">
+          <a href="{{ url_for('marketing.plantillas_editar', id=p.id) }}"
+             class="btn btn-xs btn-outline-primary" title="Editar">
+            <i class="bi bi-pencil"></i>
+          </a>
+          <form method="POST" action="{{ url_for('marketing.plantillas_toggle', id=p.id) }}" class="d-inline">
+            <button class="btn btn-xs btn-outline-secondary"
+                    title="{{ 'Desactivar' if p.activo else 'Activar' }}">
+              <i class="bi {{ 'bi-eye-slash' if p.activo else 'bi-eye' }}"></i>
+            </button>
+          </form>
+          <form method="POST" action="{{ url_for('marketing.plantillas_eliminar', id=p.id) }}" class="d-inline"
+                onsubmit="return confirm('Eliminar la plantilla {{ p.nombre }}?')">
+            <button class="btn btn-xs btn-outline-danger" title="Eliminar">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
+        </div>
+
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% endif %}
+</div>
+{% endblock %}

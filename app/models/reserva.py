@@ -15,27 +15,50 @@ class Reserva(db.Model):
     __tablename__ = "reservas"
 
     id = db.Column(db.Integer, primary_key=True)
-    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=False)
+
+    # Exactamente uno de los dos estará relleno
+    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=True)
+    empresa_id = db.Column(db.Integer, db.ForeignKey("empresas_tb.id"), nullable=True)
+
     tipo_experiencia_id = db.Column(db.Integer, db.ForeignKey("tipos_experiencia.id"), nullable=False)
 
-    fecha_compra = db.Column(db.DateTime, default=datetime.utcnow)
+    fecha_compra   = db.Column(db.DateTime, default=datetime.utcnow)
     fecha_disfrute = db.Column(db.DateTime, nullable=True)
 
-    estado = db.Column(db.String(20), default="pendiente")
-    precio = db.Column(db.Float, default=0.0)
-    horario = db.Column(db.String(20), default="")       # "10:00-12:00"
-    variante = db.Column(db.String(150), default="")     # pa_escoge-tu-experiencia
-    notas = db.Column(db.Text, default="")
+    estado   = db.Column(db.String(20),  default="pendiente")
+    precio   = db.Column(db.Float,       default=0.0)
+    horario  = db.Column(db.String(20),  default="")
+    variante = db.Column(db.String(150), default="")
+    notas    = db.Column(db.Text,        default="")
+
+    # Team Building extras
+    num_participantes = db.Column(db.Integer,    default=1)
+    nombre_grupo      = db.Column(db.String(150), default="")
 
     # WooCommerce
-    woo_order_id = db.Column(db.Integer, nullable=True, unique=True)
+    woo_order_id     = db.Column(db.Integer, nullable=True, unique=True)
     woo_order_status = db.Column(db.String(30), default="")
 
-    creado_en = db.Column(db.DateTime, default=datetime.utcnow)
+    creado_en      = db.Column(db.DateTime, default=datetime.utcnow)
     actualizado_en = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    cliente = db.relationship("Cliente", back_populates="reservas")
+    cliente        = db.relationship("Cliente",         foreign_keys=[cliente_id], back_populates="reservas")
+    empresa        = db.relationship("Empresa",         foreign_keys=[empresa_id])
     tipo_experiencia = db.relationship("TipoExperiencia", back_populates="reservas")
+
+    # ── Propiedades de conveniencia ────────────────────────────────────────────
+
+    @property
+    def es_teambuilding(self):
+        return self.empresa_id is not None
+
+    @property
+    def nombre_reservante(self):
+        if self.cliente:
+            return self.cliente.nombre_completo
+        if self.empresa:
+            return self.empresa.nombre
+        return "—"
 
     @property
     def color(self):
@@ -50,7 +73,9 @@ class Reserva(db.Model):
 
     def to_calendar_event(self):
         horario_str = f" · {self.horario}" if self.horario else ""
-        titulo = f"{self.cliente.nombre_completo}{horario_str}"
+        titulo = f"{self.nombre_reservante}{horario_str}"
+        if self.es_teambuilding:
+            titulo = f"[TB] {titulo}"
         return {
             "id": str(self.id),
             "title": titulo,
@@ -58,20 +83,23 @@ class Reserva(db.Model):
             "color": self.color,
             "extendedProps": {
                 "estado": self.estado,
-                "cliente": self.cliente.nombre_completo,
+                "cliente": self.nombre_reservante,
                 "experiencia": self.tipo_experiencia.nombre,
                 "variante": self.variante or "",
                 "horario": self.horario or "",
-                "telefono": self.cliente.telefono,
+                "telefono": self.cliente.telefono if self.cliente else (self.empresa.telefono if self.empresa else ""),
                 "reserva_id": self.id,
+                "es_teambuilding": self.es_teambuilding,
             },
         }
 
     def to_dict(self):
         return {
             "id": self.id,
-            "cliente": self.cliente.nombre_completo,
+            "cliente": self.nombre_reservante,
             "cliente_id": self.cliente_id,
+            "empresa_id": self.empresa_id,
+            "es_teambuilding": self.es_teambuilding,
             "experiencia": self.tipo_experiencia.nombre,
             "variante": self.variante or "",
             "horario": self.horario or "",
@@ -81,6 +109,8 @@ class Reserva(db.Model):
             "estado": self.estado,
             "precio": self.precio,
             "woo_order_id": self.woo_order_id,
+            "num_participantes": self.num_participantes,
+            "nombre_grupo": self.nombre_grupo,
         }
 
     def __repr__(self):

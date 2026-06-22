@@ -1,0 +1,330 @@
+{% extends "autoclub/base.html" %}
+{% block title %}Dashboard AutoClub{% endblock %}
+{% block page_title %}Dashboard AutoClub{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.nuevo') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-person-plus me-1"></i>Nuevo socio
+</a>
+<a href="{{ url_for('autoclub.patrocinadores_nuevo') }}" class="btn btn-sm btn-primary">
+  <i class="bi bi-building-add me-1"></i>Nuevo patrocinador
+</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- BANNER BIENVENIDA -->
+<div class="card mb-4" style="background:linear-gradient(135deg, #0D0D0D 0%, #0f2318 100%);border:none;overflow:hidden;position:relative">
+  <div class="card-body d-flex align-items-center gap-4 flex-wrap" style="padding:28px 32px !important">
+    <img src="{{ url_for('static', filename='img/autoclub/logo_autoclub.png') }}"
+         alt="AutoClub" style="height:64px;width:auto;flex-shrink:0" />
+    <div style="flex:1;min-width:0">
+      <div style="color:#16a34a;font-size:.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px">
+        Panel de gestión
+      </div>
+      <h4 style="color:#fff;font-weight:800;margin:0;font-size:1.15rem;line-height:1.2">
+        AutoClub
+      </h4>
+      <p style="color:rgba(255,255,255,.45);margin:4px 0 0;font-size:.82rem">
+        {{ activos }} socio{{ 's' if activos != 1 }} activo{{ 's' if activos != 1 }}
+        · {{ activos_patrocinadores }} patrocinador{{ 'es' if activos_patrocinadores != 1 }} activo{{ 's' if activos_patrocinadores != 1 }}
+      </p>
+    </div>
+    <div class="d-flex gap-2 flex-shrink-0">
+      <a href="{{ url_for('autoclub.lista') }}" class="btn btn-sm btn-outline-light">
+        <i class="bi bi-person-badge me-1"></i>Socios
+      </a>
+      <a href="{{ url_for('autoclub.patrocinadores_lista') }}" class="btn btn-sm btn-outline-light">
+        <i class="bi bi-building me-1"></i>Patrocinadores
+      </a>
+    </div>
+    <div style="position:absolute;right:-20px;top:-20px;width:180px;height:180px;
+                background:rgba(22,163,74,.06);border-radius:50%;pointer-events:none"></div>
+    <div style="position:absolute;right:40px;bottom:-40px;width:120px;height:120px;
+                background:rgba(22,163,74,.04);border-radius:50%;pointer-events:none"></div>
+  </div>
+</div>
+
+<!-- STAT CARDS: SOCIOS -->
+<div class="text-xs text-muted fw-semibold text-uppercase mb-2" style="letter-spacing:1px">
+  <i class="bi bi-person-badge me-1"></i>Socios
+</div>
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon-green"><i class="bi bi-people-fill"></i></div>
+      <div>
+        <div style="font-size:1.75rem;font-weight:800;line-height:1;color:var(--black)">{{ total }}</div>
+        <div class="text-xs text-muted mt-1">Total socios</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon-green"><i class="bi bi-check-circle-fill"></i></div>
+      <div>
+        <div style="font-size:1.75rem;font-weight:800;line-height:1;color:#16a34a">{{ activos }}</div>
+        <div class="text-xs text-muted mt-1">Activos</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon-gray"><i class="bi bi-pause-circle-fill"></i></div>
+      <div>
+        <div style="font-size:1.75rem;font-weight:800;line-height:1;color:var(--gray-500)">{{ inactivos }}</div>
+        <div class="text-xs text-muted mt-1">Inactivos</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon-amber"><i class="bi bi-star-fill"></i></div>
+      <div>
+        <div style="font-size:1.75rem;font-weight:800;line-height:1;color:#d97706">
+          {{ por_tipo.get('premium', 0) + por_tipo.get('vip', 0) }}
+        </div>
+        <div class="text-xs text-muted mt-1">Premium + VIP</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STAT CARDS: PATROCINADORES -->
+<div class="text-xs text-muted fw-semibold text-uppercase mb-2" style="letter-spacing:1px">
+  <i class="bi bi-building me-1"></i>Patrocinadores
+</div>
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon-indigo"><i class="bi bi-building-fill"></i></div>
+      <div>
+        <div style="font-size:1.75rem;font-weight:800;line-height:1;color:var(--black)">{{ total_patrocinadores }}</div>
+        <div class="text-xs text-muted mt-1">Total</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon-green"><i class="bi bi-check-circle-fill"></i></div>
+      <div>
+        <div style="font-size:1.75rem;font-weight:800;line-height:1;color:#16a34a">{{ activos_patrocinadores }}</div>
+        <div class="text-xs text-muted mt-1">Activos</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TABLAS: socios por tipo + socios recientes -->
+<div class="row g-3 mb-3">
+
+  <!-- Socios por tipo -->
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-header">
+        <h6 class="mb-0">
+          <i class="bi bi-bar-chart me-2 text-primary"></i>Socios activos por tipo
+        </h6>
+      </div>
+      <div class="card-body">
+        {% set tipo_config = [
+          ('regular',  'Regular',  '#6366f1', 'tipo-regular'),
+          ('premium',  'Premium',  '#d97706', 'tipo-premium'),
+          ('familiar', 'Familiar', '#059669', 'tipo-familiar'),
+          ('vip',      'VIP',      '#dc2626', 'tipo-vip'),
+        ] %}
+        {% for clave, label, color, css in tipo_config %}
+          {% set count = por_tipo.get(clave, 0) %}
+          {% set pct = ((count / activos * 100) | round(0) | int) if activos > 0 else 0 %}
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="badge {{ css }} rounded-pill" style="font-size:.73rem;font-weight:700;padding:4px 10px">
+                {{ label }}
+              </span>
+              <span class="fw-bold text-sm" style="color:{{ color }}">{{ count }}</span>
+            </div>
+            <div class="progress" style="height:6px;border-radius:99px">
+              <div class="progress-bar" role="progressbar"
+                   style="width:{{ pct }}%;background:{{ color }};border-radius:99px"></div>
+            </div>
+          </div>
+        {% endfor %}
+        {% if total == 0 %}
+        <div class="empty-state" style="padding:32px 0">
+          <i class="bi bi-person-badge"></i>
+          <p>Aún no hay socios registrados</p>
+        </div>
+        {% endif %}
+      </div>
+      <div class="card-footer text-center">
+        <a href="{{ url_for('autoclub.lista') }}" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-list-ul me-1"></i>Ver todos los socios
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Socios recientes -->
+  <div class="col-lg-7">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">
+          <i class="bi bi-clock-history me-2 text-primary"></i>Socios recientes
+        </h6>
+        <a href="{{ url_for('autoclub.nuevo') }}" class="btn btn-xs btn-primary">
+          <i class="bi bi-plus-lg me-1"></i>Nuevo
+        </a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th style="width:40px"></th>
+              <th>Nombre</th>
+              <th>Tipo</th>
+              <th>Alta</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in recientes %}
+            <tr>
+              <td>
+                <div class="row-avatar"
+                     style="{% if not s.activo %}background:var(--gray-200);color:var(--gray-500){% endif %}">
+                  {{ s.nombre[0]|upper }}
+                </div>
+              </td>
+              <td>
+                <a href="{{ url_for('autoclub.detalle', id=s.id) }}"
+                   class="fw-semibold text-decoration-none" style="color:var(--black)">
+                  {{ s.nombre_completo }}
+                </a>
+                {% if s.email %}<div class="text-xs text-muted">{{ s.email }}</div>{% endif %}
+              </td>
+              <td>
+                <span class="badge tipo-{{ s.tipo }} rounded-pill"
+                      style="font-size:.7rem;font-weight:700;padding:3px 9px">
+                  {{ s.tipo | capitalize }}
+                </span>
+              </td>
+              <td class="text-muted text-sm">{{ s.fecha_alta.strftime('%d/%m/%Y') if s.fecha_alta else '—' }}</td>
+              <td>
+                {% if s.activo %}
+                  <span class="badge badge-activo rounded-pill"><i class="bi bi-check-circle me-1"></i>Activo</span>
+                {% else %}
+                  <span class="badge badge-inactivo rounded-pill"><i class="bi bi-pause-circle me-1"></i>Inactivo</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5">
+                <div class="empty-state">
+                  <i class="bi bi-person-badge"></i>
+                  <p>No hay socios aún — <a href="{{ url_for('autoclub.nuevo') }}">añadir el primero</a></p>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- PATROCINADORES RECIENTES -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0">
+      <i class="bi bi-building me-2 text-primary"></i>Patrocinadores recientes
+    </h6>
+    <a href="{{ url_for('autoclub.patrocinadores_nuevo') }}" class="btn btn-xs btn-primary">
+      <i class="bi bi-plus-lg me-1"></i>Nuevo
+    </a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th style="width:56px"></th>
+          <th>Empresa</th>
+          <th>Contacto</th>
+          <th>Sector</th>
+          <th>Redes</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in recientes_patrocinadores %}
+        {% set iconos = {'instagram':'bi-instagram','facebook':'bi-facebook','twitter':'bi-twitter-x',
+                         'linkedin':'bi-linkedin','tiktok':'bi-tiktok','youtube':'bi-youtube'} %}
+        <tr {% if not p.activo %}style="opacity:.55"{% endif %}>
+          <td>
+            {% if p.tiene_logo %}
+              <img src="{{ url_for('static', filename='uploads/autoclub/patrocinadores/' + p.logo_principal) }}"
+                   alt="{{ p.nombre }}"
+                   style="width:40px;height:40px;object-fit:contain;border-radius:6px;
+                          border:1px solid var(--border);background:#fff;padding:3px" />
+            {% else %}
+              <div class="row-avatar">{{ p.nombre[0]|upper }}</div>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('autoclub.patrocinadores_detalle', id=p.id) }}"
+               class="fw-semibold text-decoration-none" style="color:var(--black)">
+              {{ p.nombre }}
+            </a>
+          </td>
+          <td class="text-sm text-muted">{{ p.persona_contacto or '—' }}</td>
+          <td>
+            {% if p.sector %}
+              <span class="badge rounded-pill"
+                    style="background:rgba(22,163,74,.1);color:#15803d;font-size:.7rem">{{ p.sector }}</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="d-flex gap-2">
+              {% for red, url in p.redes_activas.items() %}
+                <a href="{{ url }}" target="_blank" rel="noopener" class="text-decoration-none"
+                   style="color:var(--gray-500);font-size:.9rem" title="{{ red | capitalize }}">
+                  <i class="bi {{ iconos.get(red, 'bi-link') }}"></i>
+                </a>
+              {% else %}
+                <span class="text-muted text-xs">—</span>
+              {% endfor %}
+            </div>
+          </td>
+          <td>
+            {% if p.activo %}
+              <span class="badge badge-activo rounded-pill"><i class="bi bi-check-circle me-1"></i>Activo</span>
+            {% else %}
+              <span class="badge badge-inactivo rounded-pill"><i class="bi bi-pause-circle me-1"></i>Inactivo</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6">
+            <div class="empty-state">
+              <i class="bi bi-building"></i>
+              <p>No hay patrocinadores aún — <a href="{{ url_for('autoclub.patrocinadores_nuevo') }}">añadir el primero</a></p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer text-center">
+    <a href="{{ url_for('autoclub.patrocinadores_lista') }}" class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-list-ul me-1"></i>Ver todos los patrocinadores
+    </a>
+  </div>
+</div>
+
+{% endblock %}

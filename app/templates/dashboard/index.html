@@ -99,10 +99,10 @@
                class="list-group-item list-group-item-action px-4 py-3 border-0"
                style="border-bottom:1px solid var(--border-light) !important;font-size:.84rem">
               <div class="d-flex align-items-center gap-2">
-                <div class="row-avatar">{{ r.cliente.nombre[0]|upper }}</div>
+                <div class="row-avatar">{{ r.nombre_reservante[0]|upper }}</div>
                 <div class="min-w-0">
                   <div class="fw-600" style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-                    {{ r.cliente.nombre_completo }}
+                    {{ r.nombre_reservante }}
                   </div>
                   <div class="text-muted text-xs">{{ r.tipo_experiencia.nombre }}</div>
                 </div>
@@ -149,14 +149,16 @@
         <tr>
           <td>
             <div class="d-flex align-items-center gap-2">
-              <div class="row-avatar">{{ r.cliente.nombre[0]|upper }}</div>
+              <div class="row-avatar">{{ r.nombre_reservante[0]|upper }}</div>
               <div class="min-w-0">
-                <a href="{{ url_for('clientes.detalle', id=r.cliente_id) }}"
+                <a href="{{ url_for('reservas.detalle', id=r.id) }}"
                    class="fw-semibold text-decoration-none d-block"
                    style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--black)">
-                  {{ r.cliente.nombre_completo }}
+                  {{ r.nombre_reservante }}
                 </a>
-                <div class="text-muted text-xs">{{ r.cliente.telefono or r.cliente.email }}</div>
+                <div class="text-muted text-xs">
+                  {% if r.cliente %}{{ r.cliente.telefono or r.cliente.email }}{% endif %}
+                </div>
               </div>
             </div>
           </td>
@@ -208,6 +210,166 @@
       </tbody>
     </table>
   </div>
+</div>
+
+<!-- ── TEAM BUILDING ─────────────────────────────────────────────────────── -->
+<div class="section-label mt-4 mb-3"
+     style="font-size:.7rem;font-weight:800;letter-spacing:.08em;
+            text-transform:uppercase;color:var(--gray-400)">
+  Team Building
+</div>
+
+<!-- TB stat cards -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(220,38,38,.08);color:var(--red)">
+        <i class="bi bi-buildings-fill"></i>
+      </div>
+      <div class="stat-body">
+        <div class="stat-value" data-count-to="{{ tb_stats.total_empresas }}">{{ tb_stats.total_empresas }}</div>
+        <div class="stat-label">Empresas activas</div>
+        <div class="stat-sub">
+          <a href="{{ url_for('teambuilding.empresas_lista') }}" class="text-muted text-xs">Ver todas</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-icon bg-warning-soft text-warning">
+        <i class="bi bi-hourglass-split"></i>
+      </div>
+      <div class="stat-body">
+        <div class="stat-value" data-count-to="{{ tb_stats.reservas_pendientes }}">{{ tb_stats.reservas_pendientes }}</div>
+        <div class="stat-label">TB sin fecha</div>
+        <div class="stat-sub text-muted">Pendientes de asignar</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-icon bg-info-soft text-info">
+        <i class="bi bi-calendar-week-fill"></i>
+      </div>
+      <div class="stat-body">
+        <div class="stat-value" data-count-to="{{ tb_stats.proximas_7_dias }}">{{ tb_stats.proximas_7_dias }}</div>
+        <div class="stat-label">TB próximos 7 días</div>
+        <div class="stat-sub text-muted">Experiencias TB programadas</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-icon bg-success-soft text-success">
+        <i class="bi bi-currency-euro"></i>
+      </div>
+      <div class="stat-body">
+        <div class="stat-value"
+             data-count-to="{{ "%.0f"|format(tb_stats.ingresos_mes) }}"
+             data-suffix="€">{{ "%.0f"|format(tb_stats.ingresos_mes) }}€</div>
+        <div class="stat-label">Ingresos TB 30 días</div>
+        <div class="stat-sub text-muted">De reservas Team Building</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Próximas reservas TB -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0">
+      <i class="bi bi-buildings me-2" style="color:var(--red)"></i>Próximas reservas Team Building
+    </h6>
+    <a href="{{ url_for('reservas.lista') }}" class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-list-ul me-1"></i>Todas las reservas
+    </a>
+  </div>
+  {% if proximas_tb %}
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Empresa</th>
+          <th>Experiencia</th>
+          <th>Fecha disfrute</th>
+          <th>Grupo</th>
+          <th>Estado</th>
+          <th>Días</th>
+          <th style="width:44px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in proximas_tb %}
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="row-avatar" style="background:rgba(220,38,38,.1);color:var(--red)">
+                {{ r.empresa.nombre[0]|upper }}
+              </div>
+              <div class="min-w-0">
+                <a href="{{ url_for('teambuilding.empresas_detalle', id=r.empresa_id) }}"
+                   class="fw-semibold text-decoration-none d-block"
+                   style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--black)">
+                  {{ r.empresa.nombre }}
+                </a>
+                <div class="text-muted text-xs">{{ r.empresa.persona_contacto or r.empresa.email }}</div>
+              </div>
+            </div>
+          </td>
+          <td><span style="font-weight:500">{{ r.tipo_experiencia.nombre }}</span></td>
+          <td>
+            {% if r.fecha_disfrute %}
+              <span class="fw-semibold">{{ r.fecha_disfrute.strftime('%d/%m/%Y') }}</span>
+              {% if r.horario %}<div class="text-xs text-muted">{{ r.horario }}</div>{% endif %}
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if r.nombre_grupo %}
+              <span class="text-sm">{{ r.nombre_grupo }}</span>
+              {% if r.num_participantes %}
+                <div class="text-xs text-muted">{{ r.num_participantes }} pers.</div>
+              {% endif %}
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td><span class="badge estado-{{ r.estado }}">{{ r.estado }}</span></td>
+          <td>
+            {% if r.dias_hasta_disfrute is not none %}
+              {% if r.dias_hasta_disfrute == 0 %}
+                <span class="badge bg-danger" style="background:var(--red)!important">Hoy</span>
+              {% elif r.dias_hasta_disfrute == 1 %}
+                <span class="badge bg-warning-soft" style="color:#92400E">Mañana</span>
+              {% else %}
+                <span class="text-muted text-xs">{{ r.dias_hasta_disfrute }}d</span>
+              {% endif %}
+            {% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('reservas.detalle', id=r.id) }}"
+               class="btn btn-xs btn-outline-secondary">
+              <i class="bi bi-arrow-right"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body">
+    <div class="empty-state">
+      <i class="bi bi-buildings" style="font-size:1.8rem;opacity:.25"></i>
+      <p>No hay reservas Team Building próximas</p>
+      <a href="{{ url_for('reservas.nueva') }}" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-plus-lg me-1"></i>Nueva reserva TB
+      </a>
+    </div>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}
 

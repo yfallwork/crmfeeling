@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+{% block title %}Logs — Marketing{% endblock %}
+{% block page_title %}Logs de automatización{% endblock %}
+
+{% block topbar_actions %}
+<form method="POST" action="{{ url_for('marketing.logs_limpiar') }}"
+      onsubmit="return confirm('¿Eliminar todos los logs con más de 90 días?')">
+  <button class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-trash me-1"></i>Limpiar &gt;90 días
+  </button>
+</form>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-3">{% include 'marketing/_logs_tabs.html' %}</div>
+
+{# ── Stats rápidas ── #}
+<div class="row g-3 mb-3">
+  <div class="col-sm-4">
+    <div class="stat-card" style="padding:14px 18px">
+      <div class="stat-icon" style="width:36px;height:36px;font-size:.95rem;
+                                    background:rgba(99,102,241,.1);color:#6366F1">
+        <i class="bi bi-journal-text"></i>
+      </div>
+      <div class="stat-body">
+        <div class="stat-value" style="font-size:1.5rem">{{ total }}</div>
+        <div class="stat-label">Registros totales</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="stat-card" style="padding:14px 18px">
+      <div class="stat-icon" style="width:36px;height:36px;font-size:.95rem;
+                                    background:{{ 'rgba(239,68,68,.1)' if errores > 0 else 'var(--gray-100)' }};
+                                    color:{{ '#EF4444' if errores > 0 else 'var(--gray-400)' }}">
+        <i class="bi bi-x-circle-fill"></i>
+      </div>
+      <div class="stat-body">
+        <div class="stat-value" style="font-size:1.5rem;
+             color:{{ '#EF4444' if errores > 0 else 'var(--black)' }}">{{ errores }}</div>
+        <div class="stat-label">Errores registrados</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="stat-card" style="padding:14px 18px">
+      <div class="stat-icon" style="width:36px;height:36px;font-size:.95rem;
+                                    background:rgba(16,185,129,.1);color:#10B981">
+        <i class="bi bi-calendar-check"></i>
+      </div>
+      <div class="stat-body">
+        <div class="stat-value" style="font-size:1.5rem">{{ hoy }}</div>
+        <div class="stat-label">Eventos hoy</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+
+  {# ── Filtros ── #}
+  <div class="filter-bar">
+    <div class="d-flex align-items-center gap-2 flex-wrap w-100">
+
+      {# Tipo de evento #}
+      <div class="d-flex gap-1 flex-wrap">
+        <a href="{{ url_for('marketing.logs_lista', resultado=resultado, origen=origen) }}"
+           class="btn btn-sm {% if not evento %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+          Todos los eventos
+        </a>
+        {% set GRUPOS = [
+          ('tag_asignada',          'Etiqueta asignada',        'bi-tag-fill',               '#10B981'),
+          ('tag_eliminada',         'Etiqueta eliminada',       'bi-tag',                    '#EF4444'),
+          ('tag_trigger',           'Trigger automático',       'bi-lightning-fill',         '#F59E0B'),
+          ('accion_email',          'Email',                    'bi-envelope-fill',          '#6366F1'),
+          ('accion_whatsapp',       'WhatsApp',                 'bi-whatsapp',               '#25D366'),
+          ('accion_notificacion',   'Notif. interna',           'bi-bell-fill',              '#F59E0B'),
+          ('accion_error',          'Acción fallida',           'bi-x-circle-fill',          '#EF4444'),
+          ('norma_evaluada_ok',     'Norma ejecutada',          'bi-diagram-3-fill',         '#6366F1'),
+          ('norma_activada',        'Norma activada',           'bi-play-circle-fill',       '#10B981'),
+          ('norma_desactivada',     'Norma desactivada',        'bi-pause-circle-fill',      '#6B7280'),
+          ('notificacion_creada',   'Notif. creada',            'bi-bell-plus',              '#8B5CF6'),
+          ('notificacion_resuelta', 'Notif. resuelta',          'bi-check-circle-fill',      '#10B981'),
+          ('webhook_recibido',      'Webhook',                  'bi-arrow-down-circle-fill', '#3B82F6'),
+          ('webhook_error',         'Webhook error',            'bi-exclamation-circle-fill','#EF4444'),
+        ] %}
+        {% for ev_key, ev_label, ev_icon, ev_color in GRUPOS %}
+          {% if ev_key in eventos_presentes %}
+          <a href="{{ url_for('marketing.logs_lista', evento=ev_key, resultado=resultado, origen=origen) }}"
+             class="btn btn-sm {% if evento == ev_key %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+            <i class="bi {{ ev_icon }} me-1" style="color:{{ ev_color }}"></i>{{ ev_label }}
+          </a>
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      {# Separador resultado #}
+      <div class="d-flex gap-1" style="border-left:1px solid var(--border-light);padding-left:.75rem">
+        <a href="{{ url_for('marketing.logs_lista', evento=evento, origen=origen) }}"
+           class="btn btn-sm {% if not resultado %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+          Todos
+        </a>
+        <a href="{{ url_for('marketing.logs_lista', evento=evento, resultado='ok', origen=origen) }}"
+           class="btn btn-sm {% if resultado == 'ok' %}btn-success{% else %}btn-outline-secondary{% endif %}">
+          <i class="bi bi-check-circle me-1"></i>OK
+        </a>
+        <a href="{{ url_for('marketing.logs_lista', evento=evento, resultado='error', origen=origen) }}"
+           class="btn btn-sm {% if resultado == 'error' %}btn-danger{% else %}btn-outline-secondary{% endif %}">
+          <i class="bi bi-x-circle me-1"></i>Errores
+        </a>
+        <a href="{{ url_for('marketing.logs_lista', evento=evento, resultado='skip', origen=origen) }}"
+           class="btn btn-sm {% if resultado == 'skip' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">
+          <i class="bi bi-dash-circle me-1"></i>Omitidos
+        </a>
+      </div>
+
+      {# Origen #}
+      <div class="d-flex gap-1" style="border-left:1px solid var(--border-light);padding-left:.75rem">
+        <a href="{{ url_for('marketing.logs_lista', evento=evento, resultado=resultado) }}"
+           class="btn btn-sm {% if not origen %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+          Origen
+        </a>
+        <a href="{{ url_for('marketing.logs_lista', evento=evento, resultado=resultado, origen='manual') }}"
+           class="btn btn-sm {% if origen == 'manual' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+          Manual
+        </a>
+        <a href="{{ url_for('marketing.logs_lista', evento=evento, resultado=resultado, origen='sistema') }}"
+           class="btn btn-sm {% if origen == 'sistema' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+          Sistema
+        </a>
+        <a href="{{ url_for('marketing.logs_lista', evento=evento, resultado=resultado, origen='webhook') }}"
+           class="btn btn-sm {% if origen == 'webhook' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+          Webhook
+        </a>
+        <a href="{{ url_for('marketing.logs_lista', evento=evento, resultado=resultado, origen='scheduler') }}"
+           class="btn btn-sm {% if origen == 'scheduler' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+          Programado
+        </a>
+      </div>
+
+      <span class="ms-auto text-xs text-muted">
+        {{ logs.total }} registro{{ 's' if logs.total != 1 }}
+      </span>
+    </div>
+  </div>
+
+  {# ── Lista de logs ── #}
+  {% if not logs.items %}
+  <div class="empty-state" style="padding:56px">
+    <i class="bi bi-journal-x" style="font-size:2rem;opacity:.25"></i>
+    <p>No hay registros con los filtros seleccionados</p>
+    {% if evento or resultado or origen %}
+    <a href="{{ url_for('marketing.logs_lista') }}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-x-circle me-1"></i>Quitar filtros
+    </a>
+    {% endif %}
+  </div>
+  {% else %}
+
+  <div class="table-responsive">
+    <table class="table table-hover mb-0" style="font-size:.83rem">
+      <thead>
+        <tr style="background:var(--gray-50);font-size:.72rem;text-transform:uppercase;
+                   letter-spacing:.05em;color:var(--gray-400)">
+          <th style="width:145px;padding-left:1.25rem">Fecha</th>
+          <th style="width:190px">Evento</th>
+          <th style="width:70px">Resultado</th>
+          <th>Detalle</th>
+          <th style="width:120px">Entidad</th>
+          <th style="width:80px">Origen</th>
+          <th style="width:90px">Usuario</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs.items %}
+        <tr class="{% if log.resultado == 'error' %}table-danger-soft{% endif %}">
+
+          {# Fecha #}
+          <td class="text-muted" style="padding-left:1.25rem;white-space:nowrap;vertical-align:middle">
+            <div>{{ log.fecha.strftime('%d/%m/%Y') }}</div>
+            <div class="text-xs" style="opacity:.65">{{ log.fecha.strftime('%H:%M:%S') }}</div>
+          </td>
+
+          {# Evento #}
+          <td style="vertical-align:middle">
+            <div class="d-flex align-items-center gap-2">
+              <div class="d-flex align-items-center justify-content-center rounded flex-shrink-0"
+                   style="width:30px;height:30px;background:{{ log.evento_color }}15;
+                          color:{{ log.evento_color }};font-size:.85rem">
+                <i class="bi {{ log.evento_icono }}"></i>
+              </div>
+              <div>
+                <div class="fw-semibold" style="color:var(--black);font-size:.82rem">
+                  {{ log.evento_label }}
+                </div>
+                {% if log.rule_nombre %}
+                <div class="text-xs text-muted">
+                  <i class="bi bi-diagram-3 me-1"></i>
+                  {% if log.rule_id %}
+                  <a href="{{ url_for('marketing.normas_editar', id=log.rule_id) }}"
+                     class="text-muted text-decoration-none">{{ log.rule_nombre }}</a>
+                  {% else %}
+                  {{ log.rule_nombre }}
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if log.tag_nombre %}
+                <div class="text-xs text-muted">
+                  <i class="bi bi-tag me-1"></i>{{ log.tag_nombre }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </td>
+
+          {# Resultado #}
+          <td style="vertical-align:middle">
+            <span class="badge d-inline-flex align-items-center gap-1"
+                  style="background:{{ log.resultado_color }}15;color:{{ log.resultado_color }};
+                         border:1px solid {{ log.resultado_color }}30;
+                         font-size:.68rem;font-weight:700;padding:3px 8px;border-radius:5px">
+              <i class="bi {{ log.resultado_icono }}"></i>{{ log.resultado_label }}
+            </span>
+          </td>
+
+          {# Detalle #}
+          <td style="vertical-align:middle;max-width:340px">
+            {% if log.detalle %}
+            <div class="text-xs"
+                 style="color:var(--gray-700);overflow:hidden;text-overflow:ellipsis;
+                        white-space:nowrap;max-width:340px"
+                 title="{{ log.detalle }}">
+              {{ log.detalle }}
+            </div>
+            {% else %}
+            <span class="text-xs text-muted">—</span>
+            {% endif %}
+          </td>
+
+          {# Entidad #}
+          <td style="vertical-align:middle">
+            {% if log.entidad_nombre %}
+            <div class="text-xs fw-semibold" style="color:var(--black);
+                 overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px"
+                 title="{{ log.entidad_nombre }}">
+              <i class="bi {{ 'bi-buildings-fill' if log.entidad == 'empresa' else 'bi-person-fill' }} me-1"
+                 style="color:{{ '#8B5CF6' if log.entidad == 'empresa' else '#3B82F6' }}"></i>
+              {{ log.entidad_nombre }}
+            </div>
+            {% if log.entidad_id %}
+            <div class="text-xs text-muted">
+              {% if log.entidad == 'cliente' %}
+              <a href="{{ url_for('clientes.detalle', id=log.entidad_id) }}"
+                 class="text-muted text-decoration-none">
+                Ver ficha <i class="bi bi-arrow-right"></i>
+              </a>
+              {% elif log.entidad == 'empresa' %}
+              <a href="{{ url_for('teambuilding.empresas_detalle', id=log.entidad_id) }}"
+                 class="text-muted text-decoration-none">
+                Ver ficha <i class="bi bi-arrow-right"></i>
+              </a>
+              {% endif %}
+            </div>
+            {% endif %}
+            {% else %}
+            <span class="text-xs text-muted">—</span>
+            {% endif %}
+          </td>
+
+          {# Origen #}
+          <td style="vertical-align:middle">
+            {% set origen_styles = {
+              'manual':    ('rgba(59,130,246,.1)',   '#3B82F6'),
+              'sistema':   ('rgba(99,102,241,.1)',   '#6366F1'),
+              'webhook':   ('rgba(245,158,11,.1)',   '#F59E0B'),
+              'scheduler': ('rgba(16,185,129,.1)',   '#10B981'),
+            } %}
+            {% set obg, oclr = origen_styles.get(log.origen, ('var(--gray-100)', 'var(--gray-500)')) %}
+            <span class="badge rounded-pill"
+                  style="background:{{ obg }};color:{{ oclr }};font-size:.65rem;font-weight:700">
+              {{ log.origen_label }}
+            </span>
+          </td>
+
+          {# Usuario #}
+          <td style="vertical-align:middle">
+            <span class="text-xs text-muted">{{ log.usuario_nombre }}</span>
+          </td>
+
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# ── Paginación ── #}
+  {% if logs.pages > 1 %}
+  <div class="d-flex justify-content-between align-items-center px-4 py-3"
+       style="border-top:1px solid var(--border-light)">
+    <div class="text-xs text-muted">
+      Página {{ logs.page }} de {{ logs.pages }}
+      · {{ logs.total }} registro{{ 's' if logs.total != 1 }}
+    </div>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% if logs.has_prev %}
+        <li class="page-item">
+          <a class="page-link"
+             href="{{ url_for('marketing.logs_lista', page=logs.prev_num,
+                              evento=evento, resultado=resultado, origen=origen) }}">
+            <i class="bi bi-chevron-left"></i>
+          </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+          <span class="page-link"><i class="bi bi-chevron-left"></i></span>
+        </li>
+        {% endif %}
+
+        {% for p in logs.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+          {% if p %}
+          <li class="page-item {% if p == logs.page %}active{% endif %}">
+            <a class="page-link"
+               href="{{ url_for('marketing.logs_lista', page=p,
+                                evento=evento, resultado=resultado, origen=origen) }}">
+              {{ p }}
+            </a>
+          </li>
+          {% else %}
+          <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+
+        {% if logs.has_next %}
+        <li class="page-item">
+          <a class="page-link"
+             href="{{ url_for('marketing.logs_lista', page=logs.next_num,
+                              evento=evento, resultado=resultado, origen=origen) }}">
+            <i class="bi bi-chevron-right"></i>
+          </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+          <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+
+  {% endif %}
+</div>
+
+{# Estilo para filas de error #}
+<style>
+.table-danger-soft { background: rgba(239,68,68,.04); }
+.table-danger-soft:hover { background: rgba(239,68,68,.08) !important; }
+</style>
+{% endblock %}

@@ -5,7 +5,8 @@ from flask_login import login_required
 from app.extensions import db
 from app.models.cliente import Cliente
 from app.models.reserva import Reserva
-from app.services.log_service import registrar_log
+from app.models.tag import Tag, ClienteTag
+from app.services.log_service import registrar_log, registrar_marketing_log
 
 clientes_bp = Blueprint("clientes", __name__)
 
@@ -59,6 +60,9 @@ def nuevo():
         db.session.commit()
         registrar_log("crear", "cliente", cliente.id, f"Cliente creado: {cliente.nombre_completo} ({cliente.email})")
         flash(f"Cliente {cliente.nombre_completo} creado correctamente.", "success")
+        # Disparar automatizaciones de marketing para nuevo cliente
+        from app.services.trigger_engine import disparar_trigger
+        disparar_trigger("crm.cliente.creado", "cliente", cliente.id)
         return redirect(url_for("clientes.detalle", id=cliente.id))
 
     return render_template("clientes/form.html", cliente=None, datos={})
@@ -69,7 +73,16 @@ def nuevo():
 def detalle(id):
     cliente = Cliente.query.get_or_404(id)
     reservas = cliente.reservas.order_by(Reserva.fecha_compra.desc()).all()
-    return render_template("clientes/detalle.html", cliente=cliente, reservas=reservas)
+    cliente_tags = ClienteTag.query.filter_by(cliente_id=id).all()
+    tag_ids_asignados = {ct.tag_id for ct in cliente_tags}
+    tags_disponibles = (Tag.query
+                        .filter_by(entidad="cliente", activo=True)
+                        .filter(Tag.id.notin_(tag_ids_asignados))
+                        .order_by(Tag.nombre).all())
+    return render_template("clientes/detalle.html",
+                           cliente=cliente, reservas=reservas,
+                           cliente_tags=cliente_tags,
+                           tags_disponibles=tags_disponibles)
 
 
 @clientes_bp.route("/<int:id>/editar", methods=["GET", "POST"])
@@ -130,6 +143,52 @@ def exportar():
         mimetype="text/csv; charset=utf-8",
         headers={"Content-Disposition": "attachment; filename=clientes.csv"},
     )
+
+
+@clientes_bp.route("/<int:id>/tags/add", methods=["POST"])
+@login_required
+def tag_add(id):
+    cliente = Cliente.query.get_or_404(id)
+    tag_id = request.form.get("tag_id", type=int)
+    if tag_id and not ClienteTag.query.filter_by(cliente_id=id, tag_id=tag_id).first():
+        db.session.add(ClienteTag(cliente_id=id, tag_id=tag_id, origen="manual"))
+        db.session.commit()
+        tag = Tag.query.get(tag_id)
+        tag_slug = tag.slug if tag else str(tag_id)
+        registrar_log("editar", "cliente", id, f"Etiqueta añadida: {tag_slug}")
+        registrar_marketing_log(
+            "tag_asignada", resultado="ok",
+            tag_id=tag_id, tag_nombre=tag.nombre if tag else tag_slug,
+            entidad="cliente", entidad_id=id,
+            entidad_nombre=cliente.nombre_completo,
+            detalle=f"Etiqueta '{tag.nombre if tag else tag_slug}' asignada manualmente",
+            origen="manual",
+        )
+    return redirect(url_for("clientes.detalle", id=id))
+
+
+@clientes_bp.route("/<int:id>/tags/remove", methods=["POST"])
+@login_required
+def tag_remove(id):
+    cliente = Cliente.query.get_or_404(id)
+    tag_id = request.form.get("tag_id", type=int)
+    if tag_id:
+        ct = ClienteTag.query.filter_by(cliente_id=id, tag_id=tag_id).first()
+        if ct:
+            tag = Tag.query.get(tag_id)
+            tag_slug = tag.slug if tag else str(tag_id)
+            db.session.delete(ct)
+            db.session.commit()
+            registrar_log("editar", "cliente", id, f"Etiqueta eliminada: {tag_slug}")
+            registrar_marketing_log(
+                "tag_eliminada", resultado="ok",
+                tag_id=tag_id, tag_nombre=tag.nombre if tag else tag_slug,
+                entidad="cliente", entidad_id=id,
+                entidad_nombre=cliente.nombre_completo,
+                detalle=f"Etiqueta '{tag.nombre if tag else tag_slug}' eliminada manualmente",
+                origen="manual",
+            )
+    return redirect(url_for("clientes.detalle", id=id))
 
 
 @clientes_bp.route("/<int:id>/eliminar", methods=["POST"])

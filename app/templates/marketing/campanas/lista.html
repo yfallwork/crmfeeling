@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %}Campañas — Marketing{% endblock %}
+{% block page_title %}Campañas de marketing{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('marketing.campanas_nueva') }}" class="btn btn-sm btn-primary">
+  <i class="bi bi-plus-lg me-1"></i>Nueva campaña
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-3">{% include 'marketing/_tabs.html' %}</div>
+
+<!-- Filtros -->
+<div class="filter-bar mb-3">
+  <div class="d-flex gap-1 flex-wrap">
+    {% for val, label in [('','Todas'),('borrador','Borrador'),('programada','Programada'),('enviada','Enviada'),('error','Con errores')] %}
+    <a href="{{ url_for('marketing.campanas_lista', estado=val) }}"
+       class="btn btn-sm {% if estado == val %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+      {{ label }}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+{% if not campanas %}
+<div class="card">
+  <div class="card-body">
+    <div class="empty-state py-5">
+      <i class="bi bi-megaphone" style="font-size:2.5rem;opacity:.3"></i>
+      <p class="mt-3 text-muted">No hay campañas todavía.</p>
+      <a href="{{ url_for('marketing.campanas_nueva') }}" class="btn btn-sm btn-primary mt-2">
+        <i class="bi bi-plus-lg me-1"></i>Crear primera campaña
+      </a>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="row g-3">
+  {% for c in campanas %}
+  <div class="col-md-6 col-xl-4">
+    <div class="card h-100" style="border-top:3px solid {{ c.estado_color }}">
+      <div class="card-body">
+
+        <!-- Estado + canal -->
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <i class="bi {{ c.estado_icono }}" style="color:{{ c.estado_color }};font-size:.85rem"></i>
+          <span class="text-xs fw-bold" style="color:{{ c.estado_color }}">{{ c.estado_label }}</span>
+          <span class="ms-auto badge"
+                style="background:{{ '#6366F110' if c.canal=='email' else '#25D36610' if c.canal=='whatsapp' else '#6B728010' }};
+                       color:{{ '#6366F1' if c.canal=='email' else '#128C7E' if c.canal=='whatsapp' else '#374151' }};
+                       font-size:.68rem">
+            {% if c.canal == 'email' %}<i class="bi bi-envelope me-1"></i>Email
+            {% elif c.canal == 'whatsapp' %}<i class="bi bi-whatsapp me-1"></i>WhatsApp
+            {% else %}<i class="bi bi-envelope me-1"></i>+<i class="bi bi-whatsapp mx-1"></i>Ambos{% endif %}
+          </span>
+        </div>
+
+        <!-- Nombre -->
+        <h6 class="fw-bold mb-1" style="font-size:.9rem">
+          <a href="{{ url_for('marketing.campanas_detalle', id=c.id) }}"
+             class="text-decoration-none" style="color:var(--black)">
+            {{ c.nombre }}
+          </a>
+        </h6>
+        {% if c.descripcion %}
+        <div class="text-xs text-muted mb-2">{{ c.descripcion | truncate(80) }}</div>
+        {% endif %}
+
+        <!-- Metadatos -->
+        <div class="d-flex flex-wrap gap-2 text-xs text-muted mt-3">
+          <!-- Segmento -->
+          <span>
+            <i class="bi bi-people me-1"></i>
+            {% if c.segmento == 'clientes' %}Solo clientes
+            {% elif c.segmento == 'empresas' %}Solo empresas
+            {% else %}Todos{% endif %}
+          </span>
+          <!-- Fecha programada -->
+          {% if c.fecha_envio %}
+          <span>
+            <i class="bi bi-clock me-1"></i>
+            {{ c.fecha_envio.strftime('%d/%m/%Y %H:%M') }}
+          </span>
+          {% endif %}
+        </div>
+
+        <!-- Tags -->
+        {% if c.tags_incluidas or c.tags_excluidas %}
+        <div class="d-flex flex-wrap gap-1 mt-2">
+          {% for t in c.tags_incluidas[:3] %}
+          <span class="badge" style="background:{{ t.color }}15;color:{{ t.color }};
+                border:1px solid {{ t.color }}30;font-size:.65rem">
+            <i class="bi {{ t.icono }} me-1"></i>{{ t.nombre }}
+          </span>
+          {% endfor %}
+          {% if c.tags_incluidas|length > 3 %}
+          <span class="badge" style="background:var(--gray-100);color:var(--gray-500);font-size:.65rem">
+            +{{ c.tags_incluidas|length - 3 }}
+          </span>
+          {% endif %}
+          {% for t in c.tags_excluidas[:2] %}
+          <span class="badge" style="background:rgba(239,68,68,.08);color:#EF4444;font-size:.65rem;
+                border:1px solid rgba(239,68,68,.2)">
+            <i class="bi bi-x-circle me-1"></i>{{ t.nombre }}
+          </span>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Stats de envío -->
+        {% if c.estado in ('enviada','error') %}
+        <div class="d-flex gap-3 mt-3 pt-3" style="border-top:1px solid var(--border-light)">
+          <div class="text-center">
+            <div style="font-size:1.1rem;font-weight:800;color:#10B981">{{ c.total_enviados }}</div>
+            <div class="text-xs text-muted">enviados</div>
+          </div>
+          <div class="text-center">
+            <div style="font-size:1.1rem;font-weight:800;color:#EF4444">{{ c.total_errores }}</div>
+            <div class="text-xs text-muted">errores</div>
+          </div>
+          {% if c.enviado_en %}
+          <div class="text-center ms-auto">
+            <div class="text-xs text-muted">Enviada el</div>
+            <div style="font-size:.8rem;font-weight:600">{{ c.enviado_en.strftime('%d/%m/%y %H:%M') }}</div>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+      </div>
+      <div class="card-footer d-flex gap-1">
+        <a href="{{ url_for('marketing.campanas_detalle', id=c.id) }}"
+           class="btn btn-xs btn-outline-secondary flex-1">
+          <i class="bi bi-eye me-1"></i>Ver
+        </a>
+        {% if c.estado not in ('enviando','enviada') %}
+        <a href="{{ url_for('marketing.campanas_editar', id=c.id) }}"
+           class="btn btn-xs btn-outline-primary">
+          <i class="bi bi-pencil"></i>
+        </a>
+        {% endif %}
+        <form method="POST" action="{{ url_for('marketing.campanas_duplicar', id=c.id) }}" class="d-inline">
+          <button type="submit" class="btn btn-xs btn-outline-secondary" title="Duplicar">
+            <i class="bi bi-copy"></i>
+          </button>
+        </form>
+        <form method="POST" action="{{ url_for('marketing.campanas_eliminar', id=c.id) }}" class="d-inline"
+              onsubmit="return confirm('¿Eliminar «{{ c.nombre }}»?')">
+          <button type="submit" class="btn btn-xs btn-outline-danger" title="Eliminar">
+            <i class="bi bi-trash"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

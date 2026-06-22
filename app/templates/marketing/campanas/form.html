@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if campana else 'Nueva' }} Campaña — Marketing{% endblock %}
+{% block page_title %}{{ 'Editar' if campana else 'Nueva' }} campaña{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('marketing.campanas_lista') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i>Campañas
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-3">{% include 'marketing/_tabs.html' %}</div>
+
+<form method="POST" class="row g-3">
+
+<!-- ── Columna izquierda ────────────────────────────────────── -->
+<div class="col-xl-7">
+
+  <!-- Info general -->
+  <div class="card mb-3">
+    <div class="card-header"><h6 class="mb-0">Información general</h6></div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
+          <input type="text" name="nombre" class="form-control" required
+                 value="{{ campana.nombre if campana else '' }}"
+                 placeholder="Ej: Black Friday 2025 — Clientes VIP">
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Descripción</label>
+          <textarea name="descripcion" class="form-control" rows="2"
+                    placeholder="Para qué es esta campaña y a quién va dirigida…">{{ campana.descripcion if campana else '' }}</textarea>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Canal de envío</label>
+          <select name="canal" id="canalSelect" class="form-select" onchange="updateCanalUI()">
+            <option value="email"     {% if not campana or campana.canal=='email'     %}selected{% endif %}>
+              📧 Solo Email
+            </option>
+            <option value="whatsapp"  {% if campana and campana.canal=='whatsapp'    %}selected{% endif %}>
+              💬 Solo WhatsApp
+            </option>
+            <option value="ambos"     {% if campana and campana.canal=='ambos'       %}selected{% endif %}>
+              📧+💬 Email y WhatsApp
+            </option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Destinatarios</label>
+          <select name="segmento" class="form-select">
+            <option value="todos"     {% if not campana or campana.segmento=='todos'    %}selected{% endif %}>
+              Todos (clientes + empresas)
+            </option>
+            <option value="clientes"  {% if campana and campana.segmento=='clientes'   %}selected{% endif %}>
+              Solo clientes B2C
+            </option>
+            <option value="empresas"  {% if campana and campana.segmento=='empresas'   %}selected{% endif %}>
+              Solo empresas B2B
+            </option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtro por etiquetas -->
+  <div class="card mb-3">
+    <div class="card-header">
+      <h6 class="mb-0"><i class="bi bi-funnel me-2 text-primary"></i>Filtro por etiquetas</h6>
+      <div class="text-xs text-muted mt-1">
+        Deja ambos listas vacías para enviar a TODOS los destinatarios del segmento seleccionado.
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+
+        <!-- Etiquetas a incluir -->
+        <div class="col-md-6">
+          <label class="form-label fw-semibold d-flex align-items-center gap-2">
+            <span class="badge" style="background:rgba(16,185,129,.15);color:#10B981;font-size:.7rem">
+              <i class="bi bi-check-circle-fill me-1"></i>CON estas etiquetas
+            </span>
+          </label>
+          <div class="border rounded p-2" style="max-height:240px;overflow-y:auto;background:var(--gray-50)">
+            {% set b2c_tags = all_tags | selectattr('segmento','eq','b2c') | list %}
+            {% set b2b_tags = all_tags | selectattr('segmento','eq','b2b') | list %}
+            {% for grupo_tags, label in [(b2c_tags,'B2C'),(b2b_tags,'B2B')] %}
+              {% if grupo_tags %}
+              <div class="text-xs fw-bold text-uppercase mb-1 mt-1 px-1"
+                   style="color:var(--gray-400);letter-spacing:.07em">{{ label }}</div>
+              {% for t in grupo_tags %}
+              <div class="form-check mb-1 px-2 py-1 rounded" style="cursor:pointer"
+                   onclick="this.querySelector('input').click()">
+                <input class="form-check-input" type="checkbox"
+                       name="tags_incluidas" value="{{ t.id }}" id="inc_{{ t.id }}"
+                       {% if t.id in inc_ids %}checked{% endif %}
+                       onclick="event.stopPropagation();syncMutex({{ t.id }},'inc')" />
+                <label class="form-check-label" for="inc_{{ t.id }}" style="cursor:pointer">
+                  <span class="badge d-inline-flex align-items-center gap-1"
+                        style="background:{{ t.color }}15;color:{{ t.color }};
+                               border:1px solid {{ t.color }}30;font-size:.68rem;padding:2px 7px">
+                    <i class="bi {{ t.icono }}"></i>{{ t.nombre }}
+                  </span>
+                </label>
+              </div>
+              {% endfor %}
+              {% endif %}
+            {% endfor %}
+          </div>
+          <div class="form-text">Debe tener AL MENOS UNA de las etiquetas marcadas.</div>
+        </div>
+
+        <!-- Etiquetas a excluir -->
+        <div class="col-md-6">
+          <label class="form-label fw-semibold d-flex align-items-center gap-2">
+            <span class="badge" style="background:rgba(239,68,68,.12);color:#EF4444;font-size:.7rem">
+              <i class="bi bi-x-circle-fill me-1"></i>SIN estas etiquetas
+            </span>
+          </label>
+          <div class="border rounded p-2" style="max-height:240px;overflow-y:auto;background:var(--gray-50)">
+            {% for grupo_tags, label in [(b2c_tags,'B2C'),(b2b_tags,'B2B')] %}
+              {% if grupo_tags %}
+              <div class="text-xs fw-bold text-uppercase mb-1 mt-1 px-1"
+                   style="color:var(--gray-400);letter-spacing:.07em">{{ label }}</div>
+              {% for t in grupo_tags %}
+              <div class="form-check mb-1 px-2 py-1 rounded" style="cursor:pointer"
+                   onclick="this.querySelector('input').click()">
+                <input class="form-check-input" type="checkbox"
+                       name="tags_excluidas" value="{{ t.id }}" id="exc_{{ t.id }}"
+                       {% if t.id in exc_ids %}checked{% endif %}
+                       onclick="event.stopPropagation();syncMutex({{ t.id }},'exc')" />
+                <label class="form-check-label" for="exc_{{ t.id }}" style="cursor:pointer">
+                  <span class="badge d-inline-flex align-items-center gap-1"
+                        style="background:{{ t.color }}15;color:{{ t.color }};
+                               border:1px solid {{ t.color }}30;font-size:.68rem;padding:2px 7px">
+                    <i class="bi {{ t.icono }}"></i>{{ t.nombre }}
+                  </span>
+                </label>
+              </div>
+              {% endfor %}
+              {% endif %}
+            {% endfor %}
+          </div>
+          <div class="form-text">Se excluirán quienes tengan ALGUNA de estas etiquetas.</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Programación -->
+  <div class="card mb-3">
+    <div class="card-header"><h6 class="mb-0"><i class="bi bi-clock me-2 text-primary"></i>Programación del envío</h6></div>
+    <div class="card-body">
+      <div class="form-check form-switch mb-3">
+        <input class="form-check-input" type="checkbox" name="programar" value="1"
+               id="programarSwitch"
+               {% if (campana and campana.fecha_envio) or fecha_inicial %}checked{% endif %}
+               onchange="toggleFecha()">
+        <label class="form-check-label fw-semibold" for="programarSwitch">
+          Programar envío automático
+        </label>
+      </div>
+      <div id="fechaBlock" style="display:{{ 'block' if (campana and campana.fecha_envio) or fecha_inicial else 'none' }}">
+        <label class="form-label fw-semibold">Fecha y hora de envío</label>
+        <input type="datetime-local" name="fecha_envio" class="form-control"
+               style="max-width:280px"
+               value="{{ campana.fecha_envio.strftime('%Y-%m-%dT%H:%M') if campana and campana.fecha_envio else fecha_inicial }}">
+        <div class="form-text">
+          <i class="bi bi-info-circle me-1"></i>
+          El sistema comprueba campañas programadas cada 5 minutos.
+        </div>
+      </div>
+      {% if not campana or campana.estado == 'borrador' %}
+      <div id="noFechaNote" class="text-xs text-muted" style="display:{{ 'none' if campana and campana.fecha_envio else 'block' }}">
+        Sin programación — la campaña quedará en borrador. Podrás enviarla manualmente desde el detalle.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Columna derecha: plantillas ─────────────────────────── -->
+<div class="col-xl-5">
+
+  <!-- Plantilla Email -->
+  <div class="card mb-3" id="cardEmail">
+    <div class="card-header">
+      <h6 class="mb-0"><i class="bi bi-envelope-fill me-2" style="color:#6366F1"></i>Plantilla de Email</h6>
+    </div>
+    <div class="card-body">
+      {% if plantillas_e %}
+      <select name="plantilla_email_id" class="form-select">
+        <option value="">— Sin plantilla de email —</option>
+        {% for pe in plantillas_e %}
+        <option value="{{ pe.id }}"
+                {% if campana and campana.plantilla_email_id == pe.id %}selected{% endif %}>
+          {{ pe.nombre }}
+        </option>
+        {% endfor %}
+      </select>
+      <div class="form-text">
+        <a href="{{ url_for('marketing.plantillas_nueva') }}" target="_blank">
+          <i class="bi bi-plus-circle me-1"></i>Crear nueva plantilla email
+        </a>
+      </div>
+      {% else %}
+      <div class="text-sm text-muted p-3 text-center">
+        No hay plantillas de email.
+        <a href="{{ url_for('marketing.plantillas_nueva') }}">Crear una</a>
+      </div>
+      <input type="hidden" name="plantilla_email_id" value="">
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Plantilla WhatsApp -->
+  <div class="card mb-3" id="cardWA">
+    <div class="card-header">
+      <h6 class="mb-0"><i class="bi bi-whatsapp me-2" style="color:#25D366"></i>Plantilla de WhatsApp</h6>
+    </div>
+    <div class="card-body">
+      {% if plantillas_wa %}
+      <select name="plantilla_wa_id" class="form-select">
+        <option value="">— Sin plantilla de WhatsApp —</option>
+        {% for pw in plantillas_wa %}
+        <option value="{{ pw.id }}"
+                {% if campana and campana.plantilla_wa_id == pw.id %}selected{% endif %}>
+          {{ pw.nombre }}
+        </option>
+        {% endfor %}
+      </select>
+      <div class="form-text">
+        <a href="{{ url_for('marketing.plantillas_wa_nueva') }}" target="_blank">
+          <i class="bi bi-plus-circle me-1"></i>Crear nueva plantilla WA
+        </a>
+      </div>
+      {% else %}
+      <div class="text-sm text-muted p-3 text-center">
+        No hay plantillas WhatsApp.
+        <a href="{{ url_for('marketing.plantillas_wa_nueva') }}">Crear una</a>
+      </div>
+      <input type="hidden" name="plantilla_wa_id" value="">
+      {% endif %}
+      <div class="mt-3 p-2 rounded text-xs"
+           style="background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.2);color:#065F46">
+        <i class="bi bi-info-circle me-1"></i>
+        El envío por WhatsApp requiere integración con Meta Cloud API o Twilio.
+        Se registra en los logs como "pendiente de integración".
+      </div>
+    </div>
+  </div>
+
+  <!-- Guardar -->
+  <div class="d-grid gap-2">
+    <button type="submit" class="btn btn-primary">
+      <i class="bi bi-check-lg me-1"></i>
+      {{ 'Guardar cambios' if campana else 'Crear campaña' }}
+    </button>
+    {% if campana %}
+    <a href="{{ url_for('marketing.campanas_detalle', id=campana.id) }}"
+       class="btn btn-outline-secondary">
+      Cancelar
+    </a>
+    {% endif %}
+  </div>
+
+</div>
+
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleFecha() {
+  const checked = document.getElementById("programarSwitch").checked;
+  document.getElementById("fechaBlock").style.display    = checked ? "block" : "none";
+  const note = document.getElementById("noFechaNote");
+  if (note) note.style.display = checked ? "none" : "block";
+}
+
+function updateCanalUI() {
+  const v = document.getElementById("canalSelect").value;
+  const email = document.getElementById("cardEmail");
+  const wa    = document.getElementById("cardWA");
+  if (!email || !wa) return;
+  email.style.opacity = (v === "whatsapp") ? ".4" : "1";
+  email.style.pointerEvents = (v === "whatsapp") ? "none" : "";
+  wa.style.opacity    = (v === "email")    ? ".4" : "1";
+  wa.style.pointerEvents = (v === "email") ? "none" : "";
+}
+
+function syncMutex(id, origen) {
+  const incEl = document.getElementById("inc_" + id);
+  const excEl = document.getElementById("exc_" + id);
+  if (!incEl || !excEl) return;
+  if (origen === "inc" && incEl.checked) excEl.checked = false;
+  if (origen === "exc" && excEl.checked) incEl.checked = false;
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  updateCanalUI();
+});
+</script>
+{% endblock %}

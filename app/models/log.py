@@ -47,5 +47,15 @@ class Log(db.Model):
 
     @property
     def entidad_label(self):
-        return {"cliente": "Cliente", "reserva": "Reserva",
-                "sistema": "Sistema", "experiencia": "Experiencia"}.get(self.entidad or "", self.entidad or "")
+        return {
+            "cliente":      "Cliente",
+            "reserva":      "Reserva",
+            "sistema":      "Sistema",
+            "experiencia":  "Experiencia",
+            "socio":        "Socio",
+            "patrocinador": "Patrocinador",
+            "empresa":      "Empresa TB",
+            "tag":          "Etiqueta",
+            "plantilla":    "Plantilla email",
+            "rule":         "Norma",
+        }.get(self.entidad or "", self.entidad or "")

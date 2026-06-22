@@ -1,0 +1,470 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if rule else 'Nueva' }} norma — Marketing{% endblock %}
+{% block page_title %}{{ 'Editar' if rule else 'Nueva' }} norma de automatización{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('marketing.normas_lista') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i>Normas
+</a>
+{% endblock %}
+
+{% block content %}
+<form method="POST" id="normaForm" class="row g-3">
+<input type="hidden" name="acciones_count" id="accionesCount" value="0" />
+
+<!-- ── Columna izquierda ──────────────────────────────── -->
+<div class="col-xl-7">
+
+  <!-- Info general -->
+  <div class="card mb-3">
+    <div class="card-header"><h6 class="mb-0">Información general</h6></div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
+          <input type="text" name="nombre" class="form-control"
+                 value="{{ rule.nombre if rule else '' }}"
+                 placeholder="Bienvenida lead particular" required />
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Descripción</label>
+          <textarea name="descripcion" class="form-control" rows="2"
+                    placeholder="Qué hace esta norma y cuándo se activa…">{{ rule.descripcion if rule else '' }}</textarea>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Segmento</label>
+          <select name="segmento" class="form-select">
+            <option value="b2c"   {% if not rule or rule.segmento=='b2c'   %}selected{% endif %}>B2C · Particulares</option>
+            <option value="b2b"   {% if rule and rule.segmento=='b2b'      %}selected{% endif %}>B2B · Empresas</option>
+            <option value="ambos" {% if rule and rule.segmento=='ambos'    %}selected{% endif %}>Ambos</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Entidad</label>
+          <select name="entidad" class="form-select">
+            <option value="cliente" {% if not rule or rule.entidad=='cliente' %}selected{% endif %}>Cliente</option>
+            <option value="empresa" {% if rule and rule.entidad=='empresa'    %}selected{% endif %}>Empresa TB</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Condición -->
+  <div class="card mb-3">
+    <div class="card-header">
+      <h6 class="mb-0"><i class="bi bi-funnel me-2 text-primary"></i>Condición — SI se cumplen estas etiquetas</h6>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+
+        <!-- Tags requeridas -->
+        <div class="col-md-6">
+          <label class="form-label fw-semibold d-flex align-items-center gap-2">
+            <span class="badge" style="background:rgba(16,185,129,.15);color:#10B981;font-size:.7rem">
+              <i class="bi bi-check-circle-fill me-1"></i>TODAS presentes
+            </span>Tags requeridas
+          </label>
+          <div class="border rounded p-2" style="max-height:240px;overflow-y:auto;background:var(--gray-50)">
+            {% set b2c_tags = all_tags | selectattr('segmento','eq','b2c') | list %}
+            {% set b2b_tags = all_tags | selectattr('segmento','eq','b2b') | list %}
+            {% for grupo_tags, label in [(b2c_tags,'B2C'),(b2b_tags,'B2B')] %}
+              {% if grupo_tags %}
+              <div class="text-xs fw-bold text-uppercase mb-1 mt-1 px-1"
+                   style="color:var(--gray-400);letter-spacing:.07em">{{ label }}</div>
+              {% for t in grupo_tags %}
+              <div class="form-check mb-1 px-2 py-1 rounded"
+                   onclick="this.querySelector('input').click()" style="cursor:pointer">
+                <input class="form-check-input" type="checkbox"
+                       name="tags_requeridas" value="{{ t.id }}" id="req_{{ t.id }}"
+                       {% if t.id in req_ids %}checked{% endif %}
+                       onclick="event.stopPropagation();syncMutex({{ t.id }},'req')" />
+                <label class="form-check-label" for="req_{{ t.id }}" style="cursor:pointer">
+                  <span class="badge d-inline-flex align-items-center gap-1"
+                        style="background:{{ t.color }}15;color:{{ t.color }};
+                               border:1px solid {{ t.color }}30;font-size:.68rem;font-weight:700;
+                               padding:2px 7px;border-radius:4px">
+                    <i class="bi {{ t.icono }}"></i>{{ t.nombre }}
+                  </span>
+                </label>
+              </div>
+              {% endfor %}
+              {% endif %}
+            {% endfor %}
+            {% if not all_tags %}
+            <div class="text-xs text-muted text-center py-3">
+              No hay etiquetas. <a href="{{ url_for('marketing.etiquetas_nueva') }}">Crear</a>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Tags excluidas -->
+        <div class="col-md-6">
+          <label class="form-label fw-semibold d-flex align-items-center gap-2">
+            <span class="badge" style="background:rgba(239,68,68,.12);color:#EF4444;font-size:.7rem">
+              <i class="bi bi-x-circle-fill me-1"></i>NINGUNA presente
+            </span>Tags excluidas
+          </label>
+          <div class="border rounded p-2" style="max-height:240px;overflow-y:auto;background:var(--gray-50)">
+            {% for grupo_tags, label in [(b2c_tags,'B2C'),(b2b_tags,'B2B')] %}
+              {% if grupo_tags %}
+              <div class="text-xs fw-bold text-uppercase mb-1 mt-1 px-1"
+                   style="color:var(--gray-400);letter-spacing:.07em">{{ label }}</div>
+              {% for t in grupo_tags %}
+              <div class="form-check mb-1 px-2 py-1 rounded"
+                   onclick="this.querySelector('input').click()" style="cursor:pointer">
+                <input class="form-check-input" type="checkbox"
+                       name="tags_excluidas" value="{{ t.id }}" id="exc_{{ t.id }}"
+                       {% if t.id in exc_ids %}checked{% endif %}
+                       onclick="event.stopPropagation();syncMutex({{ t.id }},'exc')" />
+                <label class="form-check-label" for="exc_{{ t.id }}" style="cursor:pointer">
+                  <span class="badge d-inline-flex align-items-center gap-1"
+                        style="background:rgba(239,68,68,.07);color:#EF4444;
+                               border:1px dashed rgba(239,68,68,.3);font-size:.68rem;font-weight:700;
+                               padding:2px 7px;border-radius:4px;text-decoration:line-through">
+                    <i class="bi {{ t.icono }}"></i>{{ t.nombre }}
+                  </span>
+                </label>
+              </div>
+              {% endfor %}
+              {% endif %}
+            {% endfor %}
+          </div>
+          <div class="form-text">Si el cliente/empresa tiene alguna de estas, la norma no se ejecuta.</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Columna derecha ───────────────────────────────── -->
+<div class="col-xl-5">
+
+  <!-- Acciones dinámicas -->
+  <div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h6 class="mb-0"><i class="bi bi-play-fill me-2 text-success"></i>Acciones — ENTONCES ejecutar</h6>
+      <button type="button" class="btn btn-xs btn-outline-primary" onclick="addAccion()">
+        <i class="bi bi-plus-lg me-1"></i>Añadir acción
+      </button>
+    </div>
+    <div class="card-body">
+      <div id="accionesContainer"></div>
+      <div id="accionesEmpty" class="text-center py-3 text-muted" style="font-size:.83rem;display:none">
+        <i class="bi bi-play-circle me-1"></i>Añade al menos una acción
+      </div>
+    </div>
+  </div>
+
+  <!-- Delay -->
+  <div class="card mb-3">
+    <div class="card-header"><h6 class="mb-0"><i class="bi bi-clock me-2"></i>Tiempo de espera</h6></div>
+    <div class="card-body">
+      <select name="delay_horas" id="delaySelect" class="form-select"
+              onchange="toggleCustomDelay(this.value)">
+        {% for h, label in delay_opciones %}
+        <option value="{{ h }}"
+                {% if (not rule and h==0) or (rule and rule.delay_horas==h) %}selected{% endif %}>
+          {{ label }}
+        </option>
+        {% endfor %}
+        <option value="custom"
+                {% if rule and rule.delay_horas not in delay_opciones|map(attribute=0)|list %}selected{% endif %}>
+          Personalizado…
+        </option>
+      </select>
+      <div id="customDelayWrap" class="mt-2" style="display:none">
+        <div class="input-group input-group-sm">
+          <input type="number" id="customDelayInput" class="form-control" min="1" max="8760"
+                 placeholder="Número de horas"
+                 value="{{ rule.delay_horas if rule and rule.delay_horas not in delay_opciones|map(attribute=0)|list else '' }}" />
+          <span class="input-group-text">horas</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Submit -->
+  <div class="d-flex gap-2">
+    <button type="submit" class="btn btn-primary" onclick="syncCustomDelay()">
+      <i class="bi bi-check-lg me-1"></i>{{ 'Guardar cambios' if rule else 'Crear norma' }}
+    </button>
+    <a href="{{ url_for('marketing.normas_lista') }}" class="btn btn-outline-secondary">Cancelar</a>
+    {% if rule %}
+    <form method="POST" action="{{ url_for('marketing.normas_eliminar', id=rule.id) }}"
+          class="ms-auto" onsubmit="return confirm('Eliminar la norma {{ rule.nombre }}?')">
+      <button type="submit" class="btn btn-outline-danger">
+        <i class="bi bi-trash me-1"></i>Eliminar
+      </button>
+    </form>
+    {% endif %}
+  </div>
+
+</div>
+</form>
+
+{# Template HTML para las tarjetas de acción — {% raw %} evita que Jinja procese {{}} #}
+{% raw %}
+<template id="accionTpl">
+  <div class="rounded mb-2 overflow-hidden" id="accion-card-__IDX__"
+       style="border:1px solid var(--border-light);border-left:4px solid #6366F1">
+
+    <!-- Cabecera: selector de tipo + eliminar -->
+    <div class="d-flex align-items-center gap-1 px-3 py-2"
+         style="background:var(--gray-50);border-bottom:1px solid var(--border-light)">
+      <span class="text-xs fw-bold me-1 flex-shrink-0" style="color:var(--gray-400)">#__NUM__</span>
+      <button type="button" onclick="changeAccionTipo(__IDX__,'email')"
+              class="btn btn-xs flex-fill" id="accion-btn-email-__IDX__"
+              style="background:rgba(99,102,241,.12);color:#6366F1;border:1px solid rgba(99,102,241,.35);border-radius:6px;font-size:.72rem">
+        <i class="bi bi-envelope-fill me-1"></i>Email
+      </button>
+      <button type="button" onclick="changeAccionTipo(__IDX__,'whatsapp')"
+              class="btn btn-xs flex-fill" id="accion-btn-wa-__IDX__"
+              style="background:transparent;color:var(--gray-400);border:1px solid var(--border-light);border-radius:6px;font-size:.72rem">
+        <i class="bi bi-whatsapp me-1"></i>WhatsApp
+      </button>
+      <button type="button" onclick="changeAccionTipo(__IDX__,'notificacion')"
+              class="btn btn-xs flex-fill" id="accion-btn-notif-__IDX__"
+              style="background:transparent;color:var(--gray-400);border:1px solid var(--border-light);border-radius:6px;font-size:.72rem">
+        <i class="bi bi-bell-fill me-1"></i>Notificación
+      </button>
+      <button type="button" onclick="removeAccion(__IDX__)"
+              class="btn btn-xs btn-outline-danger ms-1 flex-shrink-0"
+              style="border-radius:6px" title="Eliminar acción">
+        <i class="bi bi-x-lg"></i>
+      </button>
+      <input type="hidden" name="accion_tipo___IDX__" id="accion_tipo___IDX__" value="email" />
+    </div>
+
+    <!-- Cuerpo: campos según tipo -->
+    <div class="p-3">
+
+      <!-- Email -->
+      <div id="accion-email-__IDX__">
+        <label class="form-label fw-semibold text-xs mb-1" style="color:#6366F1">
+          <i class="bi bi-envelope-fill me-1"></i>Plantilla de email
+        </label>
+        <select name="accion_plantilla_id___IDX__" class="form-select form-select-sm">
+          <option value="">— Sin plantilla —</option>
+        </select>
+        <div class="form-text text-xs mt-1">
+          <a href="/marketing/plantillas/nueva" target="_blank">
+            <i class="bi bi-plus-circle me-1"></i>Crear nueva plantilla
+          </a>
+        </div>
+      </div>
+
+      <!-- WhatsApp -->
+      <div id="accion-wa-__IDX__" style="display:none">
+        <label class="form-label fw-semibold text-xs mb-1" style="color:#25D366">
+          <i class="bi bi-whatsapp me-1"></i>Mensaje de WhatsApp
+        </label>
+        <select class="form-select form-select-sm mb-2 wa-tpl-sel"
+                data-idx="__IDX__"
+                onchange="loadWaTpl(this)">
+          <option value="">— Escribir mensaje libre o cargar plantilla… —</option>
+        </select>
+        <textarea name="accion_msg_wa___IDX__" id="accion_msg_wa_txt___IDX__"
+                  class="form-control form-control-sm"
+                  rows="3" maxlength="1024"
+                  placeholder="Hola {{nombre}}, te escribimos desde Feeling Experience..."></textarea>
+        <div class="form-text text-xs mt-1">
+          Variables: <code>{{nombre}}</code>, <code>{{email}}</code>, <code>{{telefono}}</code> — máx. 1024 caracteres
+        </div>
+      </div>
+
+      <!-- Notificación interna -->
+      <div id="accion-notif-__IDX__" style="display:none">
+        <label class="form-label fw-semibold text-xs mb-1" style="color:#F59E0B">
+          <i class="bi bi-bell-fill me-1"></i>Tarea para el equipo (notificación interna)
+        </label>
+        <textarea name="accion_msg_notif___IDX__" class="form-control form-control-sm"
+                  rows="2"
+                  placeholder="Llamar al cliente para hacer seguimiento..."></textarea>
+        <div class="form-text text-xs mt-1">
+          Aparece en <strong>Marketing → Notificaciones</strong> como recordatorio para el equipo.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</template>
+{% endraw %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+const PLANTILLAS    = {{ plantillas_json    | tojson }};
+const PLANTILLAS_WA = {{ plantillas_wa_json | tojson }};
+let accionIndex = 0;
+
+const ACCION_META = {
+  email:        { key:'email',   color:'#6366F1', bg:'rgba(99,102,241,.12)',  border:'rgba(99,102,241,.35)'  },
+  whatsapp:     { key:'wa',      color:'#25D366', bg:'rgba(37,211,102,.12)',   border:'rgba(37,211,102,.4)'   },
+  notificacion: { key:'notif',   color:'#F59E0B', bg:'rgba(245,158,11,.12)',   border:'rgba(245,158,11,.4)'   },
+};
+
+function addAccion(tipo, data) {
+  tipo = tipo || 'email';
+  data = data || {};
+  const i   = accionIndex++;
+  const num = document.getElementById('accionesContainer').children.length + 1;
+  document.getElementById('accionesCount').value = accionIndex;
+
+  // Clone template and replace placeholders
+  const tplHtml = document.getElementById('accionTpl').innerHTML
+    .replaceAll('__IDX__', i)
+    .replaceAll('__NUM__', num);
+  const wrap = document.createElement('div');
+  wrap.innerHTML = tplHtml;
+  const card = wrap.firstElementChild;
+
+  // Populate email plantilla select options
+  const sel = card.querySelector('[name="accion_plantilla_id_' + i + '"]');
+  if (sel) {
+    PLANTILLAS.forEach(function(p) {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.nombre + ' (' + p.segmento.toUpperCase() + ')';
+      if (data.plantilla_id && data.plantilla_id == p.id) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
+
+  // Populate WA plantilla select options
+  const waSel = card.querySelector('.wa-tpl-sel');
+  if (waSel) {
+    PLANTILLAS_WA.forEach(function(pw) {
+      const opt = document.createElement('option');
+      opt.value = pw.id;
+      opt.setAttribute('data-cuerpo', pw.cuerpo);
+      opt.textContent = pw.nombre;
+      waSel.appendChild(opt);
+    });
+  }
+
+  // Restore saved values (edit mode)
+  if (data.msg_wa) {
+    const el = card.querySelector('[name="accion_msg_wa_' + i + '"]');
+    if (el) el.value = data.msg_wa;
+  }
+  if (data.msg_notif) {
+    const el = card.querySelector('[name="accion_msg_notif_' + i + '"]');
+    if (el) el.value = data.msg_notif;
+  }
+
+  document.getElementById('accionesContainer').appendChild(card);
+  changeAccionTipo(i, tipo);
+  updateEmpty();
+}
+
+function removeAccion(i) {
+  const card = document.getElementById('accion-card-' + i);
+  if (card) { card.remove(); updateEmpty(); }
+}
+
+function changeAccionTipo(i, tipo) {
+  // Update hidden input
+  const hidden = document.getElementById('accion_tipo_' + i);
+  if (hidden) hidden.value = tipo;
+
+  // Show / hide content panels
+  ['email','wa','notif'].forEach(function(k) {
+    const el = document.getElementById('accion-' + k + '-' + i);
+    if (el) el.style.display = 'none';
+  });
+  const meta = ACCION_META[tipo] || ACCION_META.email;
+  const panel = document.getElementById('accion-' + meta.key + '-' + i);
+  if (panel) panel.style.display = '';
+
+  // Update left border color on card
+  const card = document.getElementById('accion-card-' + i);
+  if (card) card.style.borderLeftColor = meta.color;
+
+  // Update type toggle buttons
+  Object.keys(ACCION_META).forEach(function(t) {
+    const btnKey = t === 'whatsapp' ? 'wa' : (t === 'notificacion' ? 'notif' : 'email');
+    const btn = document.getElementById('accion-btn-' + btnKey + '-' + i);
+    if (!btn) return;
+    if (t === tipo) {
+      const m = ACCION_META[t];
+      btn.style.background   = m.bg;
+      btn.style.color        = m.color;
+      btn.style.borderColor  = m.border;
+      btn.style.fontWeight   = '700';
+    } else {
+      btn.style.background  = 'transparent';
+      btn.style.color       = 'var(--gray-400)';
+      btn.style.borderColor = 'var(--border-light)';
+      btn.style.fontWeight  = '400';
+    }
+  });
+}
+
+function updateEmpty() {
+  const container = document.getElementById('accionesContainer');
+  const empty     = document.getElementById('accionesEmpty');
+  const hasCards  = container.children.length > 0;
+  if (empty) empty.style.display = hasCards ? 'none' : '';
+}
+
+// ── Cargar plantilla WA al seleccionar en el desplegable ────────
+function loadWaTpl(sel) {
+  const idx = sel.getAttribute('data-idx');
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt || !opt.value) return;
+  const cuerpo = opt.getAttribute('data-cuerpo') || '';
+  const txt = document.getElementById('accion_msg_wa_txt_' + idx);
+  if (txt && cuerpo) txt.value = cuerpo;
+}
+
+// ── Mutual exclusion: tag can't be both required and excluded ────
+function syncMutex(id, from) {
+  const req = document.getElementById('req_' + id);
+  const exc = document.getElementById('exc_' + id);
+  if (!req || !exc) return;
+  if (from === 'req' && req.checked && exc.checked) exc.checked = false;
+  if (from === 'exc' && exc.checked && req.checked) req.checked = false;
+}
+
+// ── Custom delay ─────────────────────────────────────────────────
+function toggleCustomDelay(val) {
+  document.getElementById('customDelayWrap').style.display = val === 'custom' ? '' : 'none';
+}
+
+function syncCustomDelay() {
+  const sel = document.getElementById('delaySelect');
+  if (sel.value === 'custom') {
+    const h = parseInt(document.getElementById('customDelayInput').value) || 0;
+    const hi = document.createElement('input');
+    hi.type = 'hidden'; hi.name = 'delay_horas'; hi.value = h;
+    sel.name = '_delay_sel_disabled';
+    document.getElementById('normaForm').appendChild(hi);
+  }
+}
+
+// ── Init ─────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  {% if rule and rule.acciones %}
+    {% for a in rule.acciones %}
+    addAccion('{{ a.tipo }}', {
+      tipo: '{{ a.tipo }}',
+      plantilla_id: {{ a.plantilla_id or 'null' }},
+      msg_wa:   {{ a.mensaje_whatsapp | tojson }},
+      msg_notif: {{ a.mensaje_notificacion | tojson }},
+    });
+    {% endfor %}
+  {% else %}
+    addAccion('email');
+  {% endif %}
+
+  const delayVal = document.getElementById('delaySelect').value;
+  if (delayVal === 'custom') toggleCustomDelay('custom');
+
+  updateEmpty();
+});
+</script>
+{% endblock %}

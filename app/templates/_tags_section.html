@@ -1,0 +1,126 @@
+{#
+  Partial reutilizable — sección de etiquetas de marketing.
+  Variables requeridas:
+    - tags_asignados  : lista de ClienteTag o EmpresaTag (con .tag relación)
+    - tags_disponibles: lista de Tag disponibles para añadir
+    - url_add         : url_for del endpoint de añadir
+    - url_remove      : url_for del endpoint de eliminar
+#}
+<div class="card mb-3">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <h6 class="mb-0">
+      <i class="bi bi-tags-fill me-2" style="color:#6366F1"></i>Etiquetas de marketing
+    </h6>
+    {% if tags_asignados %}
+    <span class="badge rounded-pill" style="background:rgba(99,102,241,.12);color:#6366F1;font-size:.68rem">
+      {{ tags_asignados|length }}
+    </span>
+    {% endif %}
+  </div>
+
+  <div class="card-body" style="padding:16px">
+
+    <!-- Etiquetas actuales -->
+    {% if tags_asignados %}
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      {% for at in tags_asignados %}
+      {% set t = at.tag %}
+      <div class="d-inline-flex align-items-center gap-1 rounded"
+           style="background:{{ t.color }}15;border:1px solid {{ t.color }}35;padding:4px 8px 4px 10px">
+        <i class="bi {{ t.icono }}" style="color:{{ t.color }};font-size:.8rem"></i>
+        <span style="color:{{ t.color }};font-size:.78rem;font-weight:700">{{ t.nombre }}</span>
+        {% if at.origen == 'manual' %}
+        <form method="POST" action="{{ url_remove }}" class="d-inline ms-1" style="margin:0">
+          <input type="hidden" name="tag_id" value="{{ t.id }}" />
+          <button type="submit" class="btn p-0 border-0"
+                  style="line-height:1;color:{{ t.color }};opacity:.6;font-size:.75rem"
+                  title="Quitar etiqueta">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </form>
+        {% else %}
+        <i class="bi bi-cpu ms-1"
+           style="font-size:.65rem;color:{{ t.color }};opacity:.5"
+           title="Asignada automáticamente por el sistema"></i>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-muted text-xs mb-3">Sin etiquetas asignadas aún.</p>
+    {% endif %}
+
+    <!-- Añadir etiqueta -->
+    {% if tags_disponibles %}
+    {% set picker_id = "tagsPicker_" ~ (url_add | replace('/','_') | replace('.','_')) %}
+    {% set search_id = "tagsSearch_" ~ (url_add | replace('/','_') | replace('.','_')) %}
+    <div>
+      <button class="btn btn-xs btn-outline-secondary d-flex align-items-center gap-1 mb-2"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#{{ picker_id }}"
+              aria-expanded="false">
+        <i class="bi bi-plus-circle"></i>Añadir etiqueta
+        <span class="badge rounded-pill ms-1"
+              style="background:var(--gray-200);color:var(--gray-600);font-size:.6rem">
+          {{ tags_disponibles|length }}
+        </span>
+      </button>
+      <div class="collapse" id="{{ picker_id }}">
+        <div class="border rounded" style="background:var(--gray-50)">
+          {% if tags_disponibles|length > 5 %}
+          <div class="px-2 pt-2">
+            <input type="text" id="{{ search_id }}"
+                   class="form-control form-control-sm"
+                   placeholder="Buscar etiqueta…"
+                   oninput="filtrarTags(this, '{{ picker_id }}')"
+                   autocomplete="off" />
+          </div>
+          {% endif %}
+          <div class="p-2" style="max-height:180px;overflow-y:auto">
+            <div class="d-flex flex-wrap gap-1" id="{{ picker_id }}_pills">
+              {% for t in tags_disponibles %}
+              <form method="POST" action="{{ url_add }}" class="d-inline tag-pill-form"
+                    data-nombre="{{ t.nombre | lower }}">
+                <input type="hidden" name="tag_id" value="{{ t.id }}" />
+                <button type="submit"
+                        class="btn d-inline-flex align-items-center gap-1"
+                        style="background:{{ t.color }}10;color:{{ t.color }};
+                               border:1px solid {{ t.color }}30;font-size:.72rem;font-weight:700;
+                               padding:3px 9px;border-radius:20px;line-height:1.6">
+                  <i class="bi {{ t.icono }}"></i>{{ t.nombre }}
+                </button>
+              </form>
+              {% endfor %}
+            </div>
+            <div class="text-xs text-muted text-center py-2" id="{{ picker_id }}_empty" style="display:none">
+              Sin resultados
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <span class="text-xs text-muted">
+      <i class="bi bi-check-circle me-1" style="color:#10B981"></i>Todas las etiquetas están asignadas
+    </span>
+    {% endif %}
+
+  </div>
+</div>
+<script>
+if (typeof filtrarTags === 'undefined') {
+  function filtrarTags(input, pickerId) {
+    var q = input.value.toLowerCase().trim();
+    var pills = document.querySelectorAll('#' + pickerId + '_pills .tag-pill-form');
+    var visible = 0;
+    pills.forEach(function(f) {
+      var match = !q || f.dataset.nombre.indexOf(q) !== -1;
+      f.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    var empty = document.getElementById(pickerId + '_empty');
+    if (empty) empty.style.display = visible === 0 ? '' : 'none';
+  }
+}
+</script>

@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% block title %}Normas — Marketing{% endblock %}
+{% block page_title %}Normas de automatización{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('marketing.normas_nueva') }}" class="btn btn-sm btn-primary">
+  <i class="bi bi-plus-lg me-1"></i>Nueva norma
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-3">{% include 'marketing/_tabs.html' %}</div>
+
+<div class="card">
+  <div class="filter-bar">
+    <div class="d-flex align-items-center gap-2 flex-wrap w-100">
+      <div class="d-flex gap-1">
+        <a href="{{ url_for('marketing.normas_lista') }}"
+           class="btn btn-sm {% if not segmento %}btn-dark{% else %}btn-outline-secondary{% endif %}">Todas</a>
+        <a href="{{ url_for('marketing.normas_lista', segmento='b2c') }}"
+           class="btn btn-sm {% if segmento == 'b2c' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+          <i class="bi bi-person-badge-fill me-1"></i>B2C</a>
+        <a href="{{ url_for('marketing.normas_lista', segmento='b2b') }}"
+           class="btn btn-sm {% if segmento == 'b2b' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+          <i class="bi bi-buildings-fill me-1"></i>B2B</a>
+      </div>
+      <span class="ms-auto text-xs text-muted">{{ normas|length }} norma{{ 's' if normas|length != 1 }}</span>
+    </div>
+  </div>
+
+  {% if not normas %}
+  <div class="empty-state" style="padding:56px">
+    <i class="bi bi-diagram-3" style="font-size:2rem;opacity:.25"></i>
+    <p>No hay normas de automatización todavía</p>
+    <a href="{{ url_for('marketing.normas_nueva') }}" class="btn btn-sm btn-primary">
+      <i class="bi bi-plus-lg me-1"></i>Crear primera norma</a>
+  </div>
+  {% else %}
+
+  {% for r in normas %}
+  <div class="p-4 {% if not loop.last %}border-bottom{% endif %} {% if not r.activo %}opacity-50{% endif %}"
+       style="border-color:var(--border-light)">
+    <div class="d-flex align-items-start gap-3">
+
+      <!-- Icono del tipo de acción principal -->
+      {% set first_accion = r.acciones[0] if r.acciones else none %}
+      <div class="d-flex align-items-center justify-content-center flex-shrink-0 rounded"
+           style="width:44px;height:44px;font-size:1.1rem;
+                  background:{{ (first_accion.tipo_color + '18') if first_accion else 'var(--gray-100)' }};
+                  color:{{ first_accion.tipo_color if first_accion else 'var(--gray-400)' }}">
+        <i class="bi {{ first_accion.tipo_icono if first_accion else 'bi-play-fill' }}"></i>
+      </div>
+
+      <div class="flex-grow-1 min-w-0">
+
+        <!-- Título + badges -->
+        <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+          <span class="fw-bold" style="color:var(--black);font-size:.92rem">{{ r.nombre }}</span>
+          <span class="badge rounded-pill" style="font-size:.64rem;
+                {% if r.segmento == 'b2c' %}background:rgba(59,130,246,.1);color:#3B82F6
+                {% elif r.segmento == 'b2b' %}background:rgba(139,92,246,.1);color:#8B5CF6
+                {% else %}background:var(--gray-100);color:var(--gray-600){% endif %}">
+            {{ r.segmento | upper }}
+          </span>
+          {% if not r.activo %}
+          <span class="badge rounded-pill" style="background:var(--gray-100);color:var(--gray-500);font-size:.64rem">
+            Inactiva
+          </span>
+          {% endif %}
+        </div>
+
+        <div class="d-flex gap-3 flex-wrap align-items-start">
+
+          <!-- IF -->
+          <div class="flex-grow-1" style="min-width:220px">
+            <div class="text-xs fw-bold text-uppercase mb-1" style="color:var(--gray-400);letter-spacing:.07em">
+              <i class="bi bi-funnel me-1"></i>Condición (SI)
+            </div>
+            {% if r.tags_requeridas %}
+            <div class="d-flex flex-wrap gap-1 mb-1">
+              {% for t in r.tags_requeridas %}
+              <span class="badge d-inline-flex align-items-center gap-1"
+                    style="background:{{ t.color }}18;color:{{ t.color }};border:1px solid {{ t.color }}40;
+                           font-size:.68rem;font-weight:700;padding:3px 7px;border-radius:4px">
+                <i class="bi {{ t.icono }}"></i>{{ t.nombre }}
+              </span>
+              {% endfor %}
+            </div>
+            {% endif %}
+            {% if r.tags_excluidas %}
+            <div class="d-flex flex-wrap gap-1">
+              {% for t in r.tags_excluidas %}
+              <span class="badge d-inline-flex align-items-center gap-1"
+                    style="background:rgba(239,68,68,.07);color:#EF4444;
+                           border:1px dashed rgba(239,68,68,.35);font-size:.68rem;font-weight:700;
+                           padding:3px 7px;border-radius:4px;text-decoration:line-through">
+                <i class="bi {{ t.icono }}"></i>{{ t.nombre }}
+              </span>
+              {% endfor %}
+            </div>
+            {% endif %}
+            {% if not r.tags_requeridas and not r.tags_excluidas %}
+            <span class="text-xs text-muted">Sin condiciones definidas</span>
+            {% endif %}
+          </div>
+
+          <!-- Arrow -->
+          <div class="d-flex align-items-center" style="padding-top:18px;color:var(--gray-300);font-size:1.1rem">
+            <i class="bi bi-arrow-right-circle-fill"></i>
+          </div>
+
+          <!-- THEN (multi-accion) -->
+          <div style="min-width:210px">
+            <div class="text-xs fw-bold text-uppercase mb-1" style="color:var(--gray-400);letter-spacing:.07em">
+              <i class="bi bi-play-fill me-1"></i>Acciones (ENTONCES)
+            </div>
+            {% if r.acciones %}
+            <div class="d-flex flex-column gap-1 mb-1">
+              {% for a in r.acciones %}
+              <div class="d-flex align-items-center gap-2">
+                <span class="badge d-inline-flex align-items-center gap-1"
+                      style="background:{{ a.tipo_color }}18;color:{{ a.tipo_color }};
+                             border:1px solid {{ a.tipo_color }}30;font-size:.7rem;font-weight:700;
+                             padding:4px 9px;border-radius:5px">
+                  <i class="bi {{ a.tipo_icono }}"></i>{{ a.tipo_label }}
+                </span>
+                {% if a.tipo == 'email' and a.plantilla %}
+                <span class="text-xs text-muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px">
+                  {{ a.plantilla.nombre }}
+                </span>
+                {% elif a.tipo == 'whatsapp' and a.mensaje_whatsapp %}
+                <span class="text-xs text-muted"
+                      style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px">
+                  {{ a.mensaje_whatsapp[:40] }}…
+                </span>
+                {% elif a.tipo == 'notificacion' and a.mensaje_notificacion %}
+                <span class="text-xs text-muted"
+                      style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px">
+                  {{ a.mensaje_notificacion[:40] }}…
+                </span>
+                {% endif %}
+              </div>
+              {% endfor %}
+            </div>
+            {% if r.delay_horas > 0 %}
+            <div class="text-xs text-muted mt-1">
+              <i class="bi bi-clock me-1"></i>tras {{ r.delay_label }}
+            </div>
+            {% else %}
+            <div class="text-xs text-muted">Inmediato</div>
+            {% endif %}
+            {% else %}
+            <span class="badge rounded-pill"
+                  style="background:rgba(245,158,11,.12);color:#D97706;border:1px solid rgba(245,158,11,.3);
+                         font-size:.68rem;font-weight:700">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>Sin acciones — norma incompleta
+            </span>
+            {% endif %}
+          </div>
+
+        </div>
+
+        {% if r.descripcion %}
+        <div class="text-xs text-muted mt-2">{{ r.descripcion }}</div>
+        {% endif %}
+
+      </div>
+
+      <!-- Botones -->
+      <div class="d-flex gap-1 flex-shrink-0">
+        <a href="{{ url_for('marketing.normas_editar', id=r.id) }}"
+           class="btn btn-xs btn-outline-primary" title="Editar">
+          <i class="bi bi-pencil"></i>
+        </a>
+        <form method="POST" action="{{ url_for('marketing.normas_toggle', id=r.id) }}" class="d-inline">
+          <button class="btn btn-xs btn-outline-secondary"
+                  title="{{ 'Desactivar' if r.activo else 'Activar' }}">
+            <i class="bi {{ 'bi-pause-fill' if r.activo else 'bi-play-fill' }}"></i>
+          </button>
+        </form>
+        <form method="POST" action="{{ url_for('marketing.normas_eliminar', id=r.id) }}" class="d-inline"
+              onsubmit="return confirm('Eliminar la norma {{ r.nombre }}?')">
+          <button class="btn btn-xs btn-outline-danger" title="Eliminar">
+            <i class="bi bi-trash"></i>
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+  {% endfor %}
+
+  {% endif %}
+</div>
+{% endblock %}

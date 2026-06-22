@@ -129,6 +129,7 @@ def _get_or_create_cliente(billing, order_meta, woo_customer_id):
         )
 
     cliente = Cliente.query.filter_by(email=email).first()
+    is_new = False
     if not cliente:
         cliente = Cliente(
             nombre=billing.get("first_name", "").strip(),
@@ -139,11 +140,19 @@ def _get_or_create_cliente(billing, order_meta, woo_customer_id):
             woo_customer_id=woo_customer_id or None,
         )
         db.session.add(cliente)
+        is_new = True
     else:
         if not cliente.telefono and telefono:
             cliente.telefono = telefono
         if woo_customer_id and not cliente.woo_customer_id:
             cliente.woo_customer_id = woo_customer_id
+    db.session.flush()  # ensure cliente.id is set before trigger
+    if is_new:
+        try:
+            from app.services.trigger_engine import disparar_trigger
+            disparar_trigger("crm.cliente.creado", "cliente", cliente.id)
+        except Exception:
+            pass
     return cliente
 
 
@@ -235,12 +244,13 @@ def _process_order(order, stats):
         tipo = _get_or_create_tipo(product_name, product_id, precio)
         db.session.flush()
 
+        es_regalo = any(k in (pa_fechas or "").lower() for k in FECHA_ABIERTA_KEYWORDS)
+
         reserva = Reserva.query.filter_by(woo_order_id=woo_order_id).first()
         if reserva:
-            # Actualizar datos que pueden haber cambiado
+            estado_anterior          = reserva.estado
             reserva.woo_order_status = woo_status
             reserva.estado           = estado_crm
-            # Solo actualizar fecha si antes era None y ahora tenemos una
             if not reserva.fecha_disfrute and fecha_disfrute:
                 reserva.fecha_disfrute = fecha_disfrute
             if not reserva.horario and horario:
@@ -248,6 +258,13 @@ def _process_order(order, stats):
             if not reserva.variante and variante:
                 reserva.variante = variante
             stats["actualizadas"] += 1
+            # Disparar disfrutada solo cuando cambia a ese estado
+            if estado_crm == "disfrutado" and estado_anterior != "disfrutado":
+                try:
+                    from app.services.trigger_engine import disparar_trigger
+                    disparar_trigger("crm.reserva.disfrutada", "cliente", cliente.id)
+                except Exception:
+                    pass
         else:
             reserva = Reserva(
                 cliente=cliente,
@@ -263,3 +280,14 @@ def _process_order(order, stats):
             )
             db.session.add(reserva)
             stats["nuevas"] += 1
+            # Disparar triggers para nuevas reservas
+            try:
+                from app.services.trigger_engine import disparar_trigger
+                if estado_crm in ("pendiente", "reservado"):
+                    disparar_trigger("crm.reserva.creada", "cliente", cliente.id)
+                elif estado_crm == "disfrutado":
+                    disparar_trigger("crm.reserva.disfrutada", "cliente", cliente.id)
+                if es_regalo:
+                    disparar_trigger("woo.order.gift", "cliente", cliente.id)
+            except Exception:
+                pass

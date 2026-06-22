@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+{% block title %}Empresas — Team Building{% endblock %}
+{% block page_title %}Empresas Team Building{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('teambuilding.empresas_nueva') }}" class="btn btn-primary btn-sm">
+  <i class="bi bi-plus-lg me-1"></i>Nueva empresa
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+
+  <!-- Filtros -->
+  <div class="filter-bar">
+    <form method="GET" class="d-flex align-items-center gap-2 flex-wrap w-100">
+      <div class="input-group input-group-sm" style="max-width:300px">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" class="form-control"
+               placeholder="Nombre, sector, contacto…" value="{{ q }}" />
+      </div>
+
+      <select name="estado" class="form-select form-select-sm"
+              style="max-width:160px" onchange="this.form.submit()">
+        <option value="activas"   {% if estado == 'activas'   %}selected{% endif %}>Activas</option>
+        <option value="inactivas" {% if estado == 'inactivas' %}selected{% endif %}>Inactivas</option>
+        <option value="todas"     {% if estado == 'todas'     %}selected{% endif %}>Todas</option>
+      </select>
+
+      <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
+      {% if q or estado not in ('activas', '') %}
+        <a href="{{ url_for('teambuilding.empresas_lista') }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-x me-1"></i>Limpiar
+        </a>
+      {% endif %}
+
+      <div class="ms-auto">
+        <span class="text-xs text-muted">
+          {{ empresas.total }} empresa{{ 's' if empresas.total != 1 }}
+        </span>
+      </div>
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th style="width:56px"></th>
+          <th>Empresa</th>
+          <th>Contacto</th>
+          <th>Sector</th>
+          <th>Redes</th>
+          <th>Estado</th>
+          <th style="width:80px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set iconos = {
+          'instagram': 'bi-instagram',
+          'facebook':  'bi-facebook',
+          'twitter':   'bi-twitter-x',
+          'linkedin':  'bi-linkedin',
+          'tiktok':    'bi-tiktok',
+          'youtube':   'bi-youtube',
+        } %}
+
+        {% for e in empresas.items %}
+        <tr {% if not e.activo %}style="opacity:.55"{% endif %}>
+          <td>
+            {% if e.tiene_logo %}
+              <img src="{{ url_for('static', filename='uploads/teambuilding/empresas/' + e.logo_principal) }}"
+                   alt="{{ e.nombre }}"
+                   style="width:40px;height:40px;object-fit:contain;border-radius:6px;
+                          border:1px solid var(--border);background:#fff;padding:3px" />
+            {% else %}
+              <div class="row-avatar"
+                   style="{% if not e.activo %}background:var(--gray-200);color:var(--gray-500){% endif %}">
+                {{ e.nombre[0]|upper }}
+              </div>
+            {% endif %}
+          </td>
+
+          <td>
+            <a href="{{ url_for('teambuilding.empresas_detalle', id=e.id) }}"
+               class="fw-semibold text-decoration-none" style="color:var(--black)">
+              {{ e.nombre }}
+            </a>
+            {% if e.web %}
+              <div class="text-xs text-muted">
+                <a href="{{ e.web }}" target="_blank" rel="noopener" class="text-decoration-none text-muted">
+                  <i class="bi bi-link-45deg me-1"></i>
+                  {{ e.web | replace('https://','') | replace('http://','') | truncate(35,true,'…') }}
+                </a>
+              </div>
+            {% endif %}
+          </td>
+
+          <td>
+            <div class="text-sm">{{ e.persona_contacto or '—' }}</div>
+            {% if e.email %}
+              <div class="text-xs text-muted">
+                <a href="mailto:{{ e.email }}" class="text-decoration-none text-muted">{{ e.email }}</a>
+              </div>
+            {% endif %}
+          </td>
+
+          <td>
+            {% if e.sector %}
+              <span class="badge rounded-pill"
+                    style="background:rgba(220,38,38,.08);color:var(--red-dark);font-size:.7rem;font-weight:600">
+                {{ e.sector }}
+              </span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+
+          <td>
+            <div class="d-flex gap-2 align-items-center">
+              {% for red, url in e.redes_activas.items() %}
+                <a href="{{ url }}" target="_blank" rel="noopener"
+                   class="text-decoration-none"
+                   style="color:var(--gray-500);font-size:.95rem"
+                   title="{{ red | capitalize }}">
+                  <i class="bi {{ iconos.get(red, 'bi-link') }}"></i>
+                </a>
+              {% else %}
+                <span class="text-muted text-xs">—</span>
+              {% endfor %}
+            </div>
+          </td>
+
+          <td>
+            {% if e.activo %}
+              <span class="badge rounded-pill"
+                    style="background:rgba(16,185,129,.1);color:#059669;font-size:.72rem">
+                <i class="bi bi-check-circle me-1"></i>Activa
+              </span>
+            {% else %}
+              <span class="badge rounded-pill"
+                    style="background:rgba(107,114,128,.1);color:#6b7280;font-size:.72rem">
+                <i class="bi bi-pause-circle me-1"></i>Inactiva
+              </span>
+            {% endif %}
+          </td>
+
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('teambuilding.empresas_detalle', id=e.id) }}"
+                 class="btn btn-xs btn-outline-secondary" title="Ver detalle">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="{{ url_for('teambuilding.empresas_editar', id=e.id) }}"
+                 class="btn btn-xs btn-outline-primary" title="Editar">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <button type="button"
+                      class="btn btn-xs btn-outline-warning"
+                      title="Añadir nota"
+                      data-bs-toggle="modal"
+                      data-bs-target="#modalNota"
+                      data-empresa-id="{{ e.id }}"
+                      data-empresa-nombre="{{ e.nombre }}">
+                <i class="bi bi-journal-plus"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7">
+            <div class="empty-state">
+              <i class="bi bi-buildings"></i>
+              <p>No se encontraron empresas{% if q %} para "{{ q }}"{% endif %}</p>
+              <a href="{{ url_for('teambuilding.empresas_nueva') }}" class="btn btn-sm btn-primary mt-2">
+                <i class="bi bi-plus-lg me-1"></i>Añadir primera empresa
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if empresas.pages > 1 %}
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <span class="text-xs text-muted">Página {{ empresas.page }} de {{ empresas.pages }}</span>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% if empresas.has_prev %}
+          <li class="page-item">
+            <a class="page-link"
+               href="{{ url_for('teambuilding.empresas_lista', page=empresas.prev_num, q=q, estado=estado) }}">
+              <i class="bi bi-chevron-left"></i>
+            </a>
+          </li>
+        {% endif %}
+        {% for pp in empresas.iter_pages() %}
+          {% if pp %}
+            <li class="page-item {% if pp == empresas.page %}active{% endif %}">
+              <a class="page-link"
+                 href="{{ url_for('teambuilding.empresas_lista', page=pp, q=q, estado=estado) }}">{{ pp }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+        {% if empresas.has_next %}
+          <li class="page-item">
+            <a class="page-link"
+               href="{{ url_for('teambuilding.empresas_lista', page=empresas.next_num, q=q, estado=estado) }}">
+              <i class="bi bi-chevron-right"></i>
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- ── Modal nueva nota ──────────────────────────────────────────────────── -->
+<div class="modal fade" id="modalNota" tabindex="-1" aria-labelledby="modalNotaLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form id="formNota" method="POST" action="">
+        <div class="modal-header border-0 pb-0">
+          <div>
+            <h5 class="modal-title fw-bold" id="modalNotaLabel">
+              <i class="bi bi-journal-plus me-2 text-warning"></i>Nueva nota
+            </h5>
+            <p class="text-xs text-muted mb-0" id="modalNotaEmpresa"></p>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body pt-3">
+          <textarea name="contenido" class="form-control" rows="4"
+                    placeholder="Ej: Llamada con Juan — en la próxima reunión presentar precio cerrado para grupo de 25 personas…"
+                    required></textarea>
+          <input type="hidden" name="return_to" value="lista">
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-sm btn-warning fw-semibold">
+            <i class="bi bi-check-lg me-1"></i>Guardar nota
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById("modalNota").addEventListener("show.bs.modal", function(e) {
+  const btn      = e.relatedTarget;
+  const empresaId     = btn.getAttribute("data-empresa-id");
+  const empresaNombre = btn.getAttribute("data-empresa-nombre");
+  document.getElementById("modalNotaEmpresa").textContent = empresaNombre;
+  document.getElementById("formNota").action =
+    "/teambuilding/empresas/" + empresaId + "/notas/nueva";
+  // limpiar textarea
+  document.querySelector("#formNota textarea[name='contenido']").value = "";
+});
+</script>
+{% endblock %}

@@ -1,0 +1,97 @@
+/* ======================================================
+   AutoClub — Tema verde/negro
+   Sobrescribe las variables de acento de crm.css
+   ====================================================== */
+
+body.autoclub-theme {
+  --red:        #16a34a;
+  --red-dark:   #15803d;
+  --red-darker: #166534;
+  --red-light:  rgba(22, 163, 74, .12);
+  --red-soft:   rgba(22, 163, 74, .06);
+  --shadow-red: 0 4px 20px rgba(22, 163, 74, .22);
+}
+
+/* Badge de estado activo/inactivo en socios */
+body.autoclub-theme .badge-activo {
+  background: rgba(22, 163, 74, .12);
+  color: #15803d;
+  font-size: .72rem;
+  font-weight: 700;
+}
+body.autoclub-theme .badge-inactivo {
+  background: rgba(107, 114, 128, .12);
+  color: #6b7280;
+  font-size: .72rem;
+  font-weight: 700;
+}
+
+/* Stat cards del dashboard */
+body.autoclub-theme .stat-icon-green {
+  background: rgba(22, 163, 74, .10);
+  color: #16a34a;
+  border-radius: 10px;
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+body.autoclub-theme .stat-icon-gray {
+  background: rgba(107, 114, 128, .10);
+  color: #6b7280;
+  border-radius: 10px;
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+body.autoclub-theme .stat-icon-amber {
+  background: rgba(245, 158, 11, .10);
+  color: #d97706;
+  border-radius: 10px;
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+body.autoclub-theme .stat-icon-indigo {
+  background: rgba(99, 102, 241, .10);
+  color: #6366f1;
+  border-radius: 10px;
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+
+/* Logo en sidebar: ajuste de altura para el logo_autoclub.png */
+body.autoclub-theme .sidebar-brand img {
+  height: 28px;
+  width: auto;
+}
+
+/* Badge tipos de socio */
+body.autoclub-theme .tipo-regular  { background: rgba(99,102,241,.12); color:#6366f1; }
+body.autoclub-theme .tipo-premium  { background: rgba(245,158,11,.12); color:#d97706; }
+body.autoclub-theme .tipo-familiar { background: rgba(16,185,129,.12); color:#059669; }
+body.autoclub-theme .tipo-vip      { background: rgba(239,68,68,.12);  color:#dc2626; }
+
+/* Topbar barra de acento verde */
+body.autoclub-theme .topbar::before {
+  background: linear-gradient(90deg, #16a34a, #22c55e);
+}
+
+/* Botón volver al CRM */
+body.autoclub-theme .nav-item-back {
+  color: rgba(255,255,255,.35) !important;
+  font-size: .78rem !important;
+}
+body.autoclub-theme .nav-item-back:hover {
+  background: rgba(255,255,255,.04) !important;
+  color: rgba(255,255,255,.6) !important;
+}
+
+/* Sidebar user avatar en verde */
+body.autoclub-theme .sidebar-user-avatar {
+  background: #16a34a;
+}

@@ -1,0 +1,246 @@
+{% extends "autoclub/base.html" %}
+{% block title %}{{ 'Editar' if p else 'Nuevo' }} Patrocinador — AutoClub{% endblock %}
+{% block page_title %}{{ 'Editar' if p else 'Nuevo' }} Patrocinador{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.patrocinadores_lista') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i>Cancelar
+</a>
+{% endblock %}
+
+{% block content %}
+
+{# ── Macro: campo de red social ─────────────────────────────────────────────── #}
+{% macro red_input(campo, label, icon, color, placeholder) %}
+  <div class="mb-3">
+    <label class="form-label text-xs fw-semibold text-uppercase" style="color:{{ color }}">
+      <i class="bi {{ icon }} me-1"></i>{{ label }}
+    </label>
+    <input type="url" name="{{ campo }}" class="form-control form-control-sm"
+           placeholder="{{ placeholder }}"
+           value="{{ datos.get(campo, '') or (p|attr(campo) if p else '') }}">
+  </div>
+{% endmacro %}
+
+{# ── Macro: sección de logo ─────────────────────────────────────────────────── #}
+{% macro logo_card(attr, field_name, label, icon, bg_desc, tip, bg_style) %}
+  {% set current_fn = p|attr(attr) if p else '' %}
+  <div class="card h-100" style="border:1px solid var(--border-light)">
+    <div class="card-header py-2 px-3">
+      <h6 class="mb-0 text-sm fw-semibold d-flex align-items-center gap-2">
+        <i class="bi {{ icon }}" style="font-size:.95rem"></i>{{ label }}
+      </h6>
+      <div class="text-xs text-muted mt-1">{{ bg_desc }}</div>
+    </div>
+    <div class="card-body p-3">
+
+      {% if current_fn %}
+      <div class="mb-3 text-center">
+        <div style="border:1px dashed var(--border);border-radius:var(--radius-xs);padding:12px;{{ bg_style }}">
+          <img src="{{ url_for('static', filename='uploads/autoclub/patrocinadores/' + current_fn) }}"
+               alt="{{ label }}" style="max-width:100%;max-height:80px;object-fit:contain" />
+        </div>
+        <div class="text-xs text-muted mt-1">Logo actual</div>
+      </div>
+      {% endif %}
+
+      <input type="file" name="{{ field_name }}" class="form-control form-control-sm mb-2"
+             accept=".svg,.png,.jpg,.jpeg,.gif,.webp"
+             onchange="previewLogo(this,'{{ field_name }}_preview','{{ bg_style }}')">
+      <div class="text-xs text-muted mb-2">
+        <i class="bi bi-lightbulb text-warning me-1"></i>{{ tip }}
+      </div>
+
+      <div id="{{ field_name }}_preview" style="display:none;margin-top:6px;text-align:center">
+        <div class="preview-bg" style="border:1px dashed var(--border);border-radius:var(--radius-xs);
+                    padding:10px;{{ bg_style }}">
+          <img src="" alt="preview" style="max-width:100%;max-height:70px;object-fit:contain" />
+        </div>
+        <div class="text-xs text-success mt-1">
+          <i class="bi bi-check-circle me-1"></i>Listo para subir
+        </div>
+      </div>
+
+      {% if current_fn %}
+      <div class="form-check mt-2">
+        <input class="form-check-input" type="checkbox"
+               name="eliminar_{{ field_name }}" value="1" id="del_{{ field_name }}">
+        <label class="form-check-label text-xs text-danger" for="del_{{ field_name }}">
+          Eliminar logo actual
+        </label>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+{% endmacro %}
+
+{# ── FORMULARIO ─────────────────────────────────────────────────────────────── #}
+<form method="POST"
+      action="{{ url_for('autoclub.patrocinadores_editar', id=p.id) if p else url_for('autoclub.patrocinadores_nuevo') }}"
+      enctype="multipart/form-data"
+      novalidate>
+
+  <div class="row g-3">
+
+    <!-- Columna principal (8 cols) -->
+    <div class="col-lg-8">
+
+      <!-- Datos corporativos -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h6 class="mb-0"><i class="bi bi-building me-2 text-primary"></i>Datos corporativos</h6>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+
+            <div class="col-sm-8">
+              <label class="form-label form-label-sm fw-semibold">Nombre de la empresa *</label>
+              <input type="text" name="nombre" class="form-control" required
+                     placeholder="Ej: Talleres Hispano Motor"
+                     value="{{ datos.get('nombre','') or (p.nombre if p else '') }}">
+            </div>
+
+            <div class="col-sm-4">
+              <label class="form-label form-label-sm fw-semibold">Sector</label>
+              {% set sector_actual = datos.get('sector','') or (p.sector if p else '') %}
+              <select name="sector" class="form-select">
+                <option value="">— Sin especificar —</option>
+                {% for s in sectores_espana %}
+                  <option value="{{ s }}" {% if s == sector_actual %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-sm-6">
+              <label class="form-label form-label-sm fw-semibold">Persona de contacto</label>
+              <input type="text" name="persona_contacto" class="form-control"
+                     placeholder="Nombre y apellidos"
+                     value="{{ datos.get('persona_contacto','') or (p.persona_contacto if p else '') }}">
+            </div>
+
+            <div class="col-sm-6">
+              <label class="form-label form-label-sm fw-semibold">Email</label>
+              <input type="email" name="email" class="form-control"
+                     placeholder="contacto@empresa.es"
+                     value="{{ datos.get('email','') or (p.email if p else '') }}">
+            </div>
+
+            <div class="col-sm-6">
+              <label class="form-label form-label-sm fw-semibold">Teléfono</label>
+              <input type="tel" name="telefono" class="form-control"
+                     placeholder="+34 91 000 00 00"
+                     value="{{ datos.get('telefono','') or (p.telefono if p else '') }}">
+            </div>
+
+            <div class="col-sm-6">
+              <label class="form-label form-label-sm fw-semibold">Sitio web</label>
+              <input type="url" name="web" class="form-control"
+                     placeholder="https://empresa.es"
+                     value="{{ datos.get('web','') or (p.web if p else '') }}">
+            </div>
+
+            <div class="col-12">
+              <label class="form-label form-label-sm fw-semibold">Notas internas</label>
+              <textarea name="notas" class="form-control" rows="3"
+                        placeholder="Acuerdos, descuentos para socios, condiciones especiales…">{{ datos.get('notas','') or (p.notas if p else '') }}</textarea>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Logos corporativos -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="bi bi-images me-2 text-primary"></i>Logos corporativos
+          </h6>
+          <div class="text-xs text-muted mt-1">
+            <i class="bi bi-star-fill text-warning me-1"></i>
+            Recomendado: formato vectorial <strong>SVG con fondo transparente</strong>.
+            También se admite PNG, JPG, GIF y WebP.
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              {{ logo_card(
+                'logo_positivo_filename', 'logo_positivo',
+                'Versión positiva', 'bi-sun',
+                'Para fondos blancos / claros',
+                'SVG o PNG transparente. Logotipo en color u oscuro.',
+                'background:#f9fafb'
+              ) }}
+            </div>
+            <div class="col-md-4">
+              {{ logo_card(
+                'logo_negativo_filename', 'logo_negativo',
+                'Versión negativa', 'bi-moon-stars-fill',
+                'Para fondos oscuros / negros',
+                'SVG o PNG transparente. Logotipo en blanco o color claro.',
+                'background:#1a1a1a'
+              ) }}
+            </div>
+            <div class="col-md-4">
+              {{ logo_card(
+                'logo_banner_filename', 'logo_banner',
+                'Versión banner', 'bi-card-image',
+                'Formato horizontal / apaisado',
+                'Ideal para cabeceras y banners panorámicos.',
+                'background:linear-gradient(90deg,#f1f5f9,#e2e8f0)'
+              ) }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Columna lateral: redes sociales (4 cols) -->
+    <div class="col-lg-4">
+      <div class="card" style="position:sticky;top:80px">
+        <div class="card-header">
+          <h6 class="mb-0"><i class="bi bi-share me-2 text-primary"></i>Redes sociales</h6>
+          <div class="text-xs text-muted mt-1">URL completa de cada perfil</div>
+        </div>
+        <div class="card-body">
+          {{ red_input('instagram', 'Instagram',  'bi-instagram',  '#E1306C', 'https://instagram.com/empresa') }}
+          {{ red_input('facebook',  'Facebook',   'bi-facebook',   '#1877F2', 'https://facebook.com/empresa') }}
+          {{ red_input('twitter',   'X / Twitter','bi-twitter-x',  '#000000', 'https://x.com/empresa') }}
+          {{ red_input('linkedin',  'LinkedIn',   'bi-linkedin',   '#0A66C2', 'https://linkedin.com/company/empresa') }}
+          {{ red_input('tiktok',    'TikTok',     'bi-tiktok',     '#000000', 'https://tiktok.com/@empresa') }}
+          {{ red_input('youtube',   'YouTube',    'bi-youtube',    '#FF0000', 'https://youtube.com/@empresa') }}
+        </div>
+        <div class="card-footer d-flex gap-2">
+          <button type="submit" class="btn btn-primary flex-1">
+            <i class="bi bi-check-lg me-1"></i>
+            {{ 'Guardar cambios' if p else 'Crear patrocinador' }}
+          </button>
+          <a href="{{ url_for('autoclub.patrocinadores_lista') }}" class="btn btn-outline-secondary">
+            Cancelar
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function previewLogo(input, previewId) {
+  var container = document.getElementById(previewId);
+  if (!container) return;
+  if (!input.files || !input.files[0]) { container.style.display = 'none'; return; }
+  var reader = new FileReader();
+  reader.onload = function (e) {
+    container.querySelector('img').src = e.target.result;
+    container.style.display = 'block';
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+</script>
+{% endblock %}

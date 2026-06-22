@@ -1,0 +1,536 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if tag else 'Nueva' }} etiqueta — Marketing{% endblock %}
+{% block page_title %}{{ 'Editar' if tag else 'Nueva' }} etiqueta{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('marketing.etiquetas_lista') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i>Volver
+</a>
+{% endblock %}
+
+{% block content %}
+<form method="POST" class="row g-3" style="max-width:780px">
+
+  <!-- Nombre y Slug -->
+  <div class="col-md-6">
+    <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
+    <input type="text" name="nombre" class="form-control"
+           value="{{ tag.nombre if tag else '' }}"
+           placeholder="Lead empresa nuevo"
+           required oninput="autoSlug(this.value)" />
+    <div class="form-text">Nombre legible para mostrar en la UI.</div>
+  </div>
+  <div class="col-md-6">
+    <label class="form-label fw-semibold">Slug <span class="text-danger">*</span></label>
+    <div class="input-group">
+      <span class="input-group-text"><i class="bi bi-hash"></i></span>
+      <input type="text" name="slug" id="slugInput" class="form-control font-monospace"
+             value="{{ tag.slug if tag else '' }}"
+             placeholder="lead_empresa_nuevo"
+             pattern="[a-z0-9_\-]+" title="Solo minúsculas, números, guiones y guiones bajos"
+             required />
+    </div>
+    <div class="form-text">Identificador único en código. <code>snake_case</code>.</div>
+  </div>
+
+  <!-- Descripción -->
+  <div class="col-12">
+    <label class="form-label fw-semibold">Descripción</label>
+    <textarea name="descripcion" class="form-control" rows="2"
+              placeholder="Qué significa esta etiqueta y cuándo se aplica…">{{ tag.descripcion if tag else '' }}</textarea>
+  </div>
+
+  <!-- Clasificación -->
+  {% set locked = tag and tag.tipo == 'sistematica' %}
+
+  <div class="col-md-4">
+    <label class="form-label fw-semibold d-flex align-items-center gap-2">
+      Tipo
+      {% if locked %}
+      <span class="badge d-flex align-items-center gap-1"
+            style="background:rgba(245,158,11,.12);color:#D97706;font-size:.65rem;font-weight:600">
+        <i class="bi bi-lock-fill"></i> fijo en sistemática
+      </span>
+      {% endif %}
+    </label>
+    {# Hidden field so the value is always submitted even con campos deshabilitados #}
+    {% if locked %}
+    <input type="hidden" name="tipo" value="sistematica" />
+    {% endif %}
+    <div class="d-flex flex-column gap-2" style="{{ 'pointer-events:none;opacity:.65;user-select:none' if locked else '' }}">
+      <div class="form-check border rounded p-3 tipo-card" id="card-sistematica"
+           {% if not locked %}onclick="selectTipo('sistematica')"{% endif %}
+           style="{{ 'cursor:pointer' if not locked else 'cursor:default' }}">
+        <input class="form-check-input" type="radio" {% if not locked %}name="tipo"{% endif %}
+               id="tipo_sis" value="sistematica"
+               {% if not tag or tag.tipo == 'sistematica' %}checked{% endif %}
+               {% if locked %}disabled{% endif %} />
+        <label class="form-check-label fw-semibold d-block" for="tipo_sis">
+          <i class="bi bi-lightning-fill me-1" style="color:#F59E0B"></i>Sistemática
+        </label>
+        <div class="text-xs text-muted mt-1">Se asigna por webhook / evento del sistema</div>
+      </div>
+      <div class="form-check border rounded p-3 tipo-card" id="card-dinamica"
+           {% if not locked %}onclick="selectTipo('dinamica')"{% endif %}
+           style="{{ 'cursor:pointer' if not locked else 'cursor:default' }}">
+        <input class="form-check-input" type="radio" {% if not locked %}name="tipo"{% endif %}
+               id="tipo_din" value="dinamica"
+               {% if tag and tag.tipo == 'dinamica' %}checked{% endif %}
+               {% if locked %}disabled{% endif %} />
+        <label class="form-check-label fw-semibold d-block" for="tipo_din">
+          <i class="bi bi-filter-circle-fill me-1" style="color:#10B981"></i>Dinámica
+        </label>
+        <div class="text-xs text-muted mt-1">Se calcula con un filtro SQL periódico</div>
+      </div>
+      <div class="form-check border rounded p-3 tipo-card" id="card-temporal"
+           {% if not locked %}onclick="selectTipo('temporal')"{% endif %}
+           style="{{ 'cursor:pointer' if not locked else 'cursor:default' }}">
+        <input class="form-check-input" type="radio" {% if not locked %}name="tipo"{% endif %}
+               id="tipo_tmp" value="temporal"
+               {% if tag and tag.tipo == 'temporal' %}checked{% endif %}
+               {% if locked %}disabled{% endif %} />
+        <label class="form-check-label fw-semibold d-block" for="tipo_tmp">
+          <i class="bi bi-clock-history me-1" style="color:#6366F1"></i>Temporal
+        </label>
+        <div class="text-xs text-muted mt-1">Se asigna si llevan X días sin reservar</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <label class="form-label fw-semibold d-flex align-items-center gap-2">
+      Segmento
+      {% if locked %}
+      <i class="bi bi-lock-fill text-muted" style="font-size:.7rem" title="No editable en sistemáticas"></i>
+      {% endif %}
+    </label>
+    {% if locked %}<input type="hidden" name="segmento" value="{{ tag.segmento }}" />{% endif %}
+    <select name="{{ 'segmento_disabled' if locked else 'segmento' }}"
+            class="form-select" {{ 'disabled' if locked else '' }}>
+      <option value="b2c" {% if not tag or tag.segmento == 'b2c' %}selected{% endif %}>
+        B2C · Particulares
+      </option>
+      <option value="b2b" {% if tag and tag.segmento == 'b2b' %}selected{% endif %}>
+        B2B · Empresas
+      </option>
+    </select>
+  </div>
+
+  <div class="col-md-4">
+    <label class="form-label fw-semibold d-flex align-items-center gap-2">
+      Entidad
+      {% if locked %}
+      <i class="bi bi-lock-fill text-muted" style="font-size:.7rem" title="No editable en sistemáticas"></i>
+      {% endif %}
+    </label>
+    {% if locked %}<input type="hidden" name="entidad" value="{{ tag.entidad }}" />{% endif %}
+    <select name="{{ 'entidad_disabled' if locked else 'entidad' }}"
+            class="form-select" {{ 'disabled' if locked else '' }}>
+      <option value="cliente" {% if not tag or tag.entidad == 'cliente' %}selected{% endif %}>
+        Cliente (particular)
+      </option>
+      <option value="empresa" {% if tag and tag.entidad == 'empresa' %}selected{% endif %}>
+        Empresa TB
+      </option>
+    </select>
+  </div>
+
+  <!-- Campo condicional: Sistemática -->
+  <div class="col-12" id="campo_trigger">
+    <label class="form-label fw-semibold">
+      <i class="bi bi-lightning-fill me-1" style="color:#F59E0B"></i>
+      Evento trigger (WooCommerce / Sistema)
+    </label>
+    <input type="text" name="trigger_evento" class="form-control font-monospace"
+           value="{{ tag.trigger_evento if tag else '' }}"
+           placeholder="woo.order.created | woo.order.completed | crm.reserva.creada …" />
+    <div class="form-text">
+      Evento que dispara la asignación automática de esta etiqueta.
+      Ejemplos: <code>woo.order.created</code>, <code>woo.order.completed</code>,
+      <code>crm.reserva.disfrutada</code>.
+    </div>
+  </div>
+
+  <!-- Criterios VIP: exclusivo para cliente_vip_particular -->
+  {% if tag and tag.slug == 'cliente_vip_particular' %}
+  <div class="col-12" id="campo_criterios">
+    <div class="p-3 rounded border"
+         style="background:rgba(245,158,11,.04);border-color:rgba(245,158,11,.3) !important">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <i class="bi bi-gem" style="color:#F59E0B;font-size:1rem"></i>
+        <span class="fw-bold">Criterios de promoción automática a VIP</span>
+        <span class="badge ms-auto"
+              style="background:rgba(245,158,11,.12);color:#D97706;font-size:.68rem">
+          Opcional — se evalúa en tiempo real
+        </span>
+      </div>
+      <p class="text-xs text-muted mb-3">
+        Define uno o los dos umbrales. Si defines ambos, el cliente debe cumplirlos
+        <strong>todos</strong> para obtener la etiqueta. Si un cliente deja de cumplirlos
+        (p.ej. tras cancelar reservas) la etiqueta se retira automáticamente.
+      </p>
+      <div class="row g-3">
+        <div class="col-md-5">
+          <label class="form-label fw-semibold">
+            <i class="bi bi-currency-euro me-1" style="color:#10B981"></i>
+            Gasto mínimo acumulado
+          </label>
+          <div class="input-group">
+            <input type="number" name="criterio_min_gasto" id="criterioGasto"
+                   class="form-control"
+                   value="{{ '%.0f'|format(tag.criterio_min_gasto) if tag and tag.criterio_min_gasto is not none else '' }}"
+                   min="0" step="10" placeholder="500" />
+            <span class="input-group-text">€</span>
+          </div>
+          <div class="form-text">Suma de todas las reservas no canceladas.</div>
+        </div>
+        <div class="col-md-5">
+          <label class="form-label fw-semibold">
+            <i class="bi bi-calendar-check me-1" style="color:#3B82F6"></i>
+            Experiencias mínimas contratadas
+          </label>
+          <div class="input-group">
+            <input type="number" name="criterio_min_reservas" id="criterioReservas"
+                   class="form-control"
+                   value="{{ tag.criterio_min_reservas if tag and tag.criterio_min_reservas is not none else '' }}"
+                   min="1" step="1" placeholder="3" />
+            <span class="input-group-text">exp.</span>
+          </div>
+          <div class="form-text">Reservas no canceladas (cualquier estado activo).</div>
+        </div>
+      </div>
+      <!-- Preview del umbral actual -->
+      <div class="mt-3 p-2 rounded text-xs"
+           style="background:rgba(245,158,11,.08);color:#92400E" id="criterioPreview">
+        <i class="bi bi-info-circle me-1"></i>
+        <span id="criterioPreviewText">Configura al menos un umbral para activar la evaluación automática.</span>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Criterios Gran Cuenta: exclusivo para gran_cuenta_b2b -->
+  {% if tag and tag.slug == 'gran_cuenta_b2b' %}
+  <div class="col-12" id="campo_criterios_gc">
+    <div class="p-3 rounded border"
+         style="background:rgba(139,92,246,.04);border-color:rgba(139,92,246,.3) !important">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <i class="bi bi-buildings-fill" style="color:#8B5CF6;font-size:1rem"></i>
+        <span class="fw-bold">Criterios de promoción automática a Gran Cuenta B2B</span>
+        <span class="badge ms-auto"
+              style="background:rgba(139,92,246,.12);color:#6D28D9;font-size:.68rem">
+          Opcional — se evalúa en tiempo real
+        </span>
+      </div>
+      <p class="text-xs text-muted mb-3">
+        Define uno o los dos umbrales. Si defines ambos, la empresa debe cumplirlos
+        <strong>todos</strong> para obtener la etiqueta. Si deja de cumplirlos
+        la etiqueta se retira automáticamente.
+      </p>
+      <div class="row g-3">
+        <div class="col-md-5">
+          <label class="form-label fw-semibold">
+            <i class="bi bi-currency-euro me-1" style="color:#10B981"></i>
+            Gasto mínimo acumulado en TB
+          </label>
+          <div class="input-group">
+            <input type="number" name="criterio_min_gasto" id="gcGasto"
+                   class="form-control"
+                   value="{{ '%.0f'|format(tag.criterio_min_gasto) if tag and tag.criterio_min_gasto is not none else '' }}"
+                   min="0" step="100" placeholder="5000" />
+            <span class="input-group-text">€</span>
+          </div>
+          <div class="form-text">Suma de reservas TB no canceladas.</div>
+        </div>
+        <div class="col-md-5">
+          <label class="form-label fw-semibold">
+            <i class="bi bi-people-fill me-1" style="color:#3B82F6"></i>
+            Nº mínimo de empleados
+          </label>
+          <div class="input-group">
+            <input type="number" name="criterio_min_empleados" id="gcEmpleados"
+                   class="form-control"
+                   value="{{ tag.criterio_min_empleados if tag and tag.criterio_min_empleados is not none else '' }}"
+                   min="1" step="1" placeholder="50" />
+            <span class="input-group-text">emp.</span>
+          </div>
+          <div class="form-text">Debe coincidir con el nº de empleados registrado en la empresa.</div>
+        </div>
+      </div>
+      <div class="mt-3 p-2 rounded text-xs"
+           style="background:rgba(139,92,246,.08);color:#4C1D95" id="gcPreview">
+        <i class="bi bi-info-circle me-1"></i>
+        <span id="gcPreviewText">Configura al menos un umbral para activar la evaluación automática.</span>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Campo condicional: Dinámica -->
+  <div class="col-12" id="campo_filtro" style="display:none">
+    <label class="form-label fw-semibold">
+      <i class="bi bi-filter-circle-fill me-1" style="color:#10B981"></i>
+      Descripción del filtro SQL
+    </label>
+    <textarea name="filtro_descripcion" class="form-control" rows="2"
+              placeholder="Sin reservas en los últimos 180 días y con al menos 1 reserva histórica…">{{ tag.filtro_descripcion if tag else '' }}</textarea>
+    <div class="form-text">
+      Describe la condición SQL en lenguaje natural. El equipo técnico implementará la query periódica.
+    </div>
+  </div>
+
+  <!-- Campo condicional: Temporal -->
+  <div class="col-12" id="campo_temporal" style="display:none">
+    <div class="p-3 rounded border" style="background:rgba(99,102,241,.05);border-color:rgba(99,102,241,.3) !important">
+      <label class="form-label fw-semibold mb-3">
+        <i class="bi bi-clock-history me-1" style="color:#6366F1"></i>
+        Configuración de inactividad
+      </label>
+      <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Días sin reservar <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <input type="number" name="tiempo_sin_reserva_dias" id="diasInput"
+                   class="form-control"
+                   value="{{ tag.tiempo_sin_reserva_dias if tag and tag.tiempo_sin_reserva_dias else '' }}"
+                   min="1" max="3650" placeholder="90" />
+            <span class="input-group-text">días</span>
+          </div>
+          <div class="form-text">Número de días desde la última reserva activa.</div>
+        </div>
+        <div class="col-md-8">
+          <div class="alert alert-info py-2 mb-0" style="font-size:.83rem">
+            <i class="bi bi-info-circle-fill me-1"></i>
+            <strong>Cómo funciona:</strong> Se asigna automáticamente cada día a las 07:00 a todos los
+            clientes/empresas cuya última reserva activa (o fecha de alta si nunca reservaron) supere
+            el umbral configurado. Se retira en cuanto hacen una nueva reserva.
+          </div>
+        </div>
+      </div>
+      <!-- Preview de ejemplos de tiempo -->
+      <div class="mt-3 d-flex flex-wrap gap-2" id="ejemplosRapidos">
+        <span class="text-xs text-muted fw-semibold me-1">Umbrales habituales:</span>
+        {% for dias, etiqueta in [(30,'1 mes'),(60,'2 meses'),(90,'3 meses'),(180,'6 meses'),(365,'1 año')] %}
+        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2"
+                style="font-size:.78rem"
+                onclick="document.getElementById('diasInput').value={{ dias }}">
+          {{ dias }}d · {{ etiqueta }}
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Color e icono -->
+  <div class="col-md-4">
+    <label class="form-label fw-semibold">Color</label>
+    <div class="input-group">
+      <input type="color" name="color" id="colorPicker" class="form-control form-control-color"
+             value="{{ tag.color if tag else '#6B7280' }}"
+             title="Elegir color" />
+      <input type="text" id="colorHex" class="form-control font-monospace"
+             value="{{ tag.color if tag else '#6B7280' }}"
+             placeholder="#6B7280" readonly />
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <label class="form-label fw-semibold">Icono Bootstrap</label>
+    <div class="d-flex gap-2 align-items-center mb-2">
+      <div id="iconPreview" class="d-flex align-items-center justify-content-center rounded"
+           style="width:36px;height:36px;background:var(--gray-100);font-size:1.1rem">
+        <i class="bi {{ tag.icono if tag else 'bi-tag-fill' }}" id="iconPreviewI"></i>
+      </div>
+      <input type="hidden" name="icono" id="iconoInput" value="{{ tag.icono if tag else 'bi-tag-fill' }}" />
+      <span class="text-xs text-muted">Selecciona un icono abajo</span>
+    </div>
+
+    <div class="d-flex flex-wrap gap-1" style="max-height:120px;overflow-y:auto">
+      {% for ic in iconos %}
+      <button type="button"
+              class="btn btn-sm border icon-picker-btn {% if (tag and tag.icono == ic) or (not tag and ic == 'bi-tag-fill') %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+              style="width:36px;height:36px;padding:0"
+              onclick="selectIcono('{{ ic }}')" title="{{ ic }}">
+        <i class="bi {{ ic }}"></i>
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Preview etiqueta -->
+  <div class="col-12">
+    <div class="p-3 rounded" style="background:var(--gray-50);border:1px solid var(--border-light)">
+      <div class="text-xs text-muted mb-2 fw-semibold">Vista previa</div>
+      <span id="tagPreview"
+            class="badge d-inline-flex align-items-center gap-1"
+            style="background:#6B7280;color:#fff;font-size:.78rem;font-weight:700;
+                   padding:6px 12px;border-radius:6px">
+        <i class="bi bi-tag-fill" id="previewIcon"></i>
+        <span id="previewNombre">{{ tag.nombre if tag else 'etiqueta_ejemplo' }}</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Acciones -->
+  <div class="col-12 d-flex gap-2">
+    <button type="submit" class="btn btn-primary">
+      <i class="bi bi-check-lg me-1"></i>{{ 'Guardar cambios' if tag else 'Crear etiqueta' }}
+    </button>
+    <a href="{{ url_for('marketing.etiquetas_lista') }}" class="btn btn-outline-secondary">
+      Cancelar
+    </a>
+    {% if tag %}
+      {% if tag.slug in slugs_protegidos %}
+      <span class="ms-auto d-flex align-items-center gap-2 text-xs text-muted"
+            style="border:1px solid var(--border-light);border-radius:8px;padding:6px 12px">
+        <i class="bi bi-lock-fill" style="color:#6B7280"></i>
+        Etiqueta protegida — no se puede eliminar
+      </span>
+      {% else %}
+      <form method="POST" action="{{ url_for('marketing.etiquetas_eliminar', id=tag.id) }}"
+            class="ms-auto"
+            onsubmit="return confirm('Eliminar la etiqueta «{{ tag.nombre }}»? Esta acción no se puede deshacer.')">
+        <button type="submit" class="btn btn-outline-danger">
+          <i class="bi bi-trash me-1"></i>Eliminar etiqueta
+        </button>
+      </form>
+      {% endif %}
+    {% endif %}
+  </div>
+
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const slugInput    = document.getElementById("slugInput");
+const colorPicker  = document.getElementById("colorPicker");
+const colorHex     = document.getElementById("colorHex");
+const iconoInput   = document.getElementById("iconoInput");
+const tagPreview   = document.getElementById("tagPreview");
+const previewIcon  = document.getElementById("previewIcon");
+const previewNombre = document.getElementById("previewNombre");
+const iconPreviewI  = document.getElementById("iconPreviewI");
+
+let slugManuallyEdited = {{ 'true' if tag else 'false' }};
+
+function autoSlug(val) {
+  if (slugManuallyEdited) return;
+  slugInput.value = val.toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9\s_-]/g, "")
+    .trim().replace(/\s+/g, "_");
+  updatePreviewNombre(val || slugInput.value);
+}
+
+slugInput.addEventListener("input", () => { slugManuallyEdited = true; });
+
+document.querySelector("[name='nombre']").addEventListener("input", function() {
+  updatePreviewNombre(this.value);
+});
+
+function updatePreviewNombre(val) {
+  previewNombre.textContent = val || "etiqueta_ejemplo";
+}
+
+colorPicker.addEventListener("input", function() {
+  const c = this.value;
+  colorHex.value = c;
+  tagPreview.style.background = c;
+});
+
+function selectIcono(ic) {
+  iconoInput.value = ic;
+  iconPreviewI.className = "bi " + ic;
+  previewIcon.className  = "bi " + ic;
+  document.querySelectorAll(".icon-picker-btn").forEach(b => {
+    b.classList.remove("btn-primary");
+    b.classList.add("btn-outline-secondary");
+  });
+  event.currentTarget.classList.remove("btn-outline-secondary");
+  event.currentTarget.classList.add("btn-primary");
+}
+
+const TIPO_MAP = { sistematica: "sis", dinamica: "din", temporal: "tmp" };
+function selectTipo(tipo) {
+  document.getElementById("tipo_" + TIPO_MAP[tipo]).checked = true;
+  toggleCamposTipo(tipo);
+  document.querySelectorAll(".tipo-card").forEach(c => c.classList.remove("border-primary","bg-primary-subtle"));
+  document.getElementById("card-" + tipo).classList.add("border-primary","bg-primary-subtle");
+}
+
+function toggleCamposTipo(tipo) {
+  document.getElementById("campo_trigger").style.display  = tipo === "sistematica" ? "" : "none";
+  document.getElementById("campo_filtro").style.display   = tipo === "dinamica"    ? "" : "none";
+  document.getElementById("campo_temporal").style.display = tipo === "temporal"    ? "" : "none";
+  const diasInput = document.getElementById("diasInput");
+  if (diasInput) diasInput.required = tipo === "temporal";
+  toggleCriterios();
+}
+
+function _getTipo() {
+  const radio  = document.querySelector("[name='tipo']:checked");
+  const hidden = document.querySelector("input[type='hidden'][name='tipo']");
+  return radio ? radio.value : (hidden ? hidden.value : null);
+}
+
+function updateCriterioPreview() {
+  const gastoEl = document.getElementById("criterioGasto");
+  const resEl   = document.getElementById("criterioReservas");
+  if (!gastoEl) return;
+  const gasto = parseFloat(gastoEl.value);
+  const res   = parseInt(resEl.value, 10);
+  const partes = [];
+  if (!isNaN(gasto) && gasto > 0) partes.push("gasto acumulado ≥ " + gasto.toLocaleString("es-ES") + " €");
+  if (!isNaN(res)   && res   > 0) partes.push("al menos " + res + " experiencia" + (res !== 1 ? "s" : ""));
+  const txt = document.getElementById("criterioPreviewText");
+  if (!txt) return;
+  txt.textContent = partes.length === 0
+    ? "Configura al menos un umbral para activar la evaluación automática."
+    : "El cliente obtendrá esta etiqueta cuando cumpla: " + partes.join(" Y ");
+}
+
+function updateGranCuentaPreview() {
+  const gastoEl    = document.getElementById("gcGasto");
+  const empEl      = document.getElementById("gcEmpleados");
+  if (!gastoEl) return;
+  const gasto = parseFloat(gastoEl.value);
+  const emp   = parseInt(empEl.value, 10);
+  const partes = [];
+  if (!isNaN(gasto) && gasto > 0) partes.push("gasto TB acumulado ≥ " + gasto.toLocaleString("es-ES") + " €");
+  if (!isNaN(emp)   && emp   > 0) partes.push("al menos " + emp + " empleado" + (emp !== 1 ? "s" : ""));
+  const txt = document.getElementById("gcPreviewText");
+  if (!txt) return;
+  txt.textContent = partes.length === 0
+    ? "Configura al menos un umbral para activar la evaluación automática."
+    : "La empresa obtendrá esta etiqueta cuando cumpla: " + partes.join(" Y ");
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  const tipoVal   = _getTipo();
+  const tipoRadio = document.querySelector("[name='tipo']:checked");
+  if (tipoVal) {
+    if (tipoRadio) toggleCamposTipo(tipoVal);
+    const card = document.getElementById("card-" + tipoVal);
+    if (card) card.classList.add("border-primary", "bg-primary-subtle");
+  }
+  // Sync color preview
+  tagPreview.style.background = colorPicker.value;
+  previewIcon.className = "bi " + iconoInput.value;
+
+  // Live preview VIP (solo presente en cliente_vip_particular)
+  const criterioGasto    = document.getElementById("criterioGasto");
+  const criterioReservas = document.getElementById("criterioReservas");
+  if (criterioGasto)    criterioGasto.addEventListener("input", updateCriterioPreview);
+  if (criterioReservas) criterioReservas.addEventListener("input", updateCriterioPreview);
+  updateCriterioPreview();
+
+  // Live preview Gran Cuenta (solo presente en gran_cuenta_b2b)
+  const gcGasto     = document.getElementById("gcGasto");
+  const gcEmpleados = document.getElementById("gcEmpleados");
+  if (gcGasto)     gcGasto.addEventListener("input", updateGranCuentaPreview);
+  if (gcEmpleados) gcEmpleados.addEventListener("input", updateGranCuentaPreview);
+  updateGranCuentaPreview();
+});
+</script>
+{% endblock %}

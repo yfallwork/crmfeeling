@@ -1,0 +1,233 @@
+{% extends "autoclub/base.html" %}
+{% block title %}Seguimiento — AutoClub{% endblock %}
+{% block page_title %}Seguimiento de actividad{% endblock %}
+
+{% block content %}
+
+{% set meta = {
+  'login':          ('#3B82F6', 'bi-box-arrow-in-right', 'Inicio de sesión'),
+  'login_fallido':  ('#EF4444', 'bi-x-circle',           'Login fallido'),
+  'logout':         ('#6B7280', 'bi-box-arrow-right',     'Cierre de sesión'),
+  'crear':          ('#10B981', 'bi-plus-circle-fill',    'Creación'),
+  'editar':         ('#F59E0B', 'bi-pencil-fill',         'Edición'),
+  'eliminar':       ('#EF4444', 'bi-trash-fill',          'Eliminación'),
+  'cambiar_estado': ('#8B5CF6', 'bi-arrow-repeat',        'Cambio de estado'),
+} %}
+
+{% set label_entidad = {
+  'socio':        ('bi-person-badge', '#16a34a',  'Socio'),
+  'patrocinador': ('bi-building',     '#0A66C2',  'Patrocinador'),
+  'sistema':      ('bi-shield-lock',  '#6B7280',  'Sistema'),
+} %}
+
+<!-- Filtros -->
+<div class="card mb-3">
+  <div class="filter-bar">
+    <form method="GET" class="d-flex align-items-center gap-2 flex-wrap w-100">
+
+      <select name="usuario" class="form-select form-select-sm" style="max-width:180px"
+              onchange="this.form.submit()">
+        <option value="">Todos los usuarios</option>
+        {% for u in usuarios %}
+          <option value="{{ u }}" {% if u == filtro_usuario %}selected{% endif %}>{{ u }}</option>
+        {% endfor %}
+      </select>
+
+      <select name="accion" class="form-select form-select-sm" style="max-width:180px"
+              onchange="this.form.submit()">
+        <option value="">Todas las acciones</option>
+        <optgroup label="Sesión">
+          {% for a in ['login','logout','login_fallido'] %}
+            <option value="{{ a }}" {% if a == filtro_accion %}selected{% endif %}>
+              {{ meta[a][2] if a in meta else a }}
+            </option>
+          {% endfor %}
+        </optgroup>
+        <optgroup label="AutoClub">
+          {% for a in ['crear','editar','eliminar','cambiar_estado'] %}
+            <option value="{{ a }}" {% if a == filtro_accion %}selected{% endif %}>
+              {{ meta[a][2] if a in meta else a }}
+            </option>
+          {% endfor %}
+        </optgroup>
+      </select>
+
+      <input type="date" name="fecha_ini" class="form-control form-control-sm"
+             style="max-width:150px" value="{{ filtro_fecha_ini }}"
+             title="Desde" placeholder="Desde">
+      <input type="date" name="fecha_fin" class="form-control form-control-sm"
+             style="max-width:150px" value="{{ filtro_fecha_fin }}"
+             title="Hasta" placeholder="Hasta">
+
+      <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
+      {% if filtro_usuario or filtro_accion or filtro_fecha_ini or filtro_fecha_fin %}
+        <a href="{{ url_for('autoclub.seguimiento') }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-x me-1"></i>Limpiar
+        </a>
+      {% endif %}
+
+      <div class="ms-auto">
+        <span class="text-xs text-muted">{{ logs.total }} evento{{ 's' if logs.total != 1 }}</span>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Timeline de eventos -->
+<div class="card">
+  {% if logs.items %}
+  <div style="padding:8px 0">
+    {% set ns = namespace(last_date=None) %}
+    {% for log in logs.items %}
+
+      {# Separador de fecha #}
+      {% set dia = log.fecha.strftime('%Y-%m-%d') %}
+      {% if dia != ns.last_date %}
+        {% set ns.last_date = dia %}
+        <div style="padding:12px 24px 4px;display:flex;align-items:center;gap:12px">
+          <div style="height:1px;flex:1;background:var(--border-light)"></div>
+          <span style="font-size:.7rem;font-weight:700;color:var(--gray-400);
+                       text-transform:uppercase;letter-spacing:1px;white-space:nowrap">
+            {{ log.fecha.strftime('%d/%m/%Y') if log.fecha else '—' }}
+          </span>
+          <div style="height:1px;flex:1;background:var(--border-light)"></div>
+        </div>
+      {% endif %}
+
+      {# Fila de log #}
+      {% set accion = log.accion %}
+      {% set color, icono, label_accion = meta.get(accion, ('#9CA3AF','bi-dot', accion)) %}
+      {% set es_sesion = accion in ('login','logout','login_fallido') %}
+
+      <div class="log-row d-flex align-items-start gap-3"
+           style="padding:10px 24px;border-bottom:1px solid var(--border-light);
+                  {% if accion == 'login_fallido' %}background:rgba(239,68,68,.03){% endif %}
+                  transition:background .12s">
+
+        {# Icono de acción #}
+        <div style="width:32px;height:32px;border-radius:50%;background:{{ color }}18;
+                    display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">
+          <i class="bi {{ icono }}" style="color:{{ color }};font-size:.85rem"></i>
+        </div>
+
+        {# Contenido #}
+        <div style="flex:1;min-width:0">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+
+            {# Badge de acción #}
+            <span style="font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px;
+                         background:{{ color }}18;color:{{ color }}">
+              {{ label_accion }}
+            </span>
+
+            {# Badge de entidad #}
+            {% if log.entidad and not es_sesion %}
+              {% set eic, ecol, elab = label_entidad.get(log.entidad, ('bi-dot','#9CA3AF', log.entidad)) %}
+              <span style="font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:99px;
+                           background:{{ ecol }}12;color:{{ ecol }}">
+                <i class="bi {{ eic }} me-1" style="font-size:.68rem"></i>{{ elab }}
+                {% if log.entidad_id %}#{{ log.entidad_id }}{% endif %}
+              </span>
+            {% endif %}
+
+            {# Hora #}
+            <span class="text-xs text-muted ms-auto" style="white-space:nowrap">
+              {{ log.fecha.strftime('%H:%M:%S') if log.fecha else '' }}
+            </span>
+          </div>
+
+          {# Detalle #}
+          {% if log.detalle %}
+          <div class="text-sm mt-1" style="color:var(--gray-700)">{{ log.detalle }}</div>
+          {% endif %}
+
+          {# Usuario e IP #}
+          <div class="d-flex align-items-center gap-3 mt-1">
+            <div class="d-flex align-items-center gap-1">
+              <div style="width:18px;height:18px;border-radius:50%;
+                          background:{% if es_sesion %}{{ color }}22{% else %}rgba(22,163,74,.15){% endif %};
+                          display:flex;align-items:center;justify-content:center;font-size:.6rem;
+                          font-weight:800;color:{% if es_sesion %}{{ color }}{% else %}#16a34a{% endif %}">
+                {{ log.usuario_nombre[0]|upper if log.usuario_nombre else '?' }}
+              </div>
+              <span class="text-xs" style="color:var(--gray-600);font-weight:600">{{ log.usuario_nombre }}</span>
+            </div>
+            {% if log.ip %}
+              <span class="text-xs text-muted">
+                <i class="bi bi-globe me-1" style="font-size:.65rem"></i>{{ log.ip }}
+              </span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+    {% endfor %}
+  </div>
+
+  {# Paginación #}
+  {% if logs.pages > 1 %}
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <span class="text-xs text-muted">Página {{ logs.page }} de {{ logs.pages }}</span>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% if logs.has_prev %}
+          <li class="page-item">
+            <a class="page-link"
+               href="{{ url_for('autoclub.seguimiento', page=logs.prev_num,
+                                usuario=filtro_usuario, accion=filtro_accion,
+                                fecha_ini=filtro_fecha_ini, fecha_fin=filtro_fecha_fin) }}">
+              <i class="bi bi-chevron-left"></i>
+            </a>
+          </li>
+        {% endif %}
+        {% for pp in logs.iter_pages() %}
+          {% if pp %}
+            <li class="page-item {% if pp == logs.page %}active{% endif %}">
+              <a class="page-link"
+                 href="{{ url_for('autoclub.seguimiento', page=pp,
+                                  usuario=filtro_usuario, accion=filtro_accion,
+                                  fecha_ini=filtro_fecha_ini, fecha_fin=filtro_fecha_fin) }}">
+                {{ pp }}
+              </a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+        {% if logs.has_next %}
+          <li class="page-item">
+            <a class="page-link"
+               href="{{ url_for('autoclub.seguimiento', page=logs.next_num,
+                                usuario=filtro_usuario, accion=filtro_accion,
+                                fecha_ini=filtro_fecha_ini, fecha_fin=filtro_fecha_fin) }}">
+              <i class="bi bi-chevron-right"></i>
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty-state" style="padding:60px 0">
+    <i class="bi bi-activity"></i>
+    <p>No hay eventos registrados
+      {% if filtro_usuario or filtro_accion or filtro_fecha_ini or filtro_fecha_fin %}
+        con estos filtros
+      {% endif %}
+    </p>
+    {% if filtro_usuario or filtro_accion or filtro_fecha_ini or filtro_fecha_fin %}
+      <a href="{{ url_for('autoclub.seguimiento') }}" class="btn btn-sm btn-outline-secondary mt-2">
+        Limpiar filtros
+      </a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<style>
+.log-row:hover { background: var(--gray-50) !important; }
+</style>
+
+{% endblock %}

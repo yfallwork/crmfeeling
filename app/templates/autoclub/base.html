@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}AutoClub{% endblock %} — AutoClub</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/crm.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/autoclub.css') }}" />
+  {% block head %}{% endblock %}
+</head>
+<body class="autoclub-theme">
+
+{% if current_user.is_authenticated %}
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+
+  <!-- Brand AutoClub -->
+  <a href="{{ url_for('autoclub.dashboard') }}" class="sidebar-brand">
+    <img src="{{ url_for('static', filename='img/autoclub/logo_autoclub.png') }}"
+         alt="AutoClub" class="sidebar-logo-full" />
+    <span class="sidebar-logo-mini" style="color:#16a34a;font-weight:900;font-size:.9rem">AC</span>
+  </a>
+
+  <!-- Navegación -->
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">AutoClub</div>
+
+    <a href="{{ url_for('autoclub.dashboard') }}"
+       class="nav-item {% if request.endpoint == 'autoclub.dashboard' %}active{% endif %}"
+       data-tooltip="Dashboard">
+      <i class="bi bi-speedometer2"></i><span>Dashboard</span>
+    </a>
+
+    <a href="{{ url_for('autoclub.lista') }}"
+       class="nav-item {% if request.endpoint in ('autoclub.lista', 'autoclub.detalle', 'autoclub.editar', 'autoclub.nuevo') %}active{% endif %}"
+       data-tooltip="Socios">
+      <i class="bi bi-person-badge"></i><span>Socios</span>
+    </a>
+
+    <a href="{{ url_for('autoclub.patrocinadores_lista') }}"
+       class="nav-item {% if 'patrocinadores' in (request.endpoint or '') %}active{% endif %}"
+       data-tooltip="Patrocinadores">
+      <i class="bi bi-building"></i><span>Patrocinadores</span>
+    </a>
+
+    <a href="{{ url_for('autoclub.seguimiento') }}"
+       class="nav-item {% if request.endpoint == 'autoclub.seguimiento' %}active{% endif %}"
+       data-tooltip="Seguimiento">
+      <i class="bi bi-activity"></i><span>Seguimiento</span>
+    </a>
+
+    <div class="nav-divider"></div>
+
+    <a href="{{ url_for('dashboard.index') }}" class="nav-item nav-item-back" data-tooltip="Volver al CRM">
+      <i class="bi bi-arrow-left-circle"></i><span>Volver al CRM</span>
+    </a>
+  </nav>
+
+  <!-- Usuario -->
+  <div class="sidebar-user">
+    <div class="sidebar-user-avatar">
+      {{ current_user.nombre[0] | upper }}
+    </div>
+    <div class="sidebar-user-info">
+      <div class="sidebar-user-name">{{ current_user.nombre }}</div>
+      <div class="sidebar-user-role">{{ current_user.rol | title }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Backdrop móvil sidebar -->
+<div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+
+<!-- SEARCH OVERLAY -->
+<div class="search-overlay" id="searchOverlay">
+  <div class="search-modal">
+    <div class="search-header">
+      <i class="bi bi-search search-icon-left"></i>
+      <input type="text" id="searchInput" class="search-input"
+             placeholder="Buscar socios, patrocinadores…"
+             autocomplete="off" spellcheck="false" />
+      <button class="search-close-btn" onclick="closeSearch()" type="button">
+        <kbd>Esc</kbd>
+      </button>
+    </div>
+    <div id="searchResults" class="search-results">
+      <div class="search-hint">
+        <i class="bi bi-arrow-up-short"></i>
+        <i class="bi bi-arrow-down-short"></i> navegar &nbsp;
+        <kbd>Enter</kbd> abrir &nbsp;
+        <kbd>Esc</kbd> cerrar
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <button class="sidebar-toggle" onclick="toggleSidebar()">
+    <i class="bi bi-list fs-4"></i>
+  </button>
+  <button class="sidebar-collapse-btn d-none d-lg-flex" onclick="toggleSidebarCollapse()" title="Colapsar menú">
+    <i class="bi bi-layout-sidebar" id="sidebarCollapseIcon"></i>
+  </button>
+  <div class="topbar-title">{% block page_title %}{% endblock %}</div>
+  <div class="ms-auto d-flex align-items-center gap-2">
+    {% block topbar_actions %}{% endblock %}
+    <button class="btn btn-sm btn-outline-secondary d-none d-lg-flex align-items-center gap-1"
+            onclick="openSearch()" type="button">
+      <i class="bi bi-search"></i>
+      <span style="font-size:.75rem">Buscar</span>
+      <kbd style="font-size:.65rem;opacity:.6">Ctrl K</kbd>
+    </button>
+  </div>
+</div>
+
+<!-- CONTENIDO -->
+<main class="main-content">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-container">
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ cat }} alert-dismissible fade show" role="alert">
+            {{ msg }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</main>
+
+{% else %}
+  {% block auth_content %}{% endblock %}
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/crm.js') }}"></script>
+
+<!-- Búsqueda AutoClub: reemplaza el listener de crm.js para apuntar a /autoclub/buscar -->
+<script>
+(function () {
+  var timer = null;
+  var selected = -1;
+
+  function hl(text, q) {
+    if (!text || !q) return text || '';
+    var re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+    return String(text).replace(re, '<mark class="hl">$1</mark>');
+  }
+
+  function setResults(html) {
+    var el = document.getElementById('searchResults');
+    if (el) el.innerHTML = html;
+  }
+
+  function showHint() {
+    setResults('<div class="search-hint"><i class="bi bi-arrow-up-short"></i><i class="bi bi-arrow-down-short"></i> navegar &nbsp;<kbd>Enter</kbd> abrir &nbsp;<kbd>Esc</kbd> cerrar</div>');
+  }
+
+  function highlight(items) {
+    items.forEach(function (el, i) {
+      el.classList.toggle('active', i === selected);
+      if (i === selected) el.scrollIntoView({ block: 'nearest' });
+    });
+  }
+
+  function renderResults(data, q) {
+    var html = '';
+
+    if (data.socios && data.socios.length) {
+      html += '<div class="search-section-label"><i class="bi bi-person-badge me-1"></i>Socios</div>';
+      data.socios.forEach(function (s) {
+        var tipoColor = { regular: '#6366f1', premium: '#d97706', familiar: '#059669', vip: '#dc2626' }[s.tipo] || '#6b7280';
+        html += '<a href="' + s.url + '" class="search-item" onclick="closeSearch()">' +
+          '<div class="search-item-icon" style="background:rgba(22,163,74,.1)">' +
+            '<i class="bi bi-person-badge" style="color:#16a34a"></i>' +
+          '</div>' +
+          '<div class="min-w-0 flex-1">' +
+            '<div class="search-item-title">' + hl(s.nombre, q) + '</div>' +
+            '<div class="search-item-sub">' +
+              '<span style="color:' + tipoColor + ';font-weight:600;font-size:.7rem;text-transform:capitalize">' + s.tipo + '</span>' +
+              (s.email ? ' · ' + hl(s.email, q) : '') +
+              (!s.activo ? ' · <span style="color:#ef4444;font-size:.68rem">Inactivo</span>' : '') +
+            '</div>' +
+          '</div>' +
+          '<i class="bi bi-arrow-right search-item-arrow"></i></a>';
+      });
+    }
+
+    if (data.patrocinadores && data.patrocinadores.length) {
+      html += '<div class="search-section-label"><i class="bi bi-building me-1"></i>Patrocinadores</div>';
+      data.patrocinadores.forEach(function (p) {
+        var thumb = p.tiene_logo
+          ? '<img src="/static/uploads/autoclub/patrocinadores/' + p.logo + '" style="width:28px;height:28px;object-fit:contain;border-radius:4px;background:#fff;border:1px solid #e5e7eb;padding:2px" />'
+          : '<div style="width:28px;height:28px;background:rgba(22,163,74,.12);border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#16a34a;font-size:.8rem">' + p.nombre.charAt(0).toUpperCase() + '</div>';
+        html += '<a href="' + p.url + '" class="search-item" onclick="closeSearch()">' +
+          '<div class="search-item-icon" style="background:transparent;padding:0;overflow:visible">' + thumb + '</div>' +
+          '<div class="min-w-0 flex-1">' +
+            '<div class="search-item-title">' + hl(p.nombre, q) + '</div>' +
+            '<div class="search-item-sub">' + (p.sector ? hl(p.sector, q) : '—') + '</div>' +
+          '</div>' +
+          '<i class="bi bi-arrow-right search-item-arrow"></i></a>';
+      });
+    }
+
+    if (!html) {
+      html = '<div class="search-empty"><i class="bi bi-search"></i>Sin resultados para <strong>"' + q + '"</strong></div>';
+    }
+
+    setResults(html);
+    selected = -1;
+  }
+
+  function buscarAutoclub(q) {
+    fetch('/autoclub/buscar?q=' + encodeURIComponent(q))
+      .then(function (r) { return r.json(); })
+      .then(function (data) { renderResults(data, q); })
+      .catch(function () { setResults('<div class="search-empty"><i class="bi bi-search"></i>Error de red</div>'); });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    // Clonar el input para eliminar el listener de crm.js (que apuntaría a /api/buscar)
+    var oldInput = document.getElementById('searchInput');
+    if (!oldInput) return;
+    var newInput = oldInput.cloneNode(true);
+    oldInput.parentNode.replaceChild(newInput, oldInput);
+
+    newInput.addEventListener('input', function () {
+      clearTimeout(timer);
+      var q = this.value.trim();
+      selected = -1;
+      if (q.length < 2) { showHint(); return; }
+      timer = setTimeout(function () { buscarAutoclub(q); }, 180);
+    });
+
+    // Teclado dentro del overlay (ArrowDown/Up/Enter) — gestiona el propio crm.js a nivel document
+    // Solo necesitamos reescribir el handler del input; el keydown del overlay sigue funcionando.
+    document.getElementById('searchOverlay')?.addEventListener('click', function (e) {
+      if (e.target === this) window.closeSearch?.();
+    });
+  });
+})();
+</script>
+
+{% block scripts %}{% endblock %}
+
+</body>
+</html>

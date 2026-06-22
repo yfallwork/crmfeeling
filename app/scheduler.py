@@ -14,6 +14,11 @@ log = logging.getLogger(__name__)
 _scheduler = None
 
 
+def get_scheduler():
+    """Returns the running APScheduler instance, or None if not started."""
+    return _scheduler
+
+
 def init_scheduler(app):
     global _scheduler
     if _scheduler is not None:
@@ -23,15 +28,55 @@ def init_scheduler(app):
 
     _scheduler.add_job(
         func=lambda: _job_recordatorios(app),
-        trigger=CronTrigger(hour=9, minute=0),   # todos los días a las 09:00
+        trigger=CronTrigger(hour=9, minute=0),
         id="recordatorios_auto",
         replace_existing=True,
         misfire_grace_time=3600,
     )
 
+    _scheduler.add_job(
+        func=lambda: _job_temporal_tags(app),
+        trigger=CronTrigger(hour=7, minute=0),
+        id="temporal_tags_scan",
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
+
+    _scheduler.add_job(
+        func=lambda: _job_vip_criterio(app),
+        trigger=CronTrigger(hour=7, minute=15),  # 07:15 — tras el job de temporales
+        id="vip_criterio_scan",
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
+
+    _scheduler.add_job(
+        func=lambda: _job_aniversario(app),
+        trigger=CronTrigger(hour=7, minute=30),  # 07:30 — tras VIP
+        id="aniversario_scan",
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
+
+    _scheduler.add_job(
+        func=lambda: _job_gran_cuenta(app),
+        trigger=CronTrigger(hour=7, minute=45),  # 07:45 — tras aniversario
+        id="gran_cuenta_scan",
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
+
+    _scheduler.add_job(
+        func=lambda: _job_campanas(app),
+        trigger=CronTrigger(minute="*/5"),  # cada 5 minutos
+        id="campanas_scheduler",
+        replace_existing=True,
+        misfire_grace_time=300,
+    )
+
     _scheduler.start()
     atexit.register(_scheduler.shutdown)
-    log.info("Scheduler iniciado — recordatorios automáticos a las 09:00")
+    log.info("Scheduler iniciado — recordatorios 09:00, etiquetas temporales 07:00")
 
 
 def _job_recordatorios(app):
@@ -84,3 +129,63 @@ def _job_recordatorios(app):
                 log.error(f"Error en recordatorio auto reserva #{reserva.id}: {e}")
 
         log.info(f"Job recordatorios: {enviados}/{len(proximas)} enviados")
+
+
+def _job_vip_criterio(app):
+    """Evalúa y sincroniza todos los tags con criterio VIP activos."""
+    with app.app_context():
+        try:
+            from app.services.vip_criterio import evaluar_vip_criterio
+            stats = evaluar_vip_criterio()
+            log.info(f"Job vip_criterio: +{stats['asignadas']} VIP asignados, "
+                     f"-{stats['quitadas']} retirados, {stats['errores']} errores")
+        except Exception as e:
+            log.error(f"Error en job vip_criterio: {e}")
+
+
+def _job_gran_cuenta(app):
+    """Evalúa y sincroniza etiquetas Gran Cuenta B2B con criterio configurable."""
+    with app.app_context():
+        try:
+            from app.services.gran_cuenta_criterio import evaluar_gran_cuenta
+            stats = evaluar_gran_cuenta()
+            log.info(f"Job gran_cuenta: +{stats['asignadas']} asignadas, "
+                     f"-{stats['quitadas']} retiradas, {stats['errores']} errores")
+        except Exception as e:
+            log.error(f"Error en job gran_cuenta: {e}")
+
+
+def _job_aniversario(app):
+    """Asigna/retira etiquetas de mes aniversario a clientes y empresas."""
+    with app.app_context():
+        try:
+            from app.services.aniversario_tags import evaluar_aniversarios
+            stats = evaluar_aniversarios()
+            log.info(f"Job aniversario: +{stats['asignadas']} asignadas, "
+                     f"-{stats['quitadas']} retiradas, {stats['errores']} errores")
+        except Exception as e:
+            log.error(f"Error en job aniversario: {e}")
+
+
+def _job_campanas(app):
+    """Lanza campañas programadas cuya fecha_envio ya ha llegado."""
+    with app.app_context():
+        try:
+            from app.services.campana_service import check_scheduled_campaigns
+            n = check_scheduled_campaigns()
+            if n:
+                log.info(f"Job campañas: {n} campaña(s) ejecutada(s)")
+        except Exception as e:
+            log.error(f"Error en job campañas: {e}")
+
+
+def _job_temporal_tags(app):
+    """Evalúa y sincroniza todas las etiquetas temporales activas."""
+    with app.app_context():
+        try:
+            from app.services.temporal_tags import evaluar_tags_temporales
+            stats = evaluar_tags_temporales()
+            log.info(f"Job temporal_tags: +{stats['asignadas']} asignadas, "
+                     f"-{stats['quitadas']} retiradas, {stats['errores']} errores")
+        except Exception as e:
+            log.error(f"Error en job temporal_tags: {e}")

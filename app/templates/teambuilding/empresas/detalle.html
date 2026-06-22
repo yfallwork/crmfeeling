@@ -1,0 +1,416 @@
+{% extends "base.html" %}
+{% block title %}{{ e.nombre }} — Team Building{% endblock %}
+{% block page_title %}{{ e.nombre }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('teambuilding.empresas_lista') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i>Empresas
+</a>
+<a href="{{ url_for('teambuilding.empresas_editar', id=e.id) }}" class="btn btn-sm btn-outline-primary">
+  <i class="bi bi-pencil me-1"></i>Editar
+</a>
+{% endblock %}
+
+{% block content %}
+
+{% set iconos_redes = {
+  'instagram': ('bi-instagram', '#E1306C',  'Instagram'),
+  'facebook':  ('bi-facebook',  '#1877F2',  'Facebook'),
+  'twitter':   ('bi-twitter-x', '#000000',  'X / Twitter'),
+  'linkedin':  ('bi-linkedin',  '#0A66C2',  'LinkedIn'),
+  'tiktok':    ('bi-tiktok',    '#000000',  'TikTok'),
+  'youtube':   ('bi-youtube',   '#FF0000',  'YouTube'),
+} %}
+
+<div class="row g-3">
+
+  <!-- Columna izquierda: logo + datos + redes + acciones -->
+  <div class="col-lg-4">
+    <div class="card card-accent mb-3">
+      <div class="card-body" style="padding:28px 20px 20px !important">
+
+        <!-- Logo principal o avatar -->
+        <div class="text-center mb-4">
+          {% if e.logo_positivo_filename %}
+            <div style="border:1px solid var(--border);border-radius:var(--radius-sm);
+                        background:#fff;padding:12px;margin:0 auto 12px;max-width:160px">
+              <img src="{{ url_for('static', filename='uploads/teambuilding/empresas/' + e.logo_positivo_filename) }}"
+                   alt="{{ e.nombre }}"
+                   style="max-width:100%;max-height:90px;object-fit:contain" />
+            </div>
+          {% elif e.logo_banner_filename %}
+            <div style="border:1px solid var(--border);border-radius:var(--radius-sm);
+                        background:linear-gradient(90deg,#f1f5f9,#e2e8f0);padding:12px;
+                        margin:0 auto 12px;max-width:160px">
+              <img src="{{ url_for('static', filename='uploads/teambuilding/empresas/' + e.logo_banner_filename) }}"
+                   alt="{{ e.nombre }}"
+                   style="max-width:100%;max-height:90px;object-fit:contain" />
+            </div>
+          {% else %}
+            <div class="avatar-lg mb-3 mx-auto"
+                 style="{% if not e.activo %}background:var(--gray-200);color:var(--gray-500){% endif %}">
+              {{ e.nombre[0]|upper }}
+            </div>
+          {% endif %}
+
+          <h5 class="fw-bold mb-1" style="font-size:1rem">{{ e.nombre }}</h5>
+
+          {% if e.sector %}
+            <span class="badge rounded-pill"
+                  style="background:rgba(220,38,38,.08);color:var(--red-dark);font-size:.73rem;font-weight:700">
+              {{ e.sector }}
+            </span>
+          {% endif %}
+
+          <div class="mt-2">
+            {% if e.activo %}
+              <span class="badge rounded-pill"
+                    style="background:rgba(16,185,129,.1);color:#059669;font-size:.73rem">
+                <i class="bi bi-check-circle me-1"></i>Activa
+              </span>
+            {% else %}
+              <span class="badge rounded-pill"
+                    style="background:rgba(107,114,128,.1);color:#6b7280;font-size:.73rem">
+                <i class="bi bi-pause-circle me-1"></i>Inactiva
+              </span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Contacto -->
+        <ul class="list-unstyled cliente-info mb-0">
+          {% if e.persona_contacto %}
+          <li><i class="bi bi-person"></i><span class="text-sm">{{ e.persona_contacto }}</span></li>
+          {% endif %}
+          {% if e.email %}
+          <li>
+            <i class="bi bi-envelope"></i>
+            <a href="mailto:{{ e.email }}" class="text-decoration-none text-sm">{{ e.email }}</a>
+          </li>
+          {% endif %}
+          {% if e.telefono %}
+          <li>
+            <i class="bi bi-telephone"></i>
+            <a href="tel:{{ e.telefono }}" class="text-decoration-none text-sm">{{ e.telefono }}</a>
+          </li>
+          {% endif %}
+          {% if e.web %}
+          <li>
+            <i class="bi bi-globe"></i>
+            <a href="{{ e.web }}" target="_blank" rel="noopener" class="text-decoration-none text-sm">
+              {{ e.web | replace('https://','') | replace('http://','') | truncate(32,true,'…') }}
+            </a>
+          </li>
+          {% endif %}
+          <li>
+            <i class="bi bi-clock"></i>
+            <span class="text-sm text-muted">Registrada el {{ e.creado_en.strftime('%d/%m/%Y') if e.creado_en }}</span>
+          </li>
+        </ul>
+
+        <!-- Redes sociales (chips) -->
+        {% if e.redes_activas %}
+        <div class="mt-4">
+          <div class="section-title mb-2">Redes sociales</div>
+          <div class="d-flex flex-wrap gap-2">
+            {% for red, url in e.redes_activas.items() %}
+              {% set icon, color, label = iconos_redes.get(red, ('bi-link','#6b7280',red)) %}
+              <a href="{{ url }}" target="_blank" rel="noopener"
+                 class="btn btn-xs d-flex align-items-center gap-1"
+                 style="border:1px solid {{ color }}20;background:{{ color }}10;color:{{ color }};
+                        font-size:.75rem;font-weight:600;padding:5px 10px;border-radius:6px;
+                        text-decoration:none">
+                <i class="bi {{ icon }}"></i>{{ label }}
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if e.notas %}
+        <div class="mt-4 p-3"
+             style="background:var(--gray-50);border-radius:var(--radius-xs);
+                    border:1px solid var(--border-light);font-size:.82rem;color:var(--gray-700)">
+          <div class="section-title mb-1">Notas</div>
+          {{ e.notas }}
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Acciones -->
+      <div class="card-footer d-flex flex-column gap-2">
+        <form method="POST" action="{{ url_for('teambuilding.empresas_estado', id=e.id) }}">
+          {% if e.activo %}
+            <button type="submit" class="btn btn-outline-warning btn-sm w-100"
+                    onclick="return confirm('¿Marcar {{ e.nombre }} como inactiva?')">
+              <i class="bi bi-pause-circle me-1"></i>Marcar como inactiva
+            </button>
+          {% else %}
+            <button type="submit" class="btn btn-outline-success btn-sm w-100"
+                    onclick="return confirm('¿Reactivar {{ e.nombre }}?')">
+              <i class="bi bi-play-circle me-1"></i>Reactivar empresa
+            </button>
+          {% endif %}
+        </form>
+
+        <form method="POST" action="{{ url_for('teambuilding.empresas_eliminar', id=e.id) }}"
+              onsubmit="return confirm('¿Eliminar permanentemente {{ e.nombre }}? Se borrarán también sus logos.')">
+          <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+            <i class="bi bi-trash me-1"></i>Eliminar permanentemente
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Columna derecha: etiquetas + ficha + logos + redes detalladas -->
+  <div class="col-lg-8">
+
+    {% with
+       tags_asignados   = empresa_tags,
+       tags_disponibles = tags_disponibles,
+       url_add          = url_for('teambuilding.empresas_tag_add',    id=e.id),
+       url_remove       = url_for('teambuilding.empresas_tag_remove', id=e.id)
+    %}
+      {% include '_tags_section.html' %}
+    {% endwith %}
+
+    <!-- Ficha de datos -->
+    <div class="card mb-3">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-buildings me-2 text-primary"></i>Ficha de la empresa</h6>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+
+          <div class="col-sm-8">
+            <div class="text-xs text-muted fw-semibold text-uppercase mb-1">Empresa</div>
+            <div class="fw-semibold">{{ e.nombre }}</div>
+          </div>
+          <div class="col-sm-4">
+            <div class="text-xs text-muted fw-semibold text-uppercase mb-1">Sector</div>
+            {% if e.sector %}
+              <span class="badge rounded-pill"
+                    style="background:rgba(220,38,38,.08);color:var(--red-dark);font-size:.75rem;font-weight:700">
+                {{ e.sector }}
+              </span>
+            {% else %}
+              <span class="text-muted text-sm">—</span>
+            {% endif %}
+          </div>
+
+          <div class="col-sm-6">
+            <div class="text-xs text-muted fw-semibold text-uppercase mb-1">Persona de contacto</div>
+            <div class="text-sm">{{ e.persona_contacto or '—' }}</div>
+          </div>
+          <div class="col-sm-6">
+            <div class="text-xs text-muted fw-semibold text-uppercase mb-1">Email</div>
+            <div class="text-sm">
+              {% if e.email %}<a href="mailto:{{ e.email }}" class="text-decoration-none">{{ e.email }}</a>
+              {% else %}—{% endif %}
+            </div>
+          </div>
+
+          <div class="col-sm-6">
+            <div class="text-xs text-muted fw-semibold text-uppercase mb-1">Teléfono</div>
+            <div class="text-sm">
+              {% if e.telefono %}<a href="tel:{{ e.telefono }}" class="text-decoration-none">{{ e.telefono }}</a>
+              {% else %}—{% endif %}
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="text-xs text-muted fw-semibold text-uppercase mb-1">Sitio web</div>
+            <div class="text-sm">
+              {% if e.web %}
+                <a href="{{ e.web }}" target="_blank" rel="noopener" class="text-decoration-none">
+                  {{ e.web | replace('https://','') | replace('http://','') }}
+                </a>
+              {% else %}—{% endif %}
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Redes sociales detalladas -->
+        {% if e.redes_activas %}
+        <div class="mt-4">
+          <div class="text-xs text-muted fw-semibold text-uppercase mb-2">Redes sociales</div>
+          <div class="d-flex flex-column gap-2">
+            {% for red, url in e.redes_activas.items() %}
+              {% set icon, color, label = iconos_redes.get(red, ('bi-link','#6b7280',red)) %}
+              <div class="d-flex align-items-center gap-3"
+                   style="padding:8px 12px;border:1px solid var(--border-light);
+                          border-radius:var(--radius-xs);background:var(--gray-50)">
+                <div style="width:30px;height:30px;background:{{ color }}15;border-radius:6px;
+                             display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                  <i class="bi {{ icon }}" style="color:{{ color }};font-size:.95rem"></i>
+                </div>
+                <div style="flex:1;min-width:0">
+                  <div class="text-xs text-muted fw-semibold">{{ label }}</div>
+                  <a href="{{ url }}" target="_blank" rel="noopener"
+                     class="text-sm text-decoration-none" style="color:var(--black);word-break:break-all">
+                    {{ url }}
+                  </a>
+                </div>
+                <a href="{{ url }}" target="_blank" rel="noopener"
+                   class="btn btn-xs btn-outline-secondary flex-shrink-0">
+                  <i class="bi bi-box-arrow-up-right"></i>
+                </a>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if e.notas %}
+        <div class="mt-4">
+          <div class="text-xs text-muted fw-semibold text-uppercase mb-1">Notas internas</div>
+          <div class="text-sm"
+               style="background:var(--gray-50);border:1px solid var(--border-light);
+                      border-radius:var(--radius-xs);padding:12px 14px">
+            {{ e.notas }}
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+
+    <!-- Logos corporativos -->
+    {% if e.tiene_logo %}
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-images me-2 text-primary"></i>Logos corporativos</h6>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+
+          {% if e.logo_positivo_filename %}
+          <div class="col-md-4">
+            <div class="text-xs text-muted fw-semibold text-uppercase mb-2">
+              <i class="bi bi-sun me-1"></i>Versión positiva
+              <span class="fw-normal" style="text-transform:none"> — fondo claro</span>
+            </div>
+            <div style="border:1px solid var(--border);border-radius:var(--radius-xs);
+                        background:#fff;padding:16px;text-align:center;min-height:100px;
+                        display:flex;align-items:center;justify-content:center">
+              <img src="{{ url_for('static', filename='uploads/teambuilding/empresas/' + e.logo_positivo_filename) }}"
+                   alt="Logo positivo"
+                   style="max-width:100%;max-height:80px;object-fit:contain" />
+            </div>
+          </div>
+          {% endif %}
+
+          {% if e.logo_negativo_filename %}
+          <div class="col-md-4">
+            <div class="text-xs text-muted fw-semibold text-uppercase mb-2">
+              <i class="bi bi-moon-stars-fill me-1"></i>Versión negativa
+              <span class="fw-normal" style="text-transform:none"> — fondo oscuro</span>
+            </div>
+            <div style="border:1px solid var(--border);border-radius:var(--radius-xs);
+                        background:#1a1a1a;padding:16px;text-align:center;min-height:100px;
+                        display:flex;align-items:center;justify-content:center">
+              <img src="{{ url_for('static', filename='uploads/teambuilding/empresas/' + e.logo_negativo_filename) }}"
+                   alt="Logo negativo"
+                   style="max-width:100%;max-height:80px;object-fit:contain" />
+            </div>
+          </div>
+          {% endif %}
+
+          {% if e.logo_banner_filename %}
+          <div class="col-md-4">
+            <div class="text-xs text-muted fw-semibold text-uppercase mb-2">
+              <i class="bi bi-card-image me-1"></i>Versión banner
+              <span class="fw-normal" style="text-transform:none"> — horizontal</span>
+            </div>
+            <div style="border:1px solid var(--border);border-radius:var(--radius-xs);
+                        background:linear-gradient(90deg,#f1f5f9,#e2e8f0);
+                        padding:16px;text-align:center;min-height:100px;
+                        display:flex;align-items:center;justify-content:center">
+              <img src="{{ url_for('static', filename='uploads/teambuilding/empresas/' + e.logo_banner_filename) }}"
+                   alt="Logo banner"
+                   style="max-width:100%;max-height:80px;object-fit:contain" />
+            </div>
+          </div>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+</div>
+
+<!-- ── Notas ──────────────────────────────────────────────────────────────── -->
+<div class="card mt-3" id="notas">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="bi bi-journal-text" style="color:#F59E0B"></i>
+    <h6 class="mb-0">Notas internas</h6>
+    <span class="badge ms-auto" style="background:rgba(245,158,11,.12);color:#92400E">
+      {{ e.notas_historial | length }}
+    </span>
+  </div>
+
+  <!-- Formulario nueva nota -->
+  <div class="card-body border-bottom" style="background:var(--gray-50)">
+    <form method="POST"
+          action="{{ url_for('teambuilding.empresas_nota_nueva', id=e.id) }}">
+      <div class="d-flex gap-2 align-items-start">
+        <textarea name="contenido" class="form-control form-control-sm" rows="2"
+                  placeholder="Escribe una nota sobre esta empresa… (llamada, seguimiento, acuerdo…)"
+                  required style="resize:none"></textarea>
+        <button type="submit" class="btn btn-sm btn-warning fw-semibold flex-shrink-0">
+          <i class="bi bi-plus-lg me-1"></i>Añadir
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Historial de notas -->
+  {% if not e.notas_historial %}
+  <div class="card-body text-center py-4">
+    <p class="text-muted text-sm mb-0">Sin notas todavía. Añade la primera arriba.</p>
+  </div>
+  {% else %}
+  <div class="card-body p-0">
+    {% for nota in e.notas_historial | sort(attribute='creado_en', reverse=True) %}
+    <div class="d-flex gap-3 px-4 py-3"
+         style="border-bottom:1px solid var(--border-light){% if loop.last %};border-bottom:none{% endif %}">
+      <div style="flex-shrink:0;padding-top:3px">
+        <div style="width:28px;height:28px;border-radius:7px;
+                    background:rgba(245,158,11,.1);
+                    display:flex;align-items:center;justify-content:center">
+          <i class="bi bi-journal-text" style="font-size:.7rem;color:#D97706"></i>
+        </div>
+      </div>
+      <div class="flex-grow-1 min-w-0">
+        <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+          <span class="text-xs text-muted">
+            {{ nota.creado_en.strftime('%d/%m/%Y · %H:%M') }}
+          </span>
+          {% if nota.usuario_nombre %}
+          <span class="text-xs text-muted">
+            <i class="bi bi-person me-1"></i>{{ nota.usuario_nombre }}
+          </span>
+          {% endif %}
+        </div>
+        <p class="mb-0" style="font-size:.83rem;color:var(--gray-700);
+                                white-space:pre-wrap;line-height:1.55">{{ nota.contenido }}</p>
+      </div>
+      <div style="flex-shrink:0">
+        <form method="POST"
+              action="{{ url_for('teambuilding.empresas_nota_eliminar', id=e.id, nid=nota.id) }}"
+              onsubmit="return confirm('¿Eliminar esta nota?')">
+          <button type="submit" class="btn btn-xs btn-outline-danger" title="Eliminar">
+            <i class="bi bi-trash"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

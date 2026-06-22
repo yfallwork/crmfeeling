@@ -1,0 +1,181 @@
+{% extends "autoclub/base.html" %}
+{% block title %}Socios — AutoClub{% endblock %}
+{% block page_title %}Socios{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.nuevo') }}" class="btn btn-primary btn-sm">
+  <i class="bi bi-plus-lg me-1"></i>Nuevo socio
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+
+  <!-- Filtros -->
+  <div class="filter-bar">
+    <form method="GET" class="d-flex align-items-center gap-2 flex-wrap w-100">
+      <div class="input-group input-group-sm" style="max-width:300px">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" class="form-control"
+               placeholder="Nombre, email, DNI…" value="{{ q }}" />
+      </div>
+
+      <select name="estado" class="form-select form-select-sm"
+              style="max-width:160px" onchange="this.form.submit()">
+        <option value="activos"   {% if estado == 'activos'   %}selected{% endif %}>Activos</option>
+        <option value="inactivos" {% if estado == 'inactivos' %}selected{% endif %}>Inactivos</option>
+        <option value="todos"     {% if estado == 'todos'     %}selected{% endif %}>Todos</option>
+      </select>
+
+      <select name="tipo" class="form-select form-select-sm"
+              style="max-width:160px" onchange="this.form.submit()">
+        <option value="">Todos los tipos</option>
+        {% for t in tipos %}
+          <option value="{{ t }}" {% if tipo == t %}selected{% endif %}>{{ t | capitalize }}</option>
+        {% endfor %}
+      </select>
+
+      <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
+      {% if q or tipo or estado not in ('activos', '') %}
+        <a href="{{ url_for('autoclub.lista') }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-x me-1"></i>Limpiar
+        </a>
+      {% endif %}
+
+      <div class="ms-auto d-flex align-items-center gap-2">
+        <span class="text-xs text-muted">
+          {{ socios.total }} socio{{ 's' if socios.total != 1 }}
+        </span>
+        <a href="{{ url_for('autoclub.exportar', q=q, estado=estado, tipo=tipo) }}"
+           class="btn btn-xs btn-outline-secondary" title="Exportar CSV">
+          <i class="bi bi-download me-1"></i>CSV
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th style="width:44px"></th>
+          <th>Nombre</th>
+          <th>Email</th>
+          <th>Teléfono</th>
+          <th>Tipo</th>
+          <th>Fecha alta</th>
+          <th>Estado</th>
+          <th style="width:80px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in socios.items %}
+        <tr {% if not s.activo %}style="opacity:.55"{% endif %}>
+          <td>
+            <div class="row-avatar"
+                 style="{% if not s.activo %}background:var(--gray-200);color:var(--gray-500){% endif %}">
+              {{ s.nombre[0]|upper }}
+            </div>
+          </td>
+          <td>
+            <a href="{{ url_for('autoclub.detalle', id=s.id) }}"
+               class="fw-semibold text-decoration-none" style="color:var(--black)">
+              {{ s.nombre_completo }}
+            </a>
+          </td>
+          <td>
+            {% if s.email %}
+              <a href="mailto:{{ s.email }}" class="text-muted text-decoration-none text-sm">{{ s.email }}</a>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if s.telefono %}
+              <a href="tel:{{ s.telefono }}" class="text-decoration-none text-sm">{{ s.telefono }}</a>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge tipo-{{ s.tipo }} rounded-pill"
+                  style="font-size:.7rem;font-weight:700;padding:3px 9px">
+              {{ s.tipo | capitalize }}
+            </span>
+          </td>
+          <td class="text-muted text-sm">
+            {{ s.fecha_alta.strftime('%d/%m/%Y') if s.fecha_alta else '—' }}
+          </td>
+          <td>
+            {% if s.activo %}
+              <span class="badge badge-activo rounded-pill">
+                <i class="bi bi-check-circle me-1"></i>Activo
+              </span>
+            {% else %}
+              <span class="badge badge-inactivo rounded-pill">
+                <i class="bi bi-pause-circle me-1"></i>Inactivo
+              </span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('autoclub.detalle', id=s.id) }}"
+                 class="btn btn-xs btn-outline-secondary" title="Ver detalle">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="{{ url_for('autoclub.editar', id=s.id) }}"
+                 class="btn btn-xs btn-outline-primary" title="Editar">
+                <i class="bi bi-pencil"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8">
+            <div class="empty-state">
+              <i class="bi bi-person-badge"></i>
+              <p>No se encontraron socios{% if q %} para "{{ q }}"{% endif %}</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if socios.pages > 1 %}
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <span class="text-xs text-muted">Página {{ socios.page }} de {{ socios.pages }}</span>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% if socios.has_prev %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('autoclub.lista', page=socios.prev_num, q=q, estado=estado, tipo=tipo) }}">
+              <i class="bi bi-chevron-left"></i>
+            </a>
+          </li>
+        {% endif %}
+        {% for p in socios.iter_pages() %}
+          {% if p %}
+            <li class="page-item {% if p == socios.page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('autoclub.lista', page=p, q=q, estado=estado, tipo=tipo) }}">{{ p }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+        {% if socios.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('autoclub.lista', page=socios.next_num, q=q, estado=estado, tipo=tipo) }}">
+              <i class="bi bi-chevron-right"></i>
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

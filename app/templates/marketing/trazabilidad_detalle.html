@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+{% block title %}Trazabilidad · {{ nombre }} — Marketing{% endblock %}
+{% block page_title %}Trazabilidad · {{ nombre }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('marketing.trazabilidad') }}" class="btn btn-sm btn-outline-secondary me-1">
+  <i class="bi bi-arrow-left me-1"></i>Volver
+</a>
+<a href="{{ url_ficha }}" class="btn btn-sm btn-outline-primary">
+  <i class="bi bi-{{ 'person' if entidad == 'cliente' else 'building' }} me-1"></i>
+  Ver ficha completa
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-3">{% include 'marketing/_logs_tabs.html' %}</div>
+
+<!-- ── Cabecera ────────────────────────────────────────────────────────────── -->
+<div class="card mb-3">
+  <div class="card-body py-3">
+    <div class="d-flex align-items-center gap-3">
+
+      <!-- Avatar -->
+      <div style="width:48px;height:48px;border-radius:12px;flex-shrink:0;
+                  display:flex;align-items:center;justify-content:center;
+                  background:{{ 'rgba(99,102,241,.1)' if entidad=='cliente' else 'var(--red-light)' }}">
+        <i class="bi {{ 'bi-person-fill' if entidad=='cliente' else 'bi-building' }}"
+           style="font-size:1.3rem;color:{{ '#6366F1' if entidad=='cliente' else 'var(--red)' }}"></i>
+      </div>
+
+      <!-- Datos -->
+      <div class="flex-grow-1 min-w-0">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span class="fw-bold" style="font-size:1.05rem;color:var(--black)">{{ nombre }}</span>
+          <span class="badge" style="font-size:.68rem;
+            background:{{ 'rgba(99,102,241,.1)' if entidad=='cliente' else 'var(--red-light)' }};
+            color:{{ '#4F46E5' if entidad=='cliente' else 'var(--red)' }}">
+            {{ 'Cliente B2C' if entidad=='cliente' else 'Empresa B2B' }}
+          </span>
+        </div>
+        <div class="text-xs text-muted mt-1">{{ subtitulo }}</div>
+        <div class="d-flex gap-3 mt-1 flex-wrap">
+          {% if email %}
+          <span class="text-xs"><i class="bi bi-envelope me-1 text-muted"></i>{{ email }}</span>
+          {% endif %}
+          {% if telefono %}
+          <span class="text-xs"><i class="bi bi-telephone me-1 text-muted"></i>{{ telefono }}</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Stats rápidas -->
+      <div class="d-flex gap-3 flex-shrink-0">
+        {% for icon, color, val, lbl in [
+          ('bi-lightning-fill',   '#F59E0B', stats.total,    'Eventos'),
+          ('bi-envelope-fill',    '#6366F1', stats.emails,   'Emails'),
+          ('bi-whatsapp',         '#25D366', stats.whatsapp, 'WA'),
+          ('bi-megaphone-fill',   '#8B5CF6', stats.campanas, 'Campañas'),
+        ] %}
+        <div class="text-center" style="min-width:48px">
+          <div class="fw-bold" style="font-size:1.2rem;color:var(--black);line-height:1">{{ val }}</div>
+          <div class="text-xs text-muted mt-1">
+            <i class="bi {{ icon }}" style="color:{{ color }}"></i> {{ lbl }}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+    </div>
+
+    <!-- Etiquetas activas -->
+    {% if tags_act %}
+    <div class="d-flex flex-wrap gap-1 mt-3 pt-3" style="border-top:1px solid var(--border)">
+      <span class="text-xs text-muted me-1 align-self-center">Etiquetas actuales:</span>
+      {% for tag in tags_act %}
+      <span class="badge" style="background:{{ tag.color }}18;color:{{ tag.color }};font-size:.68rem;font-weight:600">
+        <i class="bi bi-tag-fill me-1" style="font-size:.55rem"></i>{{ tag.nombre }}
+      </span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<div class="row g-3">
+
+  <!-- ── Timeline ─────────────────────────────────────────────────────────── -->
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-clock-history" style="color:var(--red)"></i>
+        <h6 class="mb-0">Timeline de actividad</h6>
+        <span class="badge ms-auto" style="background:var(--red-light);color:var(--red)">
+          {{ timeline|length }}
+        </span>
+      </div>
+
+      {% if not timeline %}
+      <div class="card-body text-center py-4">
+        <p class="text-muted text-sm mb-0">Sin actividad registrada</p>
+      </div>
+      {% else %}
+      <div class="card-body p-0">
+        <div style="padding:16px 20px;position:relative">
+
+          <!-- línea vertical -->
+          <div style="position:absolute;left:36px;top:0;bottom:0;width:2px;
+                      background:var(--border);z-index:0"></div>
+
+          {% set ns = namespace(prev_date=None) %}
+          {% for log in timeline %}
+
+            {# Separador de fecha #}
+            {% set log_date = log.fecha.strftime('%Y-%m-%d') %}
+            {% if log_date != ns.prev_date %}
+            {% set ns.prev_date = log_date %}
+            <div class="d-flex align-items-center gap-2 mb-3 mt-{% if not loop.first %}4{% else %}0{% endif %}"
+                 style="position:relative;z-index:1">
+              <div style="width:36px;flex-shrink:0"></div>
+              <span class="text-xs fw-semibold text-muted px-2 py-1 rounded"
+                    style="background:var(--gray-100);letter-spacing:.3px">
+                {{ log.fecha.strftime('%A %d de %B de %Y').capitalize() }}
+              </span>
+            </div>
+            {% endif %}
+
+            <!-- Evento -->
+            <div class="d-flex gap-3 mb-3" style="position:relative;z-index:1">
+
+              <!-- Icono -->
+              <div style="width:36px;flex-shrink:0;display:flex;align-items:flex-start;
+                          padding-top:2px">
+                <div style="width:28px;height:28px;border-radius:8px;
+                            display:flex;align-items:center;justify-content:center;
+                            background:{{ log.evento_color }}18;border:2px solid #fff;
+                            box-shadow:0 0 0 1px var(--border)">
+                  <i class="bi {{ log.evento_icono }}"
+                     style="font-size:.7rem;color:{{ log.evento_color }}"></i>
+                </div>
+              </div>
+
+              <!-- Contenido -->
+              <div class="flex-grow-1 pb-1">
+                <div class="d-flex align-items-start justify-content-between gap-2 flex-wrap">
+                  <div>
+                    <span class="fw-semibold text-sm" style="color:var(--black)">
+                      {{ log.evento_label }}
+                    </span>
+                    {% if log.resultado and log.resultado != 'ok' %}
+                    <span class="badge ms-1" style="font-size:.6rem;
+                      background:{{ log.resultado_color }}18;color:{{ log.resultado_color }}">
+                      {{ log.resultado_label }}
+                    </span>
+                    {% endif %}
+                  </div>
+                  <span class="text-xs text-muted flex-shrink-0">
+                    {{ log.fecha.strftime('%H:%M') }}
+                  </span>
+                </div>
+
+                <!-- Contexto -->
+                <div class="d-flex flex-wrap gap-2 mt-1">
+                  {% if log.campana_nombre %}
+                  <span class="text-xs" style="color:#8B5CF6">
+                    <i class="bi bi-megaphone me-1"></i>{{ log.campana_nombre }}
+                  </span>
+                  {% endif %}
+                  {% if log.rule_nombre %}
+                  <span class="text-xs" style="color:#6366F1">
+                    <i class="bi bi-diagram-3 me-1"></i>{{ log.rule_nombre }}
+                  </span>
+                  {% endif %}
+                  {% if log.tag_nombre %}
+                  <span class="text-xs" style="color:#10B981">
+                    <i class="bi bi-tag me-1"></i>{{ log.tag_nombre }}
+                  </span>
+                  {% endif %}
+                  {% if log.accion_tipo %}
+                  <span class="text-xs text-muted">
+                    <i class="bi bi-{{ 'envelope' if log.accion_tipo=='email' else 'whatsapp' }} me-1"></i>
+                    {{ log.accion_tipo|capitalize }}
+                  </span>
+                  {% endif %}
+                  {% if log.origen and log.origen != 'manual' %}
+                  <span class="text-xs text-muted">
+                    <i class="bi bi-robot me-1"></i>{{ log.origen_label }}
+                  </span>
+                  {% endif %}
+                </div>
+
+                {% if log.detalle %}
+                <div class="text-xs text-muted mt-1"
+                     style="background:var(--gray-50);border-radius:6px;padding:5px 8px">
+                  {{ log.detalle }}
+                </div>
+                {% endif %}
+              </div>
+
+            </div>
+          {% endfor %}
+
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── Panel lateral ──────────────────────────────────────────────────────── -->
+  <div class="col-lg-4">
+
+    <!-- Campañas recibidas -->
+    <div class="card mb-3">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-megaphone-fill" style="color:#8B5CF6"></i>
+        <h6 class="mb-0">Campañas recibidas</h6>
+        <span class="badge ms-auto" style="background:rgba(139,92,246,.1);color:#7C3AED">
+          {{ campana_logs|length }}
+        </span>
+      </div>
+
+      {% if not campana_logs %}
+      <div class="card-body">
+        <p class="text-xs text-muted mb-0">No ha recibido ninguna campaña</p>
+      </div>
+      {% else %}
+      <div class="card-body p-0">
+        {% for cl in campana_logs %}
+        <div class="d-flex align-items-start gap-2 px-3 py-2"
+             style="border-bottom:1px solid var(--border-light){% if loop.last %};border-bottom:none{% endif %}">
+          <div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;
+                      background:{{ cl.estado_color }}"></div>
+          <div class="flex-grow-1 min-w-0">
+            <div class="text-xs fw-semibold" style="color:var(--black);
+                 white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+              {% if cl.campana %}{{ cl.campana.nombre }}{% else %}Campaña eliminada{% endif %}
+            </div>
+            <div class="text-xs text-muted">
+              <i class="bi bi-{{ 'envelope' if cl.canal=='email' else 'whatsapp' }} me-1"></i>
+              {{ cl.canal|capitalize }} ·
+              {{ cl.enviado_en.strftime('%d/%m/%Y %H:%M') }}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Historial de etiquetas -->
+    <div class="card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-tags-fill" style="color:#10B981"></i>
+        <h6 class="mb-0">Historial de etiquetas</h6>
+      </div>
+      <div class="card-body p-2">
+        {% set tag_logs = timeline | selectattr('evento', 'in', ['tag_asignada','tag_eliminada']) | list %}
+        {% if not tag_logs %}
+        <p class="text-xs text-muted mb-0 p-1">Sin historial de etiquetas</p>
+        {% else %}
+        {% for log in tag_logs %}
+        <div class="d-flex align-items-center gap-2 px-2 py-1 rounded mb-1"
+             style="background:{{ 'rgba(16,185,129,.05)' if log.evento=='tag_asignada' else 'rgba(239,68,68,.05)' }}">
+          <i class="bi {{ 'bi-plus-circle-fill' if log.evento=='tag_asignada' else 'bi-dash-circle-fill' }}"
+             style="font-size:.7rem;color:{{ '#10B981' if log.evento=='tag_asignada' else '#EF4444' }}"></i>
+          <span class="text-xs fw-semibold flex-grow-1" style="color:var(--black)">
+            {{ log.tag_nombre or '—' }}
+          </span>
+          <span class="text-xs text-muted">{{ log.fecha.strftime('%d/%m/%y') }}</span>
+        </div>
+        {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

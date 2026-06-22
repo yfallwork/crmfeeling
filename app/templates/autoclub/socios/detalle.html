@@ -1,0 +1,209 @@
+{% extends "autoclub/base.html" %}
+{% block title %}{{ socio.nombre_completo }} — AutoClub{% endblock %}
+{% block page_title %}{{ socio.nombre_completo }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.lista') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i>Socios
+</a>
+<a href="{{ url_for('autoclub.editar', id=socio.id) }}" class="btn btn-sm btn-outline-primary">
+  <i class="bi bi-pencil me-1"></i>Editar
+</a>
+{% endblock %}
+
+{% block content %}
+
+{% set tipo_colors = {'regular': '#6366f1', 'premium': '#d97706', 'familiar': '#059669', 'vip': '#dc2626'} %}
+{% set tipo_color = tipo_colors.get(socio.tipo, '#6b7280') %}
+
+<div class="row g-3">
+
+  <!-- Columna izquierda: perfil -->
+  <div class="col-lg-4">
+    <div class="card card-accent mb-3">
+      <div class="card-body" style="padding:28px 20px 20px !important">
+
+        <!-- Avatar + nombre -->
+        <div class="text-center mb-4">
+          <div class="avatar-lg mb-3 mx-auto"
+               style="{% if not socio.activo %}background:var(--gray-200);color:var(--gray-500){% endif %}">
+            {{ socio.nombre[0] | upper }}
+          </div>
+          <h5 class="fw-bold mb-1" style="font-size:1rem">{{ socio.nombre_completo }}</h5>
+
+          <span class="badge tipo-{{ socio.tipo }} rounded-pill"
+                style="font-size:.75rem;font-weight:700;padding:4px 12px">
+            {{ socio.tipo | capitalize }}
+          </span>
+
+          <div class="mt-2">
+            {% if socio.activo %}
+              <span class="badge badge-activo rounded-pill">
+                <i class="bi bi-check-circle me-1"></i>Activo
+              </span>
+            {% else %}
+              <span class="badge badge-inactivo rounded-pill">
+                <i class="bi bi-pause-circle me-1"></i>Inactivo
+                {% if socio.fecha_baja %}· desde {{ socio.fecha_baja.strftime('%d/%m/%Y') }}{% endif %}
+              </span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Datos -->
+        <ul class="list-unstyled cliente-info mb-0">
+          {% if socio.email %}
+          <li>
+            <i class="bi bi-envelope"></i>
+            <a href="mailto:{{ socio.email }}" class="text-decoration-none text-sm">{{ socio.email }}</a>
+          </li>
+          {% endif %}
+          {% if socio.telefono %}
+          <li>
+            <i class="bi bi-telephone"></i>
+            <a href="tel:{{ socio.telefono }}" class="text-decoration-none text-sm">{{ socio.telefono }}</a>
+          </li>
+          {% endif %}
+          {% if socio.dni %}
+          <li>
+            <i class="bi bi-card-text"></i>
+            <span class="text-sm">{{ socio.dni }}</span>
+          </li>
+          {% endif %}
+          {% if socio.fecha_alta %}
+          <li>
+            <i class="bi bi-calendar-plus"></i>
+            <span class="text-sm text-muted">Socio desde {{ socio.fecha_alta.strftime('%d/%m/%Y') }}</span>
+          </li>
+          {% endif %}
+          <li>
+            <i class="bi bi-clock"></i>
+            <span class="text-sm text-muted">
+              Registrado el {{ socio.creado_en.strftime('%d/%m/%Y') if socio.creado_en }}
+            </span>
+          </li>
+        </ul>
+
+        {% if socio.notas %}
+        <div class="mt-3 p-3"
+             style="background:var(--gray-50);border-radius:var(--radius-xs);
+                    border:1px solid var(--border-light);font-size:.82rem;color:var(--gray-700)">
+          <div class="section-title mb-1">Notas</div>
+          {{ socio.notas }}
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Acciones -->
+      <div class="card-footer d-flex flex-column gap-2">
+
+        <!-- Activar / Desactivar -->
+        <form method="POST" action="{{ url_for('autoclub.cambiar_estado', id=socio.id) }}">
+          {% if socio.activo %}
+            <button type="submit" class="btn btn-outline-warning btn-sm w-100"
+                    onclick="return confirm('¿Marcar a {{ socio.nombre_completo }} como inactivo?')">
+              <i class="bi bi-pause-circle me-1"></i>Marcar como inactivo
+            </button>
+          {% else %}
+            <button type="submit" class="btn btn-outline-success btn-sm w-100"
+                    onclick="return confirm('¿Reactivar a {{ socio.nombre_completo }}?')">
+              <i class="bi bi-play-circle me-1"></i>Reactivar socio
+            </button>
+          {% endif %}
+        </form>
+
+        <!-- Eliminar -->
+        <form method="POST" action="{{ url_for('autoclub.eliminar', id=socio.id) }}"
+              onsubmit="return confirm('¿Eliminar permanentemente a {{ socio.nombre_completo }}? Esta acción no se puede deshacer.')">
+          <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+            <i class="bi bi-trash me-1"></i>Eliminar permanentemente
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Columna derecha: ficha detallada -->
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0">
+          <i class="bi bi-person-lines-fill me-2 text-primary"></i>Ficha del socio
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+
+          <div class="col-sm-6">
+            <div class="text-xs text-muted fw-semibold text-uppercase mb-1">Nombre completo</div>
+            <div class="fw-semibold">{{ socio.nombre_completo }}</div>
+          </div>
+
+          <div class="col-sm-6">
+            <div class="text-xs text-muted fw-semibold text-uppercase mb-1">Tipo de socio</div>
+            <span class="badge tipo-{{ socio.tipo }} rounded-pill"
+                  style="font-size:.78rem;font-weight:700;padding:4px 11px">
+              {{ socio.tipo | capitalize }}
+            </span>
+          </div>
+
+          <div class="col-sm-6">
+            <div class="text-xs text-muted fw-semibold text-uppercase mb-1">Email</div>
+            <div class="text-sm">{{ socio.email or '—' }}</div>
+          </div>
+
+          <div class="col-sm-6">
+            <div class="text-xs text-muted fw-semibold text-uppercase mb-1">Teléfono</div>
+            <div class="text-sm">{{ socio.telefono or '—' }}</div>
+          </div>
+
+          <div class="col-sm-6">
+            <div class="text-xs text-muted fw-semibold text-uppercase mb-1">DNI / NIF</div>
+            <div class="text-sm">{{ socio.dni or '—' }}</div>
+          </div>
+
+          <div class="col-sm-6">
+            <div class="text-xs text-muted fw-semibold text-uppercase mb-1">Fecha de alta</div>
+            <div class="text-sm">
+              {{ socio.fecha_alta.strftime('%d/%m/%Y') if socio.fecha_alta else '—' }}
+            </div>
+          </div>
+
+          <div class="col-sm-6">
+            <div class="text-xs text-muted fw-semibold text-uppercase mb-1">Estado</div>
+            {% if socio.activo %}
+              <span class="badge badge-activo rounded-pill">
+                <i class="bi bi-check-circle me-1"></i>Activo
+              </span>
+            {% else %}
+              <span class="badge badge-inactivo rounded-pill">
+                <i class="bi bi-pause-circle me-1"></i>Inactivo
+              </span>
+            {% endif %}
+          </div>
+
+          {% if socio.fecha_baja %}
+          <div class="col-sm-6">
+            <div class="text-xs text-muted fw-semibold text-uppercase mb-1">Fecha de baja</div>
+            <div class="text-sm text-muted">{{ socio.fecha_baja.strftime('%d/%m/%Y') }}</div>
+          </div>
+          {% endif %}
+
+          {% if socio.notas %}
+          <div class="col-12">
+            <div class="text-xs text-muted fw-semibold text-uppercase mb-1">Notas internas</div>
+            <div class="text-sm"
+                 style="background:var(--gray-50);border:1px solid var(--border-light);
+                        border-radius:var(--radius-xs);padding:12px 14px">
+              {{ socio.notas }}
+            </div>
+          </div>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

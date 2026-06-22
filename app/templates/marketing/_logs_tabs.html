@@ -1,0 +1,10 @@
+<div class="status-tabs mb-0">
+  <a href="{{ url_for('marketing.trazabilidad') }}"
+     class="status-tab {% if request.endpoint == 'marketing.trazabilidad' %}active-tab{% endif %}">
+    <i class="bi bi-person-lines-fill me-1"></i>Trazabilidad
+  </a>
+  <a href="{{ url_for('marketing.logs_lista') }}"
+     class="status-tab {% if request.endpoint in ('marketing.logs_lista','marketing.logs_limpiar') %}active-tab{% endif %}">
+    <i class="bi bi-journal-text me-1"></i>Logs de automatización
+  </a>
+</div>

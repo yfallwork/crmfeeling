@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if p else 'Nueva' }} Plantilla WhatsApp — Marketing{% endblock %}
+{% block page_title %}{{ 'Editar' if p else 'Nueva' }} Plantilla WhatsApp{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('marketing.plantillas_wa_lista') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i>Plantillas WA
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-3">{% include 'marketing/_tabs.html' %}</div>
+
+<form method="POST" class="row g-3">
+
+  <!-- Columna principal -->
+  <div class="col-lg-8">
+    <div class="card mb-3">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-whatsapp" style="color:#25D366;font-size:1rem"></i>
+        <h6 class="mb-0">Datos de la plantilla</h6>
+      </div>
+      <div class="card-body">
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
+          <input type="text" name="nombre" class="form-control" required
+                 value="{{ p.nombre if p else '' }}"
+                 placeholder="Ej: Bienvenida lead B2B">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Descripción</label>
+          <input type="text" name="descripcion" class="form-control"
+                 value="{{ p.descripcion if p else '' }}"
+                 placeholder="Para qué se usa esta plantilla…">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">
+            Cuerpo del mensaje <span class="text-danger">*</span>
+          </label>
+
+          {# Chips de variables — usamos raw para evitar que Jinja2 procese las llaves dobles #}
+          <div class="d-flex flex-wrap gap-1 mb-2">
+            {% raw %}
+            <button type="button" class="btn btn-xs btn-outline-secondary chip-var" data-var="{{nombre}}">
+              <code style="font-size:.7rem">{{nombre}}</code>
+            </button>
+            <button type="button" class="btn btn-xs btn-outline-secondary chip-var" data-var="{{nombre_completo}}">
+              <code style="font-size:.7rem">{{nombre_completo}}</code>
+            </button>
+            <button type="button" class="btn btn-xs btn-outline-secondary chip-var" data-var="{{apellido}}">
+              <code style="font-size:.7rem">{{apellido}}</code>
+            </button>
+            <button type="button" class="btn btn-xs btn-outline-secondary chip-var" data-var="{{telefono}}">
+              <code style="font-size:.7rem">{{telefono}}</code>
+            </button>
+            <button type="button" class="btn btn-xs btn-outline-secondary chip-var" data-var="{{total_reservas}}">
+              <code style="font-size:.7rem">{{total_reservas}}</code>
+            </button>
+            <button type="button" class="btn btn-xs btn-outline-secondary chip-var" data-var="{{nombre_empresa}}">
+              <code style="font-size:.7rem">{{nombre_empresa}}</code>
+            </button>
+            <button type="button" class="btn btn-xs btn-outline-secondary chip-var" data-var="{{fecha_hoy}}">
+              <code style="font-size:.7rem">{{fecha_hoy}}</code>
+            </button>
+            {% endraw %}
+          </div>
+
+          <textarea id="cuerpoInput" name="cuerpo" class="form-control font-monospace" rows="10"
+                    required
+                    placeholder="Hola {{ '{{' }}nombre{{ '}}' }}, te escribimos desde Feeling Experience…">{{ p.cuerpo if p else '' }}</textarea>
+          <div class="form-text">
+            Usa <code>*negrita*</code>, <code>_cursiva_</code> y <code>~tachado~</code> con formato WhatsApp.
+            Haz clic en una variable para insertarla en el cursor.
+          </div>
+        </div>
+
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" name="activo" value="1" id="activoSwitch"
+                 {{ 'checked' if not p or p.activo }}>
+          <label class="form-check-label" for="activoSwitch">Plantilla activa</label>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Columna lateral: preview + variables -->
+  <div class="col-lg-4">
+
+    <!-- Vista previa WhatsApp -->
+    <div class="card mb-3" style="position:sticky;top:80px">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-phone me-1 text-primary"></i>
+        <h6 class="mb-0">Vista previa</h6>
+      </div>
+      <div class="card-body p-0">
+        <div style="background:#ECE5DD;border-radius:0 0 var(--radius-sm) var(--radius-sm);
+                    padding:16px 12px;min-height:200px">
+          <div style="background:#fff;border-radius:0 8px 8px 8px;padding:10px 14px;
+                      max-width:85%;box-shadow:0 1px 2px rgba(0,0,0,.15)">
+            <div id="waPreview" class="text-sm" style="white-space:pre-wrap;line-height:1.5;color:#111">
+              {{ p.cuerpo if p else 'El mensaje aparecerá aquí…' }}
+            </div>
+            <div style="text-align:right;font-size:.68rem;color:#999;margin-top:6px">
+              ahora <i class="bi bi-check2-all" style="color:#34B7F1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <button type="submit" class="btn btn-success w-100">
+          <i class="bi bi-check-lg me-1"></i>
+          {{ 'Guardar cambios' if p else 'Crear plantilla' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Variables disponibles -->
+    <div class="card">
+      <div class="card-header py-2">
+        <h6 class="mb-0 text-sm"><i class="bi bi-code-slash me-2 text-primary"></i>Variables disponibles</h6>
+      </div>
+      <div class="card-body p-2">
+        {# Usamos raw para que Jinja2 no intente evaluar las llaves dobles #}
+        {% raw %}
+        <div class="d-flex align-items-center gap-2 py-1 px-1 rounded mb-1 chip-var"
+             style="cursor:pointer;background:rgba(37,211,102,.04)" data-var="{{nombre}}">
+          <code style="font-size:.72rem;color:#128C7E;white-space:nowrap">{{nombre}}</code>
+          <span class="text-xs text-muted">Nombre</span>
+        </div>
+        <div class="d-flex align-items-center gap-2 py-1 px-1 rounded mb-1 chip-var"
+             style="cursor:pointer;background:rgba(37,211,102,.04)" data-var="{{nombre_completo}}">
+          <code style="font-size:.72rem;color:#128C7E;white-space:nowrap">{{nombre_completo}}</code>
+          <span class="text-xs text-muted">Nombre completo</span>
+        </div>
+        <div class="d-flex align-items-center gap-2 py-1 px-1 rounded mb-1 chip-var"
+             style="cursor:pointer;background:rgba(37,211,102,.04)" data-var="{{apellido}}">
+          <code style="font-size:.72rem;color:#128C7E;white-space:nowrap">{{apellido}}</code>
+          <span class="text-xs text-muted">Apellido</span>
+        </div>
+        <div class="d-flex align-items-center gap-2 py-1 px-1 rounded mb-1 chip-var"
+             style="cursor:pointer;background:rgba(37,211,102,.04)" data-var="{{email}}">
+          <code style="font-size:.72rem;color:#128C7E;white-space:nowrap">{{email}}</code>
+          <span class="text-xs text-muted">Email</span>
+        </div>
+        <div class="d-flex align-items-center gap-2 py-1 px-1 rounded mb-1 chip-var"
+             style="cursor:pointer;background:rgba(37,211,102,.04)" data-var="{{telefono}}">
+          <code style="font-size:.72rem;color:#128C7E;white-space:nowrap">{{telefono}}</code>
+          <span class="text-xs text-muted">Teléfono</span>
+        </div>
+        <div class="d-flex align-items-center gap-2 py-1 px-1 rounded mb-1 chip-var"
+             style="cursor:pointer;background:rgba(37,211,102,.04)" data-var="{{total_reservas}}">
+          <code style="font-size:.72rem;color:#128C7E;white-space:nowrap">{{total_reservas}}</code>
+          <span class="text-xs text-muted">Nº reservas</span>
+        </div>
+        <div class="d-flex align-items-center gap-2 py-1 px-1 rounded mb-1 chip-var"
+             style="cursor:pointer;background:rgba(37,211,102,.04)" data-var="{{nombre_empresa}}">
+          <code style="font-size:.72rem;color:#128C7E;white-space:nowrap">{{nombre_empresa}}</code>
+          <span class="text-xs text-muted">Nombre empresa</span>
+        </div>
+        <div class="d-flex align-items-center gap-2 py-1 px-1 rounded mb-1 chip-var"
+             style="cursor:pointer;background:rgba(37,211,102,.04)" data-var="{{sector}}">
+          <code style="font-size:.72rem;color:#128C7E;white-space:nowrap">{{sector}}</code>
+          <span class="text-xs text-muted">Sector</span>
+        </div>
+        <div class="d-flex align-items-center gap-2 py-1 px-1 rounded mb-1 chip-var"
+             style="cursor:pointer;background:rgba(37,211,102,.04)" data-var="{{contacto}}">
+          <code style="font-size:.72rem;color:#128C7E;white-space:nowrap">{{contacto}}</code>
+          <span class="text-xs text-muted">Persona contacto</span>
+        </div>
+        <div class="d-flex align-items-center gap-2 py-1 px-1 rounded mb-1 chip-var"
+             style="cursor:pointer;background:rgba(37,211,102,.04)" data-var="{{fecha_hoy}}">
+          <code style="font-size:.72rem;color:#128C7E;white-space:nowrap">{{fecha_hoy}}</code>
+          <span class="text-xs text-muted">Fecha hoy</span>
+        </div>
+        {% endraw %}
+      </div>
+    </div>
+
+  </div>
+
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const cuerpo  = document.getElementById("cuerpoInput");
+const preview = document.getElementById("waPreview");
+
+// Insertar variable en posición del cursor
+document.querySelectorAll(".chip-var").forEach(function(el) {
+  el.addEventListener("click", function() {
+    const v = el.getAttribute("data-var");
+    if (!v) return;
+    const s = cuerpo.selectionStart, e = cuerpo.selectionEnd;
+    cuerpo.value = cuerpo.value.slice(0, s) + v + cuerpo.value.slice(e);
+    cuerpo.selectionStart = cuerpo.selectionEnd = s + v.length;
+    cuerpo.focus();
+    updatePreview();
+  });
+});
+
+function updatePreview() {
+  let txt = cuerpo.value || "El mensaje aparecerá aquí…";
+  // Resaltar variables con callback (evita llaves dobles literales en el fuente Jinja2)
+  txt = txt.replace(/\{\{(\w+)\}\}/g, function(match) {
+    return '<span style="color:#128C7E;font-weight:600">' + match + '</span>';
+  });
+  // WhatsApp markdown básico
+  txt = txt.replace(/\*([^*\n]+)\*/g, '<strong>$1</strong>');
+  txt = txt.replace(/_([^_\n]+)_/g,   '<em>$1</em>');
+  txt = txt.replace(/~([^~\n]+)~/g,   '<s>$1</s>');
+  txt = txt.replace(/\n/g,            '<br>');
+  preview.innerHTML = txt;
+}
+
+cuerpo.addEventListener("input", updatePreview);
+updatePreview();
+</script>
+{% endblock %}

@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="row justify-content-center">
-  <div class="col-lg-8">
+  <div class="col-lg-9">
     <div class="card shadow-sm">
       <div class="card-header bg-white border-bottom">
         <h6 class="mb-0 fw-semibold">
@@ -14,11 +14,37 @@
       </div>
       <div class="card-body">
         <form method="POST">
+
+          <!-- Tipo de reserva -->
+          <div class="mb-4 pb-3" style="border-bottom:1px solid var(--border-light)">
+            <label class="form-label fw-semibold mb-2">Tipo de reserva</label>
+            <div class="d-flex gap-4">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="tipo_reserva"
+                       id="tr_individual" value="individual"
+                       {% if not (reserva and reserva.es_teambuilding) %}checked{% endif %}
+                       onchange="toggleTipoReserva(this.value)">
+                <label class="form-check-label fw-semibold" for="tr_individual">
+                  <i class="bi bi-person me-1"></i>Reserva individual
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="tipo_reserva"
+                       id="tr_tb" value="teambuilding"
+                       {% if reserva and reserva.es_teambuilding %}checked{% endif %}
+                       onchange="toggleTipoReserva(this.value)">
+                <label class="form-check-label fw-semibold" for="tr_tb">
+                  <i class="bi bi-buildings me-1"></i>Team Building empresa
+                </label>
+              </div>
+            </div>
+          </div>
+
           <div class="row g-3">
-            <!-- Cliente -->
-            <div class="col-md-6">
+            <!-- Cliente (individual) -->
+            <div class="col-md-6" id="campo_cliente">
               <label class="form-label fw-semibold">Cliente <span class="text-danger">*</span></label>
-              <select name="cliente_id" class="form-select" required>
+              <select name="cliente_id" class="form-select" id="clienteSelect">
                 <option value="">Seleccionar cliente...</option>
                 {% for c in clientes %}
                   <option value="{{ c.id }}"
@@ -32,6 +58,40 @@
                   <i class="bi bi-plus-circle me-1"></i>Crear nuevo cliente
                 </a>
               </div>
+            </div>
+
+            <!-- Empresa (team building) -->
+            <div class="col-md-6" id="campo_empresa" style="display:none">
+              <label class="form-label fw-semibold">Empresa <span class="text-danger">*</span></label>
+              <select name="empresa_id" class="form-select" id="empresaSelect">
+                <option value="">Seleccionar empresa...</option>
+                {% for emp in empresas %}
+                  <option value="{{ emp.id }}"
+                    {% if reserva and reserva.empresa_id == emp.id %}selected{% endif %}>
+                    {{ emp.nombre }}{% if emp.sector %} — {{ emp.sector }}{% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+              <div class="mt-1">
+                <a href="{{ url_for('teambuilding.empresas_nueva') }}" class="small text-primary">
+                  <i class="bi bi-plus-circle me-1"></i>Nueva empresa TB
+                </a>
+              </div>
+            </div>
+
+            <!-- Participantes (TB) -->
+            <div class="col-md-3" id="campo_participantes" style="display:none">
+              <label class="form-label fw-semibold">N.&#186; participantes</label>
+              <input type="number" name="num_participantes" class="form-control" min="1"
+                     value="{{ reserva.num_participantes if reserva else 1 }}">
+            </div>
+
+            <!-- Nombre grupo (TB) -->
+            <div class="col-md-3" id="campo_nombre_grupo" style="display:none">
+              <label class="form-label fw-semibold">Nombre del grupo</label>
+              <input type="text" name="nombre_grupo" class="form-control"
+                     placeholder="Ej: Equipo Marketing"
+                     value="{{ reserva.nombre_grupo if reserva else '' }}">
             </div>
 
             <!-- Tipo de experiencia -->
@@ -120,10 +180,24 @@
 
 {% block scripts %}
 <script>
-// Auto-rellenar precio al seleccionar experiencia
-document.getElementById('tipoSelect').addEventListener('change', function() {
-  const opt = this.options[this.selectedIndex];
-  const precio = opt.dataset.precio;
+function toggleTipoReserva(tipo) {
+  var esTB = tipo === 'teambuilding';
+  document.getElementById('campo_cliente').style.display       = esTB ? 'none' : '';
+  document.getElementById('campo_empresa').style.display       = esTB ? '' : 'none';
+  document.getElementById('campo_participantes').style.display = esTB ? '' : 'none';
+  document.getElementById('campo_nombre_grupo').style.display  = esTB ? '' : 'none';
+  document.getElementById('clienteSelect').required = !esTB;
+  document.getElementById('empresaSelect').required = esTB;
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  var checked = document.querySelector('input[name="tipo_reserva"]:checked');
+  if (checked) toggleTipoReserva(checked.value);
+});
+
+document.getElementById('tipoSelect').addEventListener('change', function () {
+  var opt = this.options[this.selectedIndex];
+  var precio = opt.dataset.precio;
   if (precio && !document.getElementById('precioInput').value) {
     document.getElementById('precioInput').value = precio;
   }

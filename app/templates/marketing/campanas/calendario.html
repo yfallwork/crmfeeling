@@ -1,0 +1,375 @@
+{% extends "base.html" %}
+{% block title %}Calendario de campañas — Marketing{% endblock %}
+{% block page_title %}Calendario de campañas{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('marketing.campanas_nueva') }}" class="btn btn-sm btn-primary">
+  <i class="bi bi-plus-lg me-1"></i>Nueva campaña
+</a>
+{% endblock %}
+
+{% block head %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<style>
+/* ── Layout ───────────────────────────────────────────────────────────── */
+.cc-wrapper { display:flex; gap:16px; align-items:flex-start; }
+.cc-sidebar  { width:240px; flex-shrink:0; display:flex; flex-direction:column; gap:12px; }
+.cc-main     { flex:1; min-width:0; background:#fff; border:1px solid var(--border);
+               border-radius:var(--radius); padding:18px; box-shadow:var(--shadow-xs); }
+
+/* ── Panel lateral ────────────────────────────────────────────────────── */
+.cc-panel     { background:#fff; border:1px solid var(--border); border-radius:var(--radius);
+                overflow:hidden; box-shadow:var(--shadow-xs); }
+.cc-panel-hdr { padding:10px 14px; border-bottom:1px solid var(--border);
+                background:var(--gray-50); font-size:.7rem; font-weight:700;
+                text-transform:uppercase; letter-spacing:.7px; color:var(--gray-600);
+                display:flex; align-items:center; gap:6px; }
+.cc-panel-body { padding:12px 14px; }
+
+/* ── Stats mes ────────────────────────────────────────────────────────── */
+.cc-stat-row  { display:flex; justify-content:space-between; align-items:center;
+                padding:5px 0; border-bottom:1px solid var(--border-light); }
+.cc-stat-row:last-child { border-bottom:none; }
+.cc-stat-dot  { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+
+/* ── Próximas ─────────────────────────────────────────────────────────── */
+.cc-prox-item {
+  display:block; text-decoration:none; padding:8px 10px; border-radius:var(--radius-sm);
+  border:1px solid var(--border); margin-bottom:6px; transition:background var(--transition);
+}
+.cc-prox-item:last-child { margin-bottom:0; }
+.cc-prox-item:hover { background:var(--gray-50); border-color:var(--gray-300); }
+.cc-prox-nombre { font-size:.78rem; font-weight:600; color:var(--black);
+                  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cc-prox-fecha  { font-size:.7rem; color:var(--gray-500); margin-top:2px; }
+
+/* ── Leyenda ──────────────────────────────────────────────────────────── */
+.cc-legend-item { display:flex; align-items:center; gap:8px; padding:4px 0; }
+.cc-legend-dot  { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
+
+/* ── Hint click ───────────────────────────────────────────────────────── */
+.cc-hint {
+  display:flex; align-items:center; gap:6px;
+  font-size:.72rem; color:var(--gray-500);
+  padding:8px 10px; border-radius:var(--radius-sm);
+  background:var(--gray-50); border:1px solid var(--border);
+  margin-bottom:16px;
+}
+
+/* ── Tooltip flotante ─────────────────────────────────────────────────── */
+#ccTooltip {
+  position:fixed; z-index:9999; pointer-events:none;
+  background:var(--black); color:#fff; border-radius:var(--radius-sm);
+  padding:10px 14px; font-size:.78rem; max-width:250px;
+  box-shadow:var(--shadow-md); opacity:0; transition:opacity .12s;
+  line-height:1.55;
+}
+#ccTooltip .tt-title  { font-weight:700; margin-bottom:4px; }
+#ccTooltip .tt-date   { opacity:.65; font-size:.72rem; }
+#ccTooltip .tt-meta   { margin-top:6px; display:flex; align-items:center;
+                        gap:6px; font-size:.73rem; opacity:.8; }
+#ccTooltip .tt-desc   { margin-top:5px; font-size:.72rem; opacity:.55;
+                        border-top:1px solid rgba(255,255,255,.12); padding-top:5px; }
+
+/* ── FullCalendar overrides ─────────────────────────────────────────────── */
+.fc { font-family:'Segoe UI',system-ui,sans-serif !important; }
+.fc .fc-toolbar { margin-bottom:14px !important; }
+.fc .fc-toolbar-title {
+  font-size:.98rem !important; font-weight:800 !important;
+  color:var(--black) !important; letter-spacing:-.2px;
+}
+.fc .fc-toolbar-chunk { display:flex; align-items:center; gap:4px; }
+.fc .fc-button {
+  background:#fff !important; border:1px solid var(--border) !important;
+  color:var(--black) !important; border-radius:8px !important;
+  font-size:.76rem !important; font-weight:600 !important;
+  padding:5px 11px !important; box-shadow:none !important;
+  transition:all .12s !important;
+}
+.fc .fc-button:hover  { background:var(--gray-50) !important; }
+.fc .fc-button:focus  { box-shadow:0 0 0 3px rgba(173,23,38,.15) !important; }
+.fc .fc-today-button  {
+  background:var(--red) !important; border-color:var(--red) !important;
+  color:#fff !important;
+}
+.fc .fc-today-button:hover { background:var(--red-dark) !important; border-color:var(--red-dark) !important; }
+.fc .fc-today-button:disabled {
+  background:var(--gray-100) !important; border-color:var(--border) !important;
+  color:var(--gray-400) !important;
+}
+.fc .fc-prev-button, .fc .fc-next-button { padding:5px 9px !important; }
+.fc .fc-button-active {
+  background:var(--black) !important; border-color:var(--black) !important;
+  color:#fff !important;
+}
+.fc .fc-scrollgrid { border-color:var(--border) !important; border-radius:8px; overflow:hidden; }
+.fc .fc-scrollgrid-section > * { border-color:var(--border) !important; }
+.fc .fc-col-header-cell {
+  background:var(--gray-50) !important; padding:7px 0 !important;
+  border-color:var(--border) !important;
+}
+.fc .fc-col-header-cell-cushion {
+  font-size:.7rem !important; font-weight:700 !important;
+  text-transform:uppercase !important; letter-spacing:.5px !important;
+  color:var(--gray-600) !important; text-decoration:none !important;
+}
+.fc .fc-daygrid-day         { border-color:var(--gray-100) !important; cursor:pointer; }
+.fc .fc-daygrid-day:hover   { background:rgba(173,23,38,.025) !important; }
+.fc .fc-daygrid-day-number  {
+  font-size:.78rem !important; font-weight:600 !important;
+  color:var(--gray-600) !important; text-decoration:none !important;
+  padding:5px 7px !important;
+}
+.fc .fc-day-today { background:rgba(173,23,38,.04) !important; }
+.fc .fc-day-today .fc-daygrid-day-number {
+  color:#fff !important; background:var(--red) !important;
+  border-radius:50% !important; width:22px; height:22px !important;
+  display:flex !important; align-items:center !important;
+  justify-content:center !important; margin:3px !important; padding:0 !important;
+}
+.fc .fc-day-sat .fc-daygrid-day-number,
+.fc .fc-day-sun .fc-daygrid-day-number { color:var(--red) !important; }
+.fc .fc-day-sat.fc-day-today .fc-daygrid-day-number,
+.fc .fc-day-sun.fc-day-today .fc-daygrid-day-number { color:#fff !important; }
+.fc .fc-event {
+  border:none !important; border-radius:5px !important;
+  margin:1px 3px !important; cursor:pointer !important;
+  transition:transform .1s, opacity .1s !important;
+}
+.fc .fc-event:hover  { transform:translateY(-1px) !important; opacity:.9 !important; }
+.fc .fc-daygrid-more-link { font-size:.7rem !important; color:var(--red) !important; font-weight:600 !important; }
+.fc .fc-timegrid-col.fc-day-today { background:rgba(173,23,38,.03) !important; }
+.fc .fc-timegrid-now-indicator-line { border-color:var(--red) !important; }
+.fc .fc-timegrid-now-indicator-arrow { border-top-color:var(--red) !important; border-bottom-color:var(--red) !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-wrapper">
+
+  <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
+  <div class="cc-sidebar">
+
+    <!-- Stats del mes -->
+    <div class="cc-panel">
+      <div class="cc-panel-hdr">
+        <i class="bi bi-bar-chart-line"></i>
+        <span>Este mes</span>
+      </div>
+      <div class="cc-panel-body" id="statsBody">
+        <div class="text-xs text-muted">Cargando…</div>
+      </div>
+    </div>
+
+    <!-- Próximas programadas -->
+    <div class="cc-panel">
+      <div class="cc-panel-hdr">
+        <i class="bi bi-clock" style="color:#F59E0B"></i>
+        <span>Próximas</span>
+      </div>
+      <div class="cc-panel-body" style="padding:10px" id="proximasBody">
+        <div class="text-xs text-muted">Cargando…</div>
+      </div>
+    </div>
+
+    <!-- Leyenda -->
+    <div class="cc-panel">
+      <div class="cc-panel-hdr">
+        <i class="bi bi-circle-half"></i>
+        <span>Estados</span>
+      </div>
+      <div class="cc-panel-body">
+        {% for color, label in [
+          ('#F59E0B', 'Programada'),
+          ('#10B981', 'Enviada'),
+          ('#3B82F6', 'Enviando…'),
+          ('#EF4444', 'Con errores'),
+          ('#9CA3AF', 'Borrador'),
+        ] %}
+        <div class="cc-legend-item">
+          <div class="cc-legend-dot" style="background:{{ color }}"></div>
+          <span class="text-xs" style="color:var(--gray-600)">{{ label }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Calendario ───────────────────────────────────────────────────── -->
+  <div class="cc-main">
+    <div class="cc-hint">
+      <i class="bi bi-info-circle" style="color:var(--red);flex-shrink:0"></i>
+      Haz clic en un día vacío para programar una nueva campaña en esa fecha
+    </div>
+    <div id="calendarEl"></div>
+  </div>
+
+</div>
+
+<div id="ccTooltip"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const EVENTOS_URL = "{{ url_for('marketing.campanas_calendario_eventos') }}";
+const NUEVA_URL   = "{{ url_for('marketing.campanas_nueva') }}";
+const tooltip     = document.getElementById("ccTooltip");
+
+const CANAL_ICON = { email:"bi-envelope", whatsapp:"bi-whatsapp", ambos:"bi-layers" };
+const CANAL_LBL  = { email:"Email", whatsapp:"WhatsApp", ambos:"Email + WA" };
+
+/* ── Tooltip ──────────────────────────────────────────────────────────── */
+function showTooltip(jsEvent, html) {
+  tooltip.innerHTML = html;
+  tooltip.style.opacity = "1";
+  posTooltip(jsEvent);
+}
+function posTooltip(e) {
+  let x = e.clientX + 16, y = e.clientY + 14;
+  if (x + 270 > window.innerWidth)  x = e.clientX - 270;
+  if (y + 140 > window.innerHeight) y = e.clientY - 140;
+  tooltip.style.left = x + "px";
+  tooltip.style.top  = y + "px";
+}
+function hideTooltip() { tooltip.style.opacity = "0"; }
+document.addEventListener("mousemove", function(e) {
+  if (tooltip.style.opacity !== "0") posTooltip(e);
+});
+
+/* ── Sidebar ──────────────────────────────────────────────────────────── */
+const COLOR_BY_ESTADO = {
+  "Programada":  "#F59E0B",
+  "Enviada":     "#10B981",
+  "Enviando…":   "#3B82F6",
+  "Con errores": "#EF4444",
+  "Borrador":    "#9CA3AF",
+};
+
+function updateSidebar(events) {
+  const now  = new Date();
+  const mes  = now.getMonth();
+  const anio = now.getFullYear();
+
+  // Stats mes actual
+  const thisMes = events.filter(function(ev) {
+    const d = new Date(ev.start);
+    return d.getMonth() === mes && d.getFullYear() === anio;
+  });
+  const byEstado = {};
+  thisMes.forEach(function(ev) {
+    const label = (ev.extendedProps || {}).estado || "—";
+    byEstado[label] = (byEstado[label] || 0) + 1;
+  });
+  const statsEl = document.getElementById("statsBody");
+  if (!Object.keys(byEstado).length) {
+    statsEl.innerHTML = '<div class="text-xs text-muted">Sin campañas este mes</div>';
+  } else {
+    statsEl.innerHTML = Object.entries(byEstado).map(function(pair) {
+      const col = COLOR_BY_ESTADO[pair[0]] || "#9CA3AF";
+      return '<div class="cc-stat-row">'
+        + '<div class="d-flex align-items-center gap-2">'
+        + '<div class="cc-stat-dot" style="background:' + col + '"></div>'
+        + '<span class="text-xs" style="color:var(--gray-600)">' + pair[0] + '</span></div>'
+        + '<span class="text-xs fw-bold" style="color:var(--black)">' + pair[1] + '</span>'
+        + '</div>';
+    }).join("");
+  }
+
+  // Próximas programadas
+  const futuras = events
+    .filter(function(ev) {
+      return new Date(ev.start) > now && (ev.extendedProps || {}).estado === "Programada";
+    })
+    .sort(function(a, b) { return new Date(a.start) - new Date(b.start); })
+    .slice(0, 5);
+
+  const proxEl = document.getElementById("proximasBody");
+  if (!futuras.length) {
+    proxEl.innerHTML = '<div class="text-xs text-muted">Sin campañas programadas próximas</div>';
+  } else {
+    proxEl.innerHTML = futuras.map(function(ev) {
+      const d = new Date(ev.start);
+      const fecha = d.toLocaleDateString("es-ES", { weekday:"short", day:"2-digit", month:"short" });
+      const hora  = d.toLocaleTimeString("es-ES", { hour:"2-digit", minute:"2-digit" });
+      const canal = (ev.extendedProps || {}).canal || "email";
+      return '<a href="' + ev.url + '" class="cc-prox-item">'
+        + '<div class="cc-prox-nombre">' + ev.title + '</div>'
+        + '<div class="cc-prox-fecha">'
+        + '<i class="bi ' + (CANAL_ICON[canal] || "bi-envelope") + ' me-1" style="font-size:.65rem"></i>'
+        + fecha + ' · ' + hora
+        + '</div>'
+        + '</a>';
+    }).join("");
+  }
+}
+
+/* ── FullCalendar ─────────────────────────────────────────────────────── */
+document.addEventListener("DOMContentLoaded", function() {
+  const cal = new FullCalendar.Calendar(document.getElementById("calendarEl"), {
+    locale:        "es",
+    initialView:   "dayGridMonth",
+    headerToolbar: {
+      left:   "prev,next today",
+      center: "title",
+      right:  "dayGridMonth,timeGridWeek,timeGridDay",
+    },
+    buttonText:  { today:"Hoy", month:"Mes", week:"Semana", day:"Día" },
+    height:      "auto",
+    firstDay:    1,
+    nowIndicator: true,
+    navLinks:    true,
+    eventDisplay: "block",
+    dayMaxEvents: 3,
+
+    events: function(info, ok, fail) {
+      fetch(EVENTOS_URL)
+        .then(function(r) { return r.json(); })
+        .then(function(data) { ok(data); updateSidebar(data); })
+        .catch(fail);
+    },
+
+    dateClick: function(info) {
+      let fecha = info.dateStr;
+      if (fecha.length === 10) fecha += "T09:00";
+      window.location.href = NUEVA_URL + "?fecha=" + fecha;
+    },
+
+    eventClick: function(info) {
+      if (info.event.url) {
+        info.jsEvent.preventDefault();
+        window.location.href = info.event.url;
+      }
+    },
+
+    eventMouseEnter: function(info) {
+      const p = info.event.extendedProps || {};
+      const d = info.event.start;
+      const fecha = d ? d.toLocaleDateString("es-ES", {
+        weekday:"long", day:"2-digit", month:"long", year:"numeric"
+      }) : "—";
+      const hora = d ? d.toLocaleTimeString("es-ES", { hour:"2-digit", minute:"2-digit" }) : "";
+      const canal = p.canal || "email";
+      showTooltip(info.jsEvent,
+        '<div class="tt-title">' + info.event.title + '</div>'
+        + '<div class="tt-date">' + fecha + (hora ? " · " + hora : "") + '</div>'
+        + '<div class="tt-meta">'
+        + '<i class="bi ' + (CANAL_ICON[canal] || "bi-envelope") + '"></i>'
+        + '<span>' + (CANAL_LBL[canal] || canal) + '</span>'
+        + '<span style="opacity:.4">·</span>'
+        + '<span>' + (p.estado || "") + '</span>'
+        + '</div>'
+        + (p.descripcion ? '<div class="tt-desc">' + p.descripcion + '</div>' : "")
+      );
+    },
+    eventMouseLeave: hideTooltip,
+    eventDidMount: function(info) {
+      info.el.addEventListener("mousemove", posTooltip);
+    },
+  });
+
+  cal.render();
+});
+</script>
+{% endblock %}

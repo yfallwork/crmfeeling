@@ -14,11 +14,31 @@
   <!-- Filtros -->
   <div class="filter-bar">
     <form method="GET" class="d-flex align-items-center gap-2 flex-wrap w-100">
+      <!-- Tipo de reserva -->
+      <div class="d-flex gap-1" role="group">
+        <a href="{{ url_for('reservas.lista', estado=estado, tipo_id=tipo_id, q=q, origen='') }}"
+           class="btn btn-sm {% if not origen %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+          Todas
+        </a>
+        <a href="{{ url_for('reservas.lista', estado=estado, tipo_id=tipo_id, q=q, origen='individual') }}"
+           class="btn btn-sm {% if origen == 'individual' %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+          <i class="bi bi-person me-1"></i>Clientes
+        </a>
+        <a href="{{ url_for('reservas.lista', estado=estado, tipo_id=tipo_id, q=q, origen='teambuilding') }}"
+           class="btn btn-sm {% if origen == 'teambuilding' %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+          <i class="bi bi-buildings me-1"></i>Team Building
+        </a>
+      </div>
+
+      <!-- Buscador contextual -->
       <div class="input-group input-group-sm" style="max-width:260px">
         <span class="input-group-text"><i class="bi bi-search"></i></span>
         <input type="text" name="q" class="form-control"
-               placeholder="Buscar cliente…" value="{{ q }}" />
+               placeholder="{% if origen == 'teambuilding' %}Buscar empresa…{% else %}Buscar cliente…{% endif %}"
+               value="{{ q }}" />
+        <input type="hidden" name="origen" value="{{ origen }}" />
       </div>
+
       <select name="tipo_id" class="form-select form-select-sm"
               style="max-width:200px" onchange="this.form.submit()">
         <option value="">Todos los tipos</option>
@@ -28,15 +48,16 @@
           </option>
         {% endfor %}
       </select>
+
       <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
       {% if q or estado or tipo_id %}
-        <a href="{{ url_for('reservas.lista') }}" class="btn btn-sm btn-outline-secondary">
+        <a href="{{ url_for('reservas.lista', origen=origen) }}" class="btn btn-sm btn-outline-secondary">
           <i class="bi bi-x me-1"></i>Limpiar
         </a>
       {% endif %}
       <div class="ms-auto d-flex align-items-center gap-2">
         <span class="text-xs text-muted">{{ reservas.total }} reserva{{ 's' if reservas.total != 1 }}</span>
-        <a href="{{ url_for('reservas.exportar', estado=estado, tipo_id=tipo_id, q=q) }}"
+        <a href="{{ url_for('reservas.exportar', estado=estado, tipo_id=tipo_id, q=q, origen=origen) }}"
            class="btn btn-xs btn-outline-secondary" title="Exportar CSV">
           <i class="bi bi-download me-1"></i>CSV
         </a>
@@ -46,12 +67,12 @@
 
   <!-- Tabs de estado -->
   <div class="status-tabs">
-    <a href="{{ url_for('reservas.lista', q=q, tipo_id=tipo_id) }}"
+    <a href="{{ url_for('reservas.lista', q=q, tipo_id=tipo_id, origen=origen) }}"
        class="status-tab {% if not estado %}active-tab{% endif %}">
       Todas
     </a>
     {% for e in estados %}
-    <a href="{{ url_for('reservas.lista', estado=e, q=q, tipo_id=tipo_id) }}"
+    <a href="{{ url_for('reservas.lista', estado=e, q=q, tipo_id=tipo_id, origen=origen) }}"
        class="status-tab estado-btn-{{ e }} {% if e == estado %}active{% endif %}">
       {{ e | title }}
     </a>
@@ -63,7 +84,7 @@
       {% macro sort_link(label, key, width="") %}
         {% set next_dir = "desc" if (sort == key and dir == "asc") else "asc" %}
         <th {% if width %}style="width:{{ width }}"{% endif %}>
-          <a href="{{ url_for('reservas.lista', sort=key, dir=next_dir, estado=estado, tipo_id=tipo_id, q=q) }}"
+          <a href="{{ url_for('reservas.lista', sort=key, dir=next_dir, estado=estado, tipo_id=tipo_id, q=q, origen=origen) }}"
              class="text-decoration-none text-reset d-flex align-items-center gap-1"
              style="white-space:nowrap">
             {{ label }}
@@ -94,15 +115,33 @@
           <td class="text-muted text-xs">{{ r.id }}</td>
           <td>
             <div class="d-flex align-items-center gap-2">
-              <div class="row-avatar">{{ r.cliente.nombre[0]|upper }}</div>
-              <div class="min-w-0">
-                <a href="{{ url_for('clientes.detalle', id=r.cliente_id) }}"
-                   class="fw-semibold text-decoration-none d-block"
-                   style="color:var(--black);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-                  {{ r.cliente.nombre_completo }}
-                </a>
-                <div class="text-xs text-muted">{{ r.cliente.email }}</div>
-              </div>
+              {% if r.es_teambuilding %}
+                <div class="row-avatar" style="background:rgba(220,38,38,.1);color:var(--red)">
+                  {{ r.empresa.nombre[0]|upper }}
+                </div>
+                <div class="min-w-0">
+                  <a href="{{ url_for('teambuilding.empresas_detalle', id=r.empresa_id) }}"
+                     class="fw-semibold text-decoration-none d-block"
+                     style="color:var(--black);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                    {{ r.empresa.nombre }}
+                  </a>
+                  <span class="badge rounded-pill"
+                        style="background:rgba(220,38,38,.08);color:var(--red);font-size:.68rem">
+                    <i class="bi bi-buildings me-1"></i>TB
+                    {% if r.num_participantes > 1 %} · {{ r.num_participantes }} pers.{% endif %}
+                  </span>
+                </div>
+              {% else %}
+                <div class="row-avatar">{{ r.cliente.nombre[0]|upper }}</div>
+                <div class="min-w-0">
+                  <a href="{{ url_for('clientes.detalle', id=r.cliente_id) }}"
+                     class="fw-semibold text-decoration-none d-block"
+                     style="color:var(--black);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                    {{ r.cliente.nombre_completo }}
+                  </a>
+                  <div class="text-xs text-muted">{{ r.cliente.email }}</div>
+                </div>
+              {% endif %}
             </div>
           </td>
           <td>
@@ -180,7 +219,7 @@
       <ul class="pagination pagination-sm mb-0">
         {% if reservas.has_prev %}
           <li class="page-item">
-            <a class="page-link" href="{{ url_for('reservas.lista', page=reservas.prev_num, estado=estado, q=q) }}">
+            <a class="page-link" href="{{ url_for('reservas.lista', page=reservas.prev_num, estado=estado, tipo_id=tipo_id, q=q, origen=origen) }}">
               <i class="bi bi-chevron-left"></i>
             </a>
           </li>
@@ -188,7 +227,7 @@
         {% for p in reservas.iter_pages() %}
           {% if p %}
             <li class="page-item {% if p == reservas.page %}active{% endif %}">
-              <a class="page-link" href="{{ url_for('reservas.lista', page=p, estado=estado, q=q) }}">{{ p }}</a>
+              <a class="page-link" href="{{ url_for('reservas.lista', page=p, estado=estado, tipo_id=tipo_id, q=q, origen=origen) }}">{{ p }}</a>
             </li>
           {% else %}
             <li class="page-item disabled"><span class="page-link">…</span></li>
@@ -196,7 +235,7 @@
         {% endfor %}
         {% if reservas.has_next %}
           <li class="page-item">
-            <a class="page-link" href="{{ url_for('reservas.lista', page=reservas.next_num, estado=estado, q=q) }}">
+            <a class="page-link" href="{{ url_for('reservas.lista', page=reservas.next_num, estado=estado, tipo_id=tipo_id, q=q, origen=origen) }}">
               <i class="bi bi-chevron-right"></i>
             </a>
           </li>

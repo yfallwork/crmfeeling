@@ -18,7 +18,7 @@
 
   <!-- Logo -->
   <a href="{{ url_for('dashboard.index') }}" class="sidebar-brand">
-    <img src="{{ url_for('static', filename='img/logo_completo.png') }}"
+    <img src="{{ url_for('static', filename='img/feeling_experience/logo_completo.png') }}"
          alt="Feeling Experience" />
     <span class="sidebar-logo-mini">FE</span>
   </a>
@@ -63,7 +63,47 @@
       <i class="bi bi-megaphone"></i><span>Agenda social</span>
     </a>
 
+    <div class="nav-section-label">Team Building</div>
+
+    <a href="{{ url_for('teambuilding.empresas_lista') }}"
+       class="nav-item {% if 'teambuilding' in (request.endpoint or '') and request.endpoint != 'teambuilding.notas_lista' %}active{% endif %}"
+       data-tooltip="Empresas Team Building">
+      <i class="bi bi-buildings"></i><span>Empresas</span>
+    </a>
+
+    <a href="{{ url_for('teambuilding.notas_lista') }}"
+       class="nav-item {% if request.endpoint == 'teambuilding.notas_lista' %}active{% endif %}"
+       data-tooltip="Notas de empresas">
+      <i class="bi bi-journal-text"></i><span>Notas</span>
+    </a>
+
+    <div class="nav-section-label">Marketing</div>
+
+    <a href="{{ url_for('marketing.index') }}"
+       class="nav-item {% if request.endpoint and 'marketing' in request.endpoint and request.endpoint not in ('marketing.trazabilidad','marketing.logs_lista','marketing.logs_limpiar','marketing.campanas_calendario','marketing.campanas_calendario_eventos') %}active{% endif %}"
+       data-tooltip="Marketing">
+      <i class="bi bi-bullseye"></i><span>Marketing</span>
+    </a>
+
+    <a href="{{ url_for('marketing.campanas_calendario') }}"
+       class="nav-item {% if request.endpoint in ('marketing.campanas_calendario','marketing.campanas_calendario_eventos') %}active{% endif %}"
+       data-tooltip="Calendario campañas">
+      <i class="bi bi-calendar3"></i><span>Calendario</span>
+    </a>
+
+    <a href="{{ url_for('marketing.trazabilidad') }}"
+       class="nav-item {% if request.endpoint in ('marketing.trazabilidad','marketing.logs_lista','marketing.logs_limpiar') %}active{% endif %}"
+       data-tooltip="Logs">
+      <i class="bi bi-journal-text"></i><span>Logs</span>
+    </a>
+
     <div class="nav-section-label">Integración</div>
+
+    <a href="{{ url_for('autoclub.dashboard') }}"
+       class="nav-item {% if 'autoclub' in (request.endpoint or '') %}active{% endif %}"
+       data-tooltip="AutoClub — Socios">
+      <i class="bi bi-shield-check"></i><span>AutoClub</span>
+    </a>
 
     <a href="{{ url_for('woocommerce.index') }}"
        class="nav-item {% if 'woocommerce' in (request.endpoint or '') %}active{% endif %}"
@@ -72,7 +112,7 @@
     </a>
 
     <a href="{{ url_for('logs.index') }}"
-       class="nav-item {% if 'logs' in (request.endpoint or '') %}active{% endif %}"
+       class="nav-item {% if request.endpoint == 'logs.index' %}active{% endif %}"
        data-tooltip="Actividad">
       <i class="bi bi-journal-text"></i><span>Actividad</span>
     </a>

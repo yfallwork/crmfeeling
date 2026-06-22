@@ -1,0 +1,207 @@
+{% extends "autoclub/base.html" %}
+{% block title %}Patrocinadores — AutoClub{% endblock %}
+{% block page_title %}Patrocinadores{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.patrocinadores_nuevo') }}" class="btn btn-primary btn-sm">
+  <i class="bi bi-plus-lg me-1"></i>Nuevo patrocinador
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+
+  <!-- Filtros -->
+  <div class="filter-bar">
+    <form method="GET" class="d-flex align-items-center gap-2 flex-wrap w-100">
+      <div class="input-group input-group-sm" style="max-width:300px">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" class="form-control"
+               placeholder="Nombre, sector, contacto…" value="{{ q }}" />
+      </div>
+
+      <select name="estado" class="form-select form-select-sm"
+              style="max-width:160px" onchange="this.form.submit()">
+        <option value="activos"   {% if estado == 'activos'   %}selected{% endif %}>Activos</option>
+        <option value="inactivos" {% if estado == 'inactivos' %}selected{% endif %}>Inactivos</option>
+        <option value="todos"     {% if estado == 'todos'     %}selected{% endif %}>Todos</option>
+      </select>
+
+      <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
+      {% if q or estado not in ('activos', '') %}
+        <a href="{{ url_for('autoclub.patrocinadores_lista') }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-x me-1"></i>Limpiar
+        </a>
+      {% endif %}
+
+      <div class="ms-auto">
+        <span class="text-xs text-muted">
+          {{ patrocinadores.total }} patrocinador{{ 'es' if patrocinadores.total != 1 }}
+        </span>
+      </div>
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th style="width:56px"></th>
+          <th>Empresa</th>
+          <th>Contacto</th>
+          <th>Sector</th>
+          <th>Redes</th>
+          <th>Estado</th>
+          <th style="width:80px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in patrocinadores.items %}
+        <tr {% if not p.activo %}style="opacity:.55"{% endif %}>
+          <!-- Logo o avatar -->
+          <td>
+            {% if p.tiene_logo %}
+              <img src="{{ url_for('static', filename='uploads/autoclub/patrocinadores/' + p.logo_principal) }}"
+                   alt="{{ p.nombre }}"
+                   style="width:40px;height:40px;object-fit:contain;border-radius:6px;
+                          border:1px solid var(--border);background:#fff;padding:3px" />
+            {% else %}
+              <div class="row-avatar"
+                   style="{% if not p.activo %}background:var(--gray-200);color:var(--gray-500){% endif %}">
+                {{ p.nombre[0]|upper }}
+              </div>
+            {% endif %}
+          </td>
+
+          <td>
+            <a href="{{ url_for('autoclub.patrocinadores_detalle', id=p.id) }}"
+               class="fw-semibold text-decoration-none" style="color:var(--black)">
+              {{ p.nombre }}
+            </a>
+            {% if p.web %}
+              <div class="text-xs text-muted">
+                <a href="{{ p.web }}" target="_blank" rel="noopener" class="text-decoration-none text-muted">
+                  <i class="bi bi-link-45deg me-1"></i>{{ p.web | replace('https://', '') | replace('http://', '') | truncate(35, true, '…') }}
+                </a>
+              </div>
+            {% endif %}
+          </td>
+
+          <td>
+            <div class="text-sm">{{ p.persona_contacto or '—' }}</div>
+            {% if p.email %}
+              <div class="text-xs text-muted">
+                <a href="mailto:{{ p.email }}" class="text-decoration-none text-muted">{{ p.email }}</a>
+              </div>
+            {% endif %}
+          </td>
+
+          <td>
+            {% if p.sector %}
+              <span class="badge"
+                    style="background:rgba(22,163,74,.1);color:#15803d;font-size:.7rem;font-weight:600">
+                {{ p.sector }}
+              </span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+
+          <!-- Iconos de redes activas -->
+          <td>
+            <div class="d-flex gap-2 align-items-center">
+              {% set iconos = {
+                'instagram': 'bi-instagram',
+                'facebook':  'bi-facebook',
+                'twitter':   'bi-twitter-x',
+                'linkedin':  'bi-linkedin',
+                'tiktok':    'bi-tiktok',
+                'youtube':   'bi-youtube',
+              } %}
+              {% for red, url in p.redes_activas.items() %}
+                <a href="{{ url }}" target="_blank" rel="noopener"
+                   class="text-decoration-none"
+                   style="color:var(--gray-500);font-size:.95rem"
+                   title="{{ red | capitalize }}">
+                  <i class="bi {{ iconos.get(red, 'bi-link') }}"></i>
+                </a>
+              {% else %}
+                <span class="text-muted text-xs">—</span>
+              {% endfor %}
+            </div>
+          </td>
+
+          <td>
+            {% if p.activo %}
+              <span class="badge badge-activo rounded-pill">
+                <i class="bi bi-check-circle me-1"></i>Activo
+              </span>
+            {% else %}
+              <span class="badge badge-inactivo rounded-pill">
+                <i class="bi bi-pause-circle me-1"></i>Inactivo
+              </span>
+            {% endif %}
+          </td>
+
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('autoclub.patrocinadores_detalle', id=p.id) }}"
+                 class="btn btn-xs btn-outline-secondary" title="Ver detalle">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="{{ url_for('autoclub.patrocinadores_editar', id=p.id) }}"
+                 class="btn btn-xs btn-outline-primary" title="Editar">
+                <i class="bi bi-pencil"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7">
+            <div class="empty-state">
+              <i class="bi bi-building"></i>
+              <p>No se encontraron patrocinadores{% if q %} para "{{ q }}"{% endif %}</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if patrocinadores.pages > 1 %}
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <span class="text-xs text-muted">Página {{ patrocinadores.page }} de {{ patrocinadores.pages }}</span>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% if patrocinadores.has_prev %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('autoclub.patrocinadores_lista', page=patrocinadores.prev_num, q=q, estado=estado) }}">
+              <i class="bi bi-chevron-left"></i>
+            </a>
+          </li>
+        {% endif %}
+        {% for pp in patrocinadores.iter_pages() %}
+          {% if pp %}
+            <li class="page-item {% if pp == patrocinadores.page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('autoclub.patrocinadores_lista', page=pp, q=q, estado=estado) }}">{{ pp }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+        {% if patrocinadores.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('autoclub.patrocinadores_lista', page=patrocinadores.next_num, q=q, estado=estado) }}">
+              <i class="bi bi-chevron-right"></i>
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

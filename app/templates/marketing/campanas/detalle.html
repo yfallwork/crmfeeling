@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+{% block title %}{{ campana.nombre }} — Campañas{% endblock %}
+{% block page_title %}{{ campana.nombre }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('marketing.campanas_lista') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i>Campañas
+</a>
+{% if campana.estado not in ('enviando','enviada') %}
+<a href="{{ url_for('marketing.campanas_editar', id=campana.id) }}" class="btn btn-sm btn-outline-primary">
+  <i class="bi bi-pencil me-1"></i>Editar
+</a>
+{% endif %}
+{% if campana.estado not in ('enviando',) %}
+<form method="POST" action="{{ url_for('marketing.campanas_enviar', id=campana.id) }}" class="d-inline"
+      onsubmit="return confirm('¿Enviar la campaña «{{ campana.nombre }}» ahora mismo?')">
+  <button type="submit" class="btn btn-sm btn-success">
+    <i class="bi bi-send-fill me-1"></i>Enviar ahora
+  </button>
+</form>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="card mb-3">{% include 'marketing/_tabs.html' %}</div>
+
+<div class="row g-3">
+
+  <!-- ── Columna izquierda: info + etiquetas ── -->
+  <div class="col-lg-4">
+
+    <!-- Estado + info general -->
+    <div class="card mb-3" style="border-top:3px solid {{ campana.estado_color }}">
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <i class="bi {{ campana.estado_icono }}" style="color:{{ campana.estado_color }};font-size:1.1rem"></i>
+          <span class="fw-bold" style="color:{{ campana.estado_color }}">{{ campana.estado_label }}</span>
+        </div>
+
+        {% if campana.descripcion %}
+        <p class="text-sm text-muted mb-3">{{ campana.descripcion }}</p>
+        {% endif %}
+
+        <ul class="list-unstyled mb-0" style="font-size:.83rem">
+          <li class="mb-2">
+            <span class="text-muted">Canal:</span>
+            <strong class="ms-2">
+              {% if campana.canal == 'email' %}📧 Email
+              {% elif campana.canal == 'whatsapp' %}💬 WhatsApp
+              {% else %}📧+💬 Email y WhatsApp{% endif %}
+            </strong>
+          </li>
+          <li class="mb-2">
+            <span class="text-muted">Destinatarios:</span>
+            <strong class="ms-2">
+              {% if campana.segmento == 'clientes' %}Solo clientes
+              {% elif campana.segmento == 'empresas' %}Solo empresas
+              {% else %}Todos{% endif %}
+            </strong>
+          </li>
+          {% if campana.fecha_envio %}
+          <li class="mb-2">
+            <span class="text-muted">Programada:</span>
+            <strong class="ms-2">{{ campana.fecha_envio.strftime('%d/%m/%Y %H:%M') }}</strong>
+          </li>
+          {% endif %}
+          {% if campana.enviado_en %}
+          <li class="mb-2">
+            <span class="text-muted">Enviada el:</span>
+            <strong class="ms-2">{{ campana.enviado_en.strftime('%d/%m/%Y %H:%M') }}</strong>
+          </li>
+          {% endif %}
+          <li class="mb-2">
+            <span class="text-muted">Creada:</span>
+            <strong class="ms-2">{{ campana.creado_en.strftime('%d/%m/%Y') }}</strong>
+          </li>
+        </ul>
+
+        <!-- Stats si ya se envió -->
+        {% if campana.estado in ('enviada','error') %}
+        <div class="row g-2 mt-3 pt-3" style="border-top:1px solid var(--border-light)">
+          <div class="col-6">
+            <div class="card text-center p-2">
+              <div style="font-size:1.6rem;font-weight:800;color:#10B981">{{ campana.total_enviados }}</div>
+              <div class="text-xs text-muted">enviados</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="card text-center p-2">
+              <div style="font-size:1.6rem;font-weight:800;color:#EF4444">{{ campana.total_errores }}</div>
+              <div class="text-xs text-muted">errores</div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Plantillas -->
+    <div class="card mb-3">
+      <div class="card-header"><h6 class="mb-0">Plantillas enlazadas</h6></div>
+      <div class="card-body">
+        {% if campana.plantilla_email %}
+        <div class="d-flex align-items-start gap-2 mb-3 p-2 rounded"
+             style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.2)">
+          <i class="bi bi-envelope-fill mt-1" style="color:#6366F1"></i>
+          <div>
+            <div class="fw-semibold text-sm">{{ campana.plantilla_email.nombre }}</div>
+            <div class="text-xs text-muted">{{ campana.plantilla_email.asunto }}</div>
+          </div>
+        </div>
+        {% endif %}
+        {% if campana.plantilla_wa %}
+        <div class="d-flex align-items-start gap-2 p-2 rounded"
+             style="background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.2)">
+          <i class="bi bi-whatsapp mt-1" style="color:#25D366"></i>
+          <div>
+            <div class="fw-semibold text-sm">{{ campana.plantilla_wa.nombre }}</div>
+            <div class="text-xs text-muted">{{ campana.plantilla_wa.cuerpo | truncate(60) }}</div>
+          </div>
+        </div>
+        {% endif %}
+        {% if not campana.plantilla_email and not campana.plantilla_wa %}
+        <div class="text-xs text-muted text-center py-2">Sin plantillas enlazadas</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Filtro de etiquetas -->
+    <div class="card mb-3">
+      <div class="card-header"><h6 class="mb-0"><i class="bi bi-funnel me-2 text-primary"></i>Filtro de etiquetas</h6></div>
+      <div class="card-body">
+        {% if campana.tags_incluidas %}
+        <div class="mb-2">
+          <div class="text-xs text-muted fw-semibold text-uppercase mb-1">Con etiquetas</div>
+          <div class="d-flex flex-wrap gap-1">
+            {% for t in campana.tags_incluidas %}
+            <span class="badge" style="background:{{ t.color }}15;color:{{ t.color }};
+                  border:1px solid {{ t.color }}30;font-size:.72rem">
+              <i class="bi {{ t.icono }} me-1"></i>{{ t.nombre }}
+            </span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        {% if campana.tags_excluidas %}
+        <div>
+          <div class="text-xs text-muted fw-semibold text-uppercase mb-1">Sin etiquetas</div>
+          <div class="d-flex flex-wrap gap-1">
+            {% for t in campana.tags_excluidas %}
+            <span class="badge" style="background:rgba(239,68,68,.08);color:#EF4444;
+                  border:1px solid rgba(239,68,68,.2);font-size:.72rem">
+              <i class="bi bi-x-circle me-1"></i>{{ t.nombre }}
+            </span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        {% if not campana.tags_incluidas and not campana.tags_excluidas %}
+        <div class="text-xs text-muted text-center py-2">
+          Sin filtros de etiqueta — se enviará a todos los destinatarios del segmento
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Acciones peligrosas -->
+    <div class="card">
+      <div class="card-body d-flex flex-column gap-2">
+        <form method="POST" action="{{ url_for('marketing.campanas_duplicar', id=campana.id) }}">
+          <button type="submit" class="btn btn-outline-secondary btn-sm w-100">
+            <i class="bi bi-copy me-1"></i>Duplicar campaña
+          </button>
+        </form>
+        <form method="POST" action="{{ url_for('marketing.campanas_eliminar', id=campana.id) }}"
+              onsubmit="return confirm('¿Eliminar «{{ campana.nombre }}»? También se borrarán sus logs.')">
+          <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+            <i class="bi bi-trash me-1"></i>Eliminar campaña
+          </button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Columna derecha: log de envíos ── -->
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <h6 class="mb-0"><i class="bi bi-list-check me-2 text-primary"></i>Log de envíos</h6>
+        <span class="badge ms-auto" style="background:var(--gray-100);color:var(--gray-600)">
+          {{ logs|length }} registros
+        </span>
+      </div>
+
+      {% if not logs %}
+      <div class="card-body">
+        <div class="empty-state py-4">
+          <i class="bi bi-inbox" style="font-size:2rem;opacity:.3"></i>
+          <p class="mt-2 text-muted text-sm">Aún no se ha enviado esta campaña.</p>
+          {% if campana.estado not in ('enviando',) %}
+          <form method="POST" action="{{ url_for('marketing.campanas_enviar', id=campana.id) }}"
+                onsubmit="return confirm('¿Enviar ahora?')">
+            <button type="submit" class="btn btn-sm btn-success mt-2">
+              <i class="bi bi-send-fill me-1"></i>Enviar ahora
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+      {% else %}
+
+      <!-- Resumen por canal/estado -->
+      {% set ok_email  = logs | selectattr('canal','eq','email')    | selectattr('estado','eq','ok')    | list | length %}
+      {% set err_email = logs | selectattr('canal','eq','email')    | selectattr('estado','eq','error') | list | length %}
+      {% set ok_wa     = logs | selectattr('canal','eq','whatsapp') | selectattr('estado','eq','ok')    | list | length %}
+      {% set err_wa    = logs | selectattr('canal','eq','whatsapp') | selectattr('estado','eq','error') | list | length %}
+      <div class="card-body pb-0">
+        <div class="row g-2">
+          {% if ok_email or err_email %}
+          <div class="col-sm-6">
+            <div class="p-2 rounded" style="background:rgba(99,102,241,.05);border:1px solid rgba(99,102,241,.15)">
+              <div class="text-xs fw-bold mb-1" style="color:#6366F1"><i class="bi bi-envelope me-1"></i>Email</div>
+              <span class="text-sm"><strong style="color:#10B981">{{ ok_email }}</strong> OK · </span>
+              <span class="text-sm"><strong style="color:#EF4444">{{ err_email }}</strong> errores</span>
+            </div>
+          </div>
+          {% endif %}
+          {% if ok_wa or err_wa %}
+          <div class="col-sm-6">
+            <div class="p-2 rounded" style="background:rgba(37,211,102,.05);border:1px solid rgba(37,211,102,.2)">
+              <div class="text-xs fw-bold mb-1" style="color:#128C7E"><i class="bi bi-whatsapp me-1"></i>WhatsApp</div>
+              <span class="text-sm"><strong style="color:#10B981">{{ ok_wa }}</strong> OK · </span>
+              <span class="text-sm"><strong style="color:#EF4444">{{ err_wa }}</strong> errores</span>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="table-responsive mt-3">
+        <table class="table table-hover table-sm mb-0">
+          <thead>
+            <tr>
+              <th>Destinatario</th>
+              <th>Email</th>
+              <th style="width:90px">Canal</th>
+              <th style="width:80px">Estado</th>
+              <th style="width:130px">Enviado</th>
+              <th>Detalle</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for l in logs %}
+            <tr>
+              <td>
+                <div class="fw-semibold text-sm">{{ l.entidad_nombre }}</div>
+                <div class="text-xs text-muted">{{ l.entidad | capitalize }}</div>
+              </td>
+              <td class="text-xs text-muted">{{ l.entidad_email or '—' }}</td>
+              <td>
+                <span class="badge"
+                      style="background:{{ 'rgba(99,102,241,.1)' if l.canal=='email' else 'rgba(37,211,102,.1)' }};
+                             color:{{ '#6366F1' if l.canal=='email' else '#128C7E' }};font-size:.7rem">
+                  {% if l.canal == 'email' %}
+                  <i class="bi bi-envelope me-1"></i>Email
+                  {% else %}
+                  <i class="bi bi-whatsapp me-1"></i>WA
+                  {% endif %}
+                </span>
+              </td>
+              <td>
+                <i class="bi {{ l.estado_icono }}" style="color:{{ l.estado_color }}"></i>
+                <span class="text-xs" style="color:{{ l.estado_color }}">{{ l.estado }}</span>
+              </td>
+              <td class="text-xs text-muted">{{ l.enviado_en.strftime('%d/%m %H:%M') }}</td>
+              <td class="text-xs text-muted">{{ l.error_msg or '—' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

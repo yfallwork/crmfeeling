@@ -94,6 +94,7 @@
             <i class="bi bi-pencil"></i>
           </a>
           <form method="POST" action="{{ url_for('marketing.plantillas_toggle', id=p.id) }}" class="d-inline">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button class="btn btn-xs btn-outline-secondary"
                     title="{{ 'Desactivar' if p.activo else 'Activar' }}">
               <i class="bi {{ 'bi-eye-slash' if p.activo else 'bi-eye' }}"></i>
@@ -101,6 +102,7 @@
           </form>
           <form method="POST" action="{{ url_for('marketing.plantillas_eliminar', id=p.id) }}" class="d-inline"
                 onsubmit="return confirm('Eliminar la plantilla {{ p.nombre }}?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button class="btn btn-xs btn-outline-danger" title="Eliminar">
               <i class="bi bi-trash"></i>
             </button>

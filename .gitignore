@@ -27,3 +27,15 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Credenciales locales (contraseñas reales, nunca al repo)
+credenciales.txt
+
+# Config local de Claude Code (no es código del proyecto)
+.claude/
+
+# Documentación interna (no se sube al repo)
+documentacion/
+
+# Archivos subidos por usuarios (posibles documentos personales: DNI, justificantes...)
+app/static/uploads/

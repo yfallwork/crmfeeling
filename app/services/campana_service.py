@@ -12,6 +12,14 @@ log = logging.getLogger(__name__)
 
 def check_scheduled_campaigns():
     """Llamado por el scheduler: lanza campañas cuya fecha_envio ya pasó."""
+    from app.models.configuracion import Configuracion
+    try:
+        if not Configuracion.get().campanas_activo:
+            log.info("[Campañas] Procesos de campañas desactivados — se omite el job programado")
+            return 0
+    except Exception:
+        pass  # fail-open: un error de BD no debe bloquear el envío de campañas
+
     from app.models.campana import Campana
     now = datetime.utcnow()
     pendientes = Campana.query.filter(

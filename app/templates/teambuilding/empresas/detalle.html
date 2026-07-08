@@ -140,6 +140,7 @@
       <!-- Acciones -->
       <div class="card-footer d-flex flex-column gap-2">
         <form method="POST" action="{{ url_for('teambuilding.empresas_estado', id=e.id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           {% if e.activo %}
             <button type="submit" class="btn btn-outline-warning btn-sm w-100"
                     onclick="return confirm('¿Marcar {{ e.nombre }} como inactiva?')">
@@ -155,6 +156,7 @@
 
         <form method="POST" action="{{ url_for('teambuilding.empresas_eliminar', id=e.id) }}"
               onsubmit="return confirm('¿Eliminar permanentemente {{ e.nombre }}? Se borrarán también sus logos.')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="btn btn-outline-danger btn-sm w-100">
             <i class="bi bi-trash me-1"></i>Eliminar permanentemente
           </button>
@@ -357,6 +359,7 @@
   <div class="card-body border-bottom" style="background:var(--gray-50)">
     <form method="POST"
           action="{{ url_for('teambuilding.empresas_nota_nueva', id=e.id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="d-flex gap-2 align-items-start">
         <textarea name="contenido" class="form-control form-control-sm" rows="2"
                   placeholder="Escribe una nota sobre esta empresa… (llamada, seguimiento, acuerdo…)"
@@ -403,6 +406,7 @@
         <form method="POST"
               action="{{ url_for('teambuilding.empresas_nota_eliminar', id=e.id, nid=nota.id) }}"
               onsubmit="return confirm('¿Eliminar esta nota?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="btn btn-xs btn-outline-danger" title="Eliminar">
             <i class="bi bi-trash"></i>
           </button>

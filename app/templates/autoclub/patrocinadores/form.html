@@ -80,6 +80,7 @@
       action="{{ url_for('autoclub.patrocinadores_editar', id=p.id) if p else url_for('autoclub.patrocinadores_nuevo') }}"
       enctype="multipart/form-data"
       novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
   <div class="row g-3">
 

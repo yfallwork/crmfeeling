@@ -14,6 +14,7 @@
       </div>
       <div class="card-body">
         <form method="POST">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
           <!-- Tipo de reserva -->
           <div class="mb-4 pb-3" style="border-bottom:1px solid var(--border-light)">
@@ -114,9 +115,14 @@
                 <i class="bi bi-star-fill text-warning me-1"></i>
                 Fecha de disfrute
               </label>
-              <input type="datetime-local" name="fecha_disfrute" class="form-control"
+              <select id="fechaAbiertaSelect" class="form-select form-select-sm mb-2">
+                <option value="manual" selected>Fecha manual (elegir abajo)</option>
+              </select>
+              <input type="datetime-local" name="fecha_disfrute" id="fechaDisfruteInput" class="form-control"
                      value="{{ reserva.fecha_disfrute.strftime('%Y-%m-%dT%H:%M') if reserva and reserva.fecha_disfrute else '' }}" />
-              <div class="form-text">Cuándo se va a disfrutar la experiencia</div>
+              <div class="form-text" id="fechaDisfruteHelp">
+                Elige una fecha de apertura disponible o introduce una manualmente.
+              </div>
             </div>
 
             <!-- Fecha de compra -->
@@ -165,6 +171,7 @@
             {% if reserva %}
             <form method="POST" action="{{ url_for('reservas.eliminar', id=reserva.id) }}" class="ms-auto"
                   onsubmit="return confirm('¿Eliminar esta reserva?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit" class="btn btn-outline-danger">
                 <i class="bi bi-trash me-1"></i>Eliminar
               </button>
@@ -201,6 +208,46 @@ document.getElementById('tipoSelect').addEventListener('change', function () {
   if (precio && !document.getElementById('precioInput').value) {
     document.getElementById('precioInput').value = precio;
   }
+  renderFechasAbiertas();
 });
+
+// ── Fechas de apertura disponibles ──────────────────────
+var todasLasAperturas = [];
+
+function renderFechasAbiertas() {
+  var tipoId = document.getElementById('tipoSelect').value;
+  var sel = document.getElementById('fechaAbiertaSelect');
+  var disponibles = todasLasAperturas.filter(function (a) {
+    return !a.tipo_experiencia_id || !tipoId || String(a.tipo_experiencia_id) === String(tipoId);
+  });
+
+  var valorPrevio = sel.value;
+  sel.innerHTML = '<option value="manual">Fecha manual (elegir abajo)</option>' +
+    disponibles.map(function (a) {
+      var fecha = new Date(a.fecha + 'T00:00:00');
+      var fechaStr = fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      var ocupacion = a.capacidad_ideal ? (a.n_reservas + '/' + a.capacidad_ideal + ' plazas') : (a.n_reservas + ' reservas');
+      return '<option value="' + a.fecha + '">' + fechaStr + ' — ' + a.tipo_exp_nombre + ' (' + ocupacion + ')</option>';
+    }).join('');
+
+  if (disponibles.some(function (a) { return a.fecha === valorPrevio; })) {
+    sel.value = valorPrevio;
+  }
+}
+
+document.getElementById('fechaAbiertaSelect').addEventListener('change', function () {
+  if (this.value === 'manual') return;
+  var input = document.getElementById('fechaDisfruteInput');
+  var horaActual = (input.value && input.value.includes('T')) ? input.value.split('T')[1] : '10:00';
+  input.value = this.value + 'T' + horaActual;
+});
+
+fetch('/calendario/aperturas/disponibles')
+  .then(function (r) { return r.json(); })
+  .then(function (data) {
+    todasLasAperturas = data;
+    renderFechasAbiertas();
+  })
+  .catch(function () { /* si falla, el campo manual sigue disponible */ });
 </script>
 {% endblock %}

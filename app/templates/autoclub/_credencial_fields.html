@@ -1,0 +1,49 @@
+<div class="mb-3">
+  <label class="form-label fw-semibold text-sm">Nombre del sitio <span class="text-danger">*</span></label>
+  <input type="text" name="nombre" class="form-control" placeholder="Ej: Portal RFEDA, FAG inscripciones…" required>
+</div>
+<div class="mb-3">
+  <label class="form-label fw-semibold text-sm">URL <span class="text-muted fw-normal">(opcional)</span></label>
+  <input type="url" name="url" class="form-control" placeholder="https://…">
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-6">
+    <label class="form-label fw-semibold text-sm">Usuario / Email</label>
+    <input type="text" name="usuario" class="form-control" autocomplete="off">
+  </div>
+  <div class="col-6">
+    <label class="form-label fw-semibold text-sm">Contraseña</label>
+    <div class="input-group">
+      <input type="password" name="password" class="form-control cred-pwd-input" autocomplete="new-password">
+      <button type="button" class="btn btn-outline-secondary cred-toggle-pwd" tabindex="-1">
+        <i class="bi bi-eye"></i>
+      </button>
+    </div>
+  </div>
+</div>
+<div>
+  <label class="form-label fw-semibold text-sm">Notas <span class="text-muted fw-normal">(opcional)</span></label>
+  <textarea name="notas" class="form-control" rows="2" style="resize:none"
+            placeholder="Ej: cuenta oficial escudería, renovar en diciembre…"></textarea>
+</div>
+
+<script>
+/* Toggle show/hide en modales — se ejecuta al incluir el partial */
+(function() {
+  document.querySelectorAll('.cred-toggle-pwd').forEach(function(btn) {
+    if (btn._bound) return;
+    btn._bound = true;
+    btn.addEventListener('click', function() {
+      const input = this.closest('.input-group').querySelector('.cred-pwd-input');
+      const icon  = this.querySelector('i');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+      } else {
+        input.type = 'password';
+        icon.className = 'bi bi-eye';
+      }
+    });
+  });
+})();
+</script>

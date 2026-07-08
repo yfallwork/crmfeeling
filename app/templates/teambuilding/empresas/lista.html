@@ -227,6 +227,7 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <form id="formNota" method="POST" action="">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="modal-header border-0 pb-0">
           <div>
             <h5 class="modal-title fw-bold" id="modalNotaLabel">

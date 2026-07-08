@@ -1,6 +1,6 @@
 import csv
 import io
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, Response
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, Response, stream_with_context
 from flask_login import login_required
 from app.extensions import db
 from app.models.cliente import Cliente
@@ -125,21 +125,30 @@ def exportar():
         ))
     if fuente:
         query = query.filter_by(fuente=fuente)
-    clientes = query.order_by(Cliente.creado_en.desc()).all()
+    query = query.order_by(Cliente.creado_en.desc())
 
-    output = io.StringIO()
-    writer = csv.writer(output, delimiter=";")
-    writer.writerow(["ID", "Nombre", "Apellido", "Email", "Telefono",
-                     "DNI", "Origen", "Total_reservas", "Alta"])
-    for c in clientes:
-        writer.writerow([
-            c.id, c.nombre, c.apellido, c.email, c.telefono,
-            c.dni, c.fuente, c.total_reservas,
-            c.creado_en.strftime("%d/%m/%Y") if c.creado_en else "",
-        ])
+    def generar_csv():
+        buffer = io.StringIO()
+        writer = csv.writer(buffer, delimiter=";")
+
+        buffer.write("﻿")  # BOM para Excel
+        writer.writerow(["ID", "Nombre", "Apellido", "Email", "Telefono",
+                         "DNI", "Origen", "Total_reservas", "Alta"])
+        yield buffer.getvalue()
+        buffer.seek(0); buffer.truncate(0)
+
+        # yield_per evita cargar toda la tabla de clientes en memoria de golpe
+        for c in query.yield_per(200):
+            writer.writerow([
+                c.id, c.nombre, c.apellido, c.email, c.telefono,
+                c.dni, c.fuente, c.total_reservas,
+                c.creado_en.strftime("%d/%m/%Y") if c.creado_en else "",
+            ])
+            yield buffer.getvalue()
+            buffer.seek(0); buffer.truncate(0)
 
     return Response(
-        "﻿" + output.getvalue(),   # BOM para Excel
+        stream_with_context(generar_csv()),
         mimetype="text/csv; charset=utf-8",
         headers={"Content-Disposition": "attachment; filename=clientes.csv"},
     )

@@ -1,0 +1,167 @@
+{% extends "autoclub/base.html" %}
+{% block title %}Vehículos — AutoClub{% endblock %}
+{% block page_title %}Vehículos{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.vehiculos_nuevo') }}" class="btn btn-primary btn-sm">
+  <i class="bi bi-plus-lg me-1"></i>Nuevo vehículo
+</a>
+{% endblock %}
+
+{% block content %}
+{% set hoy = namespace(d=none) %}
+
+<div class="card">
+
+  <div class="filter-bar">
+    <form method="GET" class="d-flex align-items-center gap-2 flex-wrap w-100">
+      <div class="input-group input-group-sm" style="max-width:280px">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" class="form-control"
+               placeholder="Marca, modelo, dorsal…" value="{{ q }}" />
+      </div>
+
+      <select name="tipo_vehiculo" class="form-select form-select-sm"
+              style="max-width:180px" onchange="this.form.submit()">
+        <option value=""         {% if not tipo_vehiculo %}selected{% endif %}>Todos</option>
+        <option value="car_cross"   {% if tipo_vehiculo == 'car_cross' %}selected{% endif %}>Car Cross</option>
+        <option value="division_i"  {% if tipo_vehiculo == 'division_i' %}selected{% endif %}>División I</option>
+      </select>
+
+      <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
+      {% if q or tipo_vehiculo %}
+        <a href="{{ url_for('autoclub.vehiculos_lista') }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-x me-1"></i>Limpiar
+        </a>
+      {% endif %}
+
+      <div class="ms-auto">
+        <span class="text-xs text-muted">{{ vehiculos.total }} vehículo{{ 's' if vehiculos.total != 1 }}</span>
+      </div>
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Dorsal</th>
+          <th>Tipo</th>
+          <th>Vehículo</th>
+          <th>Piloto</th>
+          <th>Categoría</th>
+          <th>Caducidades</th>
+          <th style="width:80px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in vehiculos.items %}
+        {% set hoy_d = namespace(d=none) %}
+        {% set warn = namespace(flag=false) %}
+        {% if v.arnes_caducidad %}
+          {% set diff = (v.arnes_caducidad - v.arnes_caducidad).days %}
+        {% endif %}
+        <tr>
+          <td class="fw-bold text-sm">{{ v.dorsal or '—' }}</td>
+          <td>
+            {% if v.tipo_vehiculo == 'car_cross' %}
+              <span class="badge rounded-pill text-xs"
+                    style="background:#fff7ed;color:#c2410c;font-weight:700">Car Cross</span>
+            {% else %}
+              <span class="badge rounded-pill text-xs"
+                    style="background:#eff6ff;color:#1d4ed8;font-weight:700">División I</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('autoclub.vehiculos_detalle', id=v.id) }}"
+               class="fw-semibold text-decoration-none" style="color:var(--black)">
+              {{ v.nombre_display }}
+            </a>
+          </td>
+          <td class="text-sm">
+            {% if v.piloto %}
+              <a href="{{ url_for('autoclub.pilotos_detalle', id=v.piloto.id) }}"
+                 class="text-decoration-none">{{ v.piloto.nombre_completo }}</a>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="text-muted text-sm">{{ v.categoria or '—' }}</td>
+          <td>
+            {% set caducidades = [] %}
+            {% if v.arnes_caducidad %}{% set _ = caducidades.append(('Arnés', v.arnes_caducidad)) %}{% endif %}
+            {% if v.asiento_caducidad %}{% set _ = caducidades.append(('Asiento', v.asiento_caducidad)) %}{% endif %}
+            {% if v.extincion_revision %}{% set _ = caducidades.append(('Extinción', v.extincion_revision)) %}{% endif %}
+            {% if v.deposito_caducidad %}{% set _ = caducidades.append(('Depósito', v.deposito_caducidad)) %}{% endif %}
+            {% for nombre_cad, fecha_cad in caducidades %}
+              {% if fecha_cad %}
+                <span class="text-xs me-1" title="{{ nombre_cad }}: {{ fecha_cad.strftime('%d/%m/%Y') }}">
+                  <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                  {{ fecha_cad.strftime('%d/%m/%y') }}
+                </span>
+              {% endif %}
+            {% endfor %}
+            {% if not caducidades %}<span class="text-muted text-xs">—</span>{% endif %}
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('autoclub.vehiculos_detalle', id=v.id) }}"
+                 class="btn btn-xs btn-outline-secondary" title="Ver">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="{{ url_for('autoclub.vehiculos_editar', id=v.id) }}"
+                 class="btn btn-xs btn-outline-primary" title="Editar">
+                <i class="bi bi-pencil"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7">
+            <div class="empty-state">
+              <i class="bi bi-car-front"></i>
+              <p>No se encontraron vehículos{% if q %} para "{{ q }}"{% endif %}</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if vehiculos.pages > 1 %}
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <span class="text-xs text-muted">Página {{ vehiculos.page }} de {{ vehiculos.pages }}</span>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% if vehiculos.has_prev %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('autoclub.vehiculos_lista', page=vehiculos.prev_num, q=q, tipo_vehiculo=tipo_vehiculo) }}">
+              <i class="bi bi-chevron-left"></i>
+            </a>
+          </li>
+        {% endif %}
+        {% for pg in vehiculos.iter_pages() %}
+          {% if pg %}
+            <li class="page-item {% if pg == vehiculos.page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('autoclub.vehiculos_lista', page=pg, q=q, tipo_vehiculo=tipo_vehiculo) }}">{{ pg }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+        {% if vehiculos.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('autoclub.vehiculos_lista', page=vehiculos.next_num, q=q, tipo_vehiculo=tipo_vehiculo) }}">
+              <i class="bi bi-chevron-right"></i>
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

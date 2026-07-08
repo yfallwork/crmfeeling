@@ -74,9 +74,31 @@ def init_scheduler(app):
         misfire_grace_time=300,
     )
 
+    _scheduler.add_job(
+        func=lambda: _job_plazo_inscripciones(app),
+        trigger=CronTrigger(hour=8, minute=0),
+        id="plazo_inscripciones",
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
+
+    _scheduler.add_job(
+        func=lambda: _job_plazo_eventos(app),
+        trigger=CronTrigger(hour=8, minute=5),
+        id="plazo_eventos_calendario",
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
+
     _scheduler.start()
     atexit.register(_scheduler.shutdown)
-    log.info("Scheduler iniciado — recordatorios 09:00, etiquetas temporales 07:00")
+
+    # Ejecutar comprobaciones de plazos al arrancar sin esperar las 08:00
+    import threading
+    threading.Thread(target=lambda: _job_plazo_inscripciones(app), daemon=True).start()
+    threading.Thread(target=lambda: _job_plazo_eventos(app), daemon=True).start()
+
+    log.info("Scheduler iniciado — recordatorios 09:00, etiquetas temporales 07:00, plazos inscripciones 08:00")
 
 
 def _job_recordatorios(app):
@@ -189,3 +211,96 @@ def _job_temporal_tags(app):
                      f"-{stats['quitadas']} retiradas, {stats['errores']} errores")
         except Exception as e:
             log.error(f"Error en job temporal_tags: {e}")
+
+
+def _job_plazo_eventos(app):
+    """Notifica cuando faltan <= 10 días para el plazo de un evento sin inscripción creada."""
+    with app.app_context():
+        try:
+            from datetime import date, timedelta
+            from app.extensions import db
+            from app.models.competicion_evento import CompeticionEvento
+            from app.models.inscripcion import Inscripcion
+            from app.models.notificacion import Notificacion
+
+            hoy    = date.today()
+            limite = hoy + timedelta(days=10)
+
+            eventos = CompeticionEvento.query.filter(
+                CompeticionEvento.fecha_plazo.isnot(None),
+                CompeticionEvento.fecha_plazo >= hoy,
+                CompeticionEvento.fecha_plazo <= limite,
+            ).all()
+
+            creadas = 0
+            for ev in eventos:
+                ref = f"plazo_evento_{ev.id}"
+                if Notificacion.query.filter_by(referencia=ref, leida=False).first():
+                    continue
+                # Comprobar si ya existe una inscripción para la misma prueba
+                ya_inscrito = Inscripcion.query.filter(
+                    Inscripcion.fecha_prueba == ev.fecha
+                ).first()
+                if ya_inscrito:
+                    continue  # Ya tiene inscripción, no notificar
+                dias = (ev.fecha_plazo - hoy).days
+                tipo = "danger" if dias <= 3 else "warning"
+                db.session.add(Notificacion(
+                    tipo=tipo,
+                    titulo=f"Falta inscripción: {ev.titulo}",
+                    mensaje=(f"Quedan {dias} día{'s' if dias != 1 else ''} para el plazo "
+                             f"y todavía no se ha creado la inscripción para esta prueba "
+                             f"({ev.fecha.strftime('%d/%m/%Y')})."),
+                    url=f"/autoclub/calendario",
+                    referencia=ref,
+                ))
+                creadas += 1
+
+            db.session.commit()
+            log.info(f"Job plazo_eventos: {creadas} notificación(es) creada(s)")
+        except Exception as e:
+            log.error(f"Error en job plazo_eventos: {e}")
+
+
+def _job_plazo_inscripciones(app):
+    """Crea notificaciones internas para inscripciones pendientes con plazo en <= 10 días."""
+    with app.app_context():
+        try:
+            from datetime import date, timedelta
+            from app.extensions import db
+            from app.models.inscripcion import Inscripcion
+            from app.models.notificacion import Notificacion
+
+            hoy    = date.today()
+            limite = hoy + timedelta(days=10)
+
+            pendientes = Inscripcion.query.filter(
+                Inscripcion.estado == "pendiente",
+                Inscripcion.fecha_plazo.isnot(None),
+                Inscripcion.fecha_plazo >= hoy,
+                Inscripcion.fecha_plazo <= limite,
+            ).all()
+
+            creadas = 0
+            for insc in pendientes:
+                ref = f"plazo_insc_{insc.id}"
+                # No duplicar si ya hay una notificación no leída para esta inscripción
+                if Notificacion.query.filter_by(referencia=ref, leida=False).first():
+                    continue
+                dias = (insc.fecha_plazo - hoy).days
+                piloto_nombre = insc.piloto.nombre_completo if insc.piloto else "—"
+                tipo = "danger" if dias <= 3 else "warning"
+                db.session.add(Notificacion(
+                    tipo=tipo,
+                    titulo=f"Plazo próximo: {insc.nombre_prueba}",
+                    mensaje=(f"Quedan {dias} día{'s' if dias != 1 else ''} para presentar la inscripción. "
+                             f"Piloto: {piloto_nombre}."),
+                    url=f"/autoclub/inscripciones/{insc.id}",
+                    referencia=ref,
+                ))
+                creadas += 1
+
+            db.session.commit()
+            log.info(f"Job plazo_inscripciones: {creadas} notificación(es) creada(s)")
+        except Exception as e:
+            log.error(f"Error en job plazo_inscripciones: {e}")

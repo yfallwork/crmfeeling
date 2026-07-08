@@ -1,7 +1,7 @@
 ﻿import os
-from flask import Flask
+from flask import Flask, render_template
 from config import config
-from app.extensions import db, login_manager, mail
+from app.extensions import db, login_manager, mail, csrf
 
 
 def create_app(env="default"):
@@ -11,6 +11,7 @@ def create_app(env="default"):
     db.init_app(app)
     login_manager.init_app(app)
     mail.init_app(app)
+    csrf.init_app(app)
 
     from app.routes.auth import auth_bp
     from app.routes.dashboard import dashboard_bp
@@ -25,6 +26,8 @@ def create_app(env="default"):
     from app.routes.autoclub import autoclub_bp
     from app.routes.teambuilding import teambuilding_bp
     from app.routes.marketing import marketing_bp
+    from app.routes.vista import vista_bp
+    from app.routes.configuracion import configuracion_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -39,6 +42,8 @@ def create_app(env="default"):
     app.register_blueprint(autoclub_bp, url_prefix="/autoclub")
     app.register_blueprint(teambuilding_bp, url_prefix="/teambuilding")
     app.register_blueprint(marketing_bp, url_prefix="/marketing")
+    app.register_blueprint(vista_bp, url_prefix="/vista")
+    app.register_blueprint(configuracion_bp, url_prefix="/configuracion")
 
     with app.app_context():
         from app.models import comunicacion, log  # noqa: F401
@@ -47,12 +52,26 @@ def create_app(env="default"):
         from app.models import patrocinador  # noqa: F401  # usado por autoclub
         from app.models import empresa  # noqa: F401  # usado por teambuilding
         from app.models import empresa_nota  # noqa: F401
+        from app.models import autoclub_nota  # noqa: F401
         from app.models import tag  # noqa: F401  # usado por marketing
         from app.models import rule  # noqa: F401  # usado por marketing (plantillas + normas)
         from app.models import marketing_log  # noqa: F401  # log de automatización marketing
         from app.models import campana  # noqa: F401  # campañas y plantillas WA
+        from app.models import piloto             # noqa: F401
+        from app.models import vehiculo           # noqa: F401
+        from app.models import inscripcion        # noqa: F401
+        from app.models import gasto_inscripcion  # noqa: F401
+        from app.models import staff_miembro          # noqa: F401
+        from app.models import resultado_inscripcion  # noqa: F401
+        from app.models import competicion_evento    # noqa: F401
+        from app.models import autoclub_info        # noqa: F401
+        from app.models import medio_contacto       # noqa: F401
+        from app.models import notificacion         # noqa: F401
+        from app.models import fecha_apertura       # noqa: F401
+        from app.models import configuracion        # noqa: F401
         db.create_all()
         _migrate_columns()
+        _migrate_indices()
         _migrate_reservas_for_teambuilding()
         _seed_usuarios()
         _seed_autoclub()
@@ -72,8 +91,92 @@ def create_app(env="default"):
         _seed_marketing_logs_ejemplo()
         _seed_empresa_notas()
 
+    import json as _json
+    app.jinja_env.filters['from_json'] = lambda s: _json.loads(s) if s else []
+
+    from flask import request as _req, redirect as _redir
+    from flask_login import current_user
+
+    # Rutas que el rol "vista" puede llamar (API + su propio blueprint)
+    _VISTA_ALLOWED = (
+        "/vista",
+        "/static/",
+        "/login",
+        "/logout",
+        "/calendario/eventos",
+        "/calendario/aperturas",
+        "/agenda/api/",
+        "/agenda/entradas/nueva",
+        "/autoclub/calendario/eventos",
+        "/autoclub/calendario/evento/nuevo",
+        "/api/reservas/",
+    )
+
+    @app.before_request
+    def _restrict_vista_role():
+        if not current_user.is_authenticated:
+            return
+        if current_user.rol != "vista":
+            return
+        path = _req.path
+        for allowed in _VISTA_ALLOWED:
+            if path.startswith(allowed):
+                return
+        return _redir("/vista/")
+
+    # Cache en memoria del badge de notificaciones: evita una query de BD en
+    # cada request autenticado. TTL corto porque es solo un contador visual.
+    _NOTIF_CACHE = {}
+    _NOTIF_TTL_SEGUNDOS = 20
+
+    @app.context_processor
+    def _inject_notificaciones():
+        import time
+        try:
+            if current_user.is_authenticated:
+                ahora = time.time()
+                cache_entry = _NOTIF_CACHE.get(current_user.id)
+                if cache_entry and ahora - cache_entry[0] < _NOTIF_TTL_SEGUNDOS:
+                    _, count, notifs = cache_entry
+                    return {"notif_count": count, "notificaciones_recientes": notifs}
+
+                from app.models.notificacion import Notificacion
+                notifs = (Notificacion.query
+                          .filter_by(leida=False)
+                          .order_by(Notificacion.creado_en.desc())
+                          .limit(15).all())
+                _NOTIF_CACHE[current_user.id] = (ahora, len(notifs), notifs)
+                return {"notif_count": len(notifs), "notificaciones_recientes": notifs}
+        except Exception:
+            pass
+        return {"notif_count": 0, "notificaciones_recientes": []}
+
+    # ── Páginas de error personalizadas ─────────────────────────────────────
+    def _wants_json():
+        return (
+            _req.path.startswith("/api/")
+            or _req.accept_mimetypes["application/json"] >= _req.accept_mimetypes["text/html"]
+        )
+
+    @app.errorhandler(404)
+    def _handle_404(err):
+        if _wants_json():
+            from flask import jsonify
+            return jsonify({"ok": False, "error": "Recurso no encontrado"}), 404
+        return render_template("errors/404.html"), 404
+
+    @app.errorhandler(500)
+    def _handle_500(err):
+        db.session.rollback()
+        app.logger.exception("Error interno no controlado")
+        if _wants_json():
+            from flask import jsonify
+            return jsonify({"ok": False, "error": "Error interno del servidor"}), 500
+        return render_template("errors/500.html"), 500
+
     # Iniciar scheduler solo en el proceso principal (evita doble arranque con reloader)
-    if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+    # y nunca durante los tests (evita hilos en segundo plano contra la BD de test).
+    if not app.config.get("TESTING") and (not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true"):
         from app.scheduler import init_scheduler
         init_scheduler(app)
 
@@ -96,7 +199,12 @@ def _migrate_columns():
         ("tags",           "criterio_min_empleados",   "INTEGER"),
         ("empresas_tb",       "num_empleados",    "INTEGER"),
         ("marketing_logs",    "campana_id",       "INTEGER"),
-        ("marketing_logs",    "campana_nombre",   "VARCHAR(200) DEFAULT ''"),
+        ("marketing_logs",    "campana_nombre",        "VARCHAR(200) DEFAULT ''"),
+        ("gastos_inscripcion", "documento_filename",   "VARCHAR(255)"),
+        ("autoclub_info",      "firma_html",            "TEXT DEFAULT ''"),
+        ("inscripciones",      "fecha_plazo",           "DATE"),
+        ("competicion_eventos", "fecha_plazo",           "DATE"),
+        ("fechas_apertura",    "capacidad_ideal",       "INTEGER"),
     ]
     with db.engine.connect() as conn:
         for tabla, columna, tipo in nuevas:
@@ -105,6 +213,29 @@ def _migrate_columns():
                 conn.commit()
             except Exception:
                 pass  # column already exists
+
+
+def _migrate_indices():
+    """Crea índices en columnas muy filtradas para bases de datos ya existentes
+    (los modelos ya declaran index=True, pero eso solo aplica a tablas nuevas)."""
+    from sqlalchemy import text
+    indices = [
+        ("ix_clientes_creado_en",       "clientes",  "creado_en"),
+        ("ix_reservas_estado",          "reservas",  "estado"),
+        ("ix_reservas_fecha_disfrute",  "reservas",  "fecha_disfrute"),
+        ("ix_reservas_cliente_id",      "reservas",  "cliente_id"),
+        ("ix_reservas_empresa_id",      "reservas",  "empresa_id"),
+        ("ix_tags_tipo",                "tags",      "tipo"),
+        ("ix_tags_segmento",            "tags",      "segmento"),
+        ("ix_tags_activo",              "tags",      "activo"),
+    ]
+    with db.engine.connect() as conn:
+        for nombre, tabla, columna in indices:
+            try:
+                conn.execute(text(f"CREATE INDEX IF NOT EXISTS {nombre} ON {tabla} ({columna})"))
+                conn.commit()
+            except Exception:
+                pass  # índice ya existe o tabla no soporta la sintaxis
 
 
 def _migrate_gran_cuenta_tag():
@@ -269,27 +400,79 @@ def _migrate_reservas_for_teambuilding():
 
 
 def _seed_usuarios():
+    """
+    Crea las cuentas iniciales si no existen. Las contraseñas nunca están
+    hardcodeadas: se toman de variables de entorno (SEED_<USER>_PASSWORD) o,
+    si no se definen, se genera una aleatoria fuerte que se muestra una única
+    vez en el log de arranque para que el administrador la guarde.
+    """
+    import secrets
     from app.models.usuario import Usuario
+
+    generadas = []
+
+    def _password_para(env_var):
+        valor = os.environ.get(env_var)
+        if valor:
+            return valor, False
+        return secrets.token_urlsafe(9), True
+
     if not Usuario.query.filter_by(email="admin@crm.local").first():
+        pwd, fue_generada = _password_para("SEED_ADMIN_PASSWORD")
         admin = Usuario(nombre="Admin", email="admin@crm.local", rol="admin")
-        admin.set_password("admin123")
+        admin.set_password(pwd)
         db.session.add(admin)
+        if fue_generada:
+            generadas.append(("admin@crm.local", pwd))
 
     if not Usuario.query.filter(
         (Usuario.username == "maria") | (Usuario.email == "maria@fe.local")
     ).first():
+        pwd, fue_generada = _password_para("SEED_MARIA_PASSWORD")
         maria = Usuario(nombre="Maria", username="maria", email="maria@fe.local", rol="admin")
-        maria.set_password("maria2024")
+        maria.set_password(pwd)
         db.session.add(maria)
+        if fue_generada:
+            generadas.append(("maria", pwd))
 
     if not Usuario.query.filter(
         (Usuario.username == "andres") | (Usuario.email == "andres@fe.local")
     ).first():
+        pwd, fue_generada = _password_para("SEED_ANDRES_PASSWORD")
         andres = Usuario(nombre="Andres", username="andres", email="andres@fe.local", rol="admin")
-        andres.set_password("andres2024")
+        andres.set_password(pwd)
         db.session.add(andres)
+        if fue_generada:
+            generadas.append(("andres", pwd))
+
+    if not Usuario.query.filter_by(username="admincalendario").first():
+        pwd, fue_generada = _password_para("SEED_ADMINCALENDARIO_PASSWORD")
+        cal = Usuario(
+            nombre="Admin Calendarios",
+            username="admincalendario",
+            email="admincalendario@calendarios.local",
+            rol="vista",
+            activo=True,
+        )
+        cal.set_password(pwd)
+        db.session.add(cal)
+        if fue_generada:
+            generadas.append(("admincalendario", pwd))
 
     db.session.commit()
+
+    if generadas:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning("=" * 60)
+        logger.warning("Cuentas creadas con contraseña generada automáticamente:")
+        for usuario, pwd in generadas:
+            logger.warning(f"  {usuario}: {pwd}")
+        logger.warning(
+            "Guarda estas contraseñas ahora: no se van a volver a mostrar. "
+            "Para fijarlas tú mismo, define SEED_<USUARIO>_PASSWORD en el .env."
+        )
+        logger.warning("=" * 60)
 
 
 def _seed_autoclub():

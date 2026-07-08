@@ -82,6 +82,7 @@
       <div class="card-footer">
         <form method="POST" action="{{ url_for('clientes.eliminar', id=cliente.id) }}"
               onsubmit="return confirm('¿Eliminar este cliente y todas sus reservas? Esta acción no se puede deshacer.')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="btn btn-outline-danger btn-sm w-100">
             <i class="bi bi-trash me-1"></i>Eliminar cliente
           </button>

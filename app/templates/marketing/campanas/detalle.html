@@ -14,6 +14,7 @@
 {% if campana.estado not in ('enviando',) %}
 <form method="POST" action="{{ url_for('marketing.campanas_enviar', id=campana.id) }}" class="d-inline"
       onsubmit="return confirm('¿Enviar la campaña «{{ campana.nombre }}» ahora mismo?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <button type="submit" class="btn btn-sm btn-success">
     <i class="bi bi-send-fill me-1"></i>Enviar ahora
   </button>
@@ -168,12 +169,14 @@
     <div class="card">
       <div class="card-body d-flex flex-column gap-2">
         <form method="POST" action="{{ url_for('marketing.campanas_duplicar', id=campana.id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="btn btn-outline-secondary btn-sm w-100">
             <i class="bi bi-copy me-1"></i>Duplicar campaña
           </button>
         </form>
         <form method="POST" action="{{ url_for('marketing.campanas_eliminar', id=campana.id) }}"
               onsubmit="return confirm('¿Eliminar «{{ campana.nombre }}»? También se borrarán sus logs.')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="btn btn-outline-danger btn-sm w-100">
             <i class="bi bi-trash me-1"></i>Eliminar campaña
           </button>
@@ -201,6 +204,7 @@
           {% if campana.estado not in ('enviando',) %}
           <form method="POST" action="{{ url_for('marketing.campanas_enviar', id=campana.id) }}"
                 onsubmit="return confirm('¿Enviar ahora?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-sm btn-success mt-2">
               <i class="bi bi-send-fill me-1"></i>Enviar ahora
             </button>

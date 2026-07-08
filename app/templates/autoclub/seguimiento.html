@@ -15,9 +15,13 @@
 } %}
 
 {% set label_entidad = {
-  'socio':        ('bi-person-badge', '#16a34a',  'Socio'),
-  'patrocinador': ('bi-building',     '#0A66C2',  'Patrocinador'),
-  'sistema':      ('bi-shield-lock',  '#6B7280',  'Sistema'),
+  'socio':        ('bi-person-badge',         '#16a34a',  'Socio'),
+  'patrocinador': ('bi-building',             '#0A66C2',  'Patrocinador'),
+  'piloto':       ('bi-person-badge-fill',    '#7c3aed',  'Piloto'),
+  'vehiculo':     ('bi-car-front-fill',       '#d97706',  'Vehículo'),
+  'inscripcion':  ('bi-clipboard-check-fill', '#1d4ed8',  'Inscripción'),
+  'staff':        ('bi-people-fill',          '#059669',  'Staff'),
+  'sistema':      ('bi-shield-lock',          '#6B7280',  'Sistema'),
 } %}
 
 <!-- Filtros -->
@@ -59,8 +63,18 @@
              style="max-width:150px" value="{{ filtro_fecha_fin }}"
              title="Hasta" placeholder="Hasta">
 
+      <select name="entidad" class="form-select form-select-sm" style="max-width:160px"
+              onchange="this.form.submit()">
+        <option value="">Todas las entidades</option>
+        {% for e in entidades %}
+          <option value="{{ e }}" {% if e == filtro_entidad %}selected{% endif %}>
+            {{ label_entidad[e][2] if e in label_entidad else e | capitalize }}
+          </option>
+        {% endfor %}
+      </select>
+
       <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
-      {% if filtro_usuario or filtro_accion or filtro_fecha_ini or filtro_fecha_fin %}
+      {% if filtro_usuario or filtro_accion or filtro_entidad or filtro_fecha_ini or filtro_fecha_fin %}
         <a href="{{ url_for('autoclub.seguimiento') }}" class="btn btn-sm btn-outline-secondary">
           <i class="bi bi-x me-1"></i>Limpiar
         </a>

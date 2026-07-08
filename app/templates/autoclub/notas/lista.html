@@ -1,0 +1,113 @@
+{% extends "autoclub/base.html" %}
+{% block title %}Notas — AutoClub{% endblock %}
+{% block page_title %}Notas de socios y patrocinadores{% endblock %}
+
+{% block content %}
+<div>
+
+  <!-- Buscador -->
+  <div class="card mb-4">
+    <div class="card-body py-3">
+      <form method="GET" class="d-flex gap-2 align-items-center">
+        <div class="input-group input-group-sm" style="max-width:360px">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" class="form-control" placeholder="Buscar por nombre o contenido…"
+                 value="{{ q }}">
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Buscar</button>
+        {% if q %}
+        <a href="{{ url_for('autoclub.notas_lista') }}" class="btn btn-ghost-secondary btn-sm">Limpiar</a>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  <!-- Notas -->
+  {% if notas.items %}
+  <div class="row g-3">
+    {% for nota in notas.items %}
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex align-items-start gap-3">
+            <div class="avatar avatar-sm" style="background:var(--gray-100);color:var(--gray-500);flex-shrink:0">
+              {% if nota.entidad == 'socio' %}
+                <i class="bi bi-person-badge"></i>
+              {% else %}
+                <i class="bi bi-building"></i>
+              {% endif %}
+            </div>
+            <div class="flex-grow-1 min-w-0">
+              <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                {% if nota.entidad == 'socio' %}
+                  <a href="{{ url_for('autoclub.detalle', id=nota.entidad_id) }}#notas"
+                     class="fw-semibold text-sm text-decoration-none">{{ nota.entidad_nombre }}</a>
+                  <span class="badge rounded-pill" style="background:var(--blue-50);color:var(--blue-600);font-size:10px">Socio</span>
+                {% else %}
+                  <a href="{{ url_for('autoclub.patrocinadores_detalle', id=nota.entidad_id) }}#notas"
+                     class="fw-semibold text-sm text-decoration-none">{{ nota.entidad_nombre }}</a>
+                  <span class="badge rounded-pill" style="background:var(--purple-50,#f3e8ff);color:#7c3aed;font-size:10px">Patrocinador</span>
+                {% endif %}
+                <span class="text-xs text-muted ms-auto">{{ nota.creado_en.strftime('%d/%m/%Y %H:%M') }}</span>
+                {% if nota.usuario_nombre %}
+                  <span class="text-xs text-muted">· {{ nota.usuario_nombre }}</span>
+                {% endif %}
+              </div>
+              <p class="text-sm mb-0" style="white-space:pre-line">{{ nota.contenido }}</p>
+            </div>
+            <div class="flex-shrink-0">
+              {% if nota.entidad == 'socio' %}
+              <form method="POST" action="{{ url_for('autoclub.socio_nota_eliminar', id=nota.entidad_id, nid=nota.id) }}"
+                    onsubmit="return confirm('¿Eliminar esta nota?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-xs btn-ghost-danger" title="Eliminar">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+              {% else %}
+              <form method="POST" action="{{ url_for('autoclub.patrocinador_nota_eliminar', id=nota.entidad_id, nid=nota.id) }}"
+                    onsubmit="return confirm('¿Eliminar esta nota?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-xs btn-ghost-danger" title="Eliminar">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Paginación -->
+  {% if notas.pages > 1 %}
+  <nav class="mt-4">
+    <ul class="pagination pagination-sm justify-content-center mb-0">
+      {% for p in notas.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+          <li class="page-item {% if p == notas.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('autoclub.notas_lista', page=p, q=q) }}">{{ p }}</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+  </nav>
+  {% endif %}
+
+  {% else %}
+  <div class="card">
+    <div class="card-body">
+      <div class="empty-state">
+        <i class="bi bi-journal-text"></i>
+        <p>No hay notas{% if q %} para "{{ q }}"{% endif %}</p>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

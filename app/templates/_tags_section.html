@@ -31,6 +31,7 @@
         <span style="color:{{ t.color }};font-size:.78rem;font-weight:700">{{ t.nombre }}</span>
         {% if at.origen == 'manual' %}
         <form method="POST" action="{{ url_remove }}" class="d-inline ms-1" style="margin:0">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="tag_id" value="{{ t.id }}" />
           <button type="submit" class="btn p-0 border-0"
                   style="line-height:1;color:{{ t.color }};opacity:.6;font-size:.75rem"
@@ -82,6 +83,7 @@
               {% for t in tags_disponibles %}
               <form method="POST" action="{{ url_add }}" class="d-inline tag-pill-form"
                     data-nombre="{{ t.nombre | lower }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="tag_id" value="{{ t.id }}" />
                 <button type="submit"
                         class="btn d-inline-flex align-items-center gap-1"

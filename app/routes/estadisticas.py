@@ -57,19 +57,26 @@ def index():
     ) if ingresos_60_30 else None
 
     # ── Ingresos y reservas por mes (12 meses) ───────────────────────────────
+    # Una sola consulta agrupada por mes en vez de 2 queries x 12 meses.
+    meses_12 = _iterar_meses(12)
+    inicio_12m, _ = _rango_mes(*meses_12[0])
+    por_mes_raw = db.session.query(
+        func.strftime("%Y-%m", Reserva.fecha_compra).label("ym"),
+        func.coalesce(func.sum(Reserva.precio), 0).label("total"),
+        func.count(Reserva.id).label("n"),
+    ).filter(Reserva.fecha_compra >= inicio_12m)\
+     .group_by("ym").all()
+    por_mes_map = {r.ym: r for r in por_mes_raw}
+
     ingresos_mensuales = []
     reservas_mensuales = []
-    for año, mes in _iterar_meses(12):
-        inicio, fin = _rango_mes(año, mes)
+    for año, mes in meses_12:
+        inicio, _ = _rango_mes(año, mes)
         label = inicio.strftime("%b %y").capitalize()
-        total_mes = db.session.query(func.sum(Reserva.precio)).filter(
-            Reserva.fecha_compra >= inicio, Reserva.fecha_compra <= fin
-        ).scalar() or 0
-        count_mes = Reserva.query.filter(
-            Reserva.fecha_compra >= inicio, Reserva.fecha_compra <= fin
-        ).count()
-        ingresos_mensuales.append({"mes": label, "total": round(total_mes, 2)})
-        reservas_mensuales.append({"mes": label, "count": count_mes})
+        clave = inicio.strftime("%Y-%m")
+        fila = por_mes_map.get(clave)
+        ingresos_mensuales.append({"mes": label, "total": round(fila.total, 2) if fila else 0})
+        reservas_mensuales.append({"mes": label, "count": fila.n if fila else 0})
 
     # ── Por estado ───────────────────────────────────────────────────────────
     estados_raw = db.session.query(
@@ -120,14 +127,20 @@ def index():
     horarios_data = [{"horario": h, "count": c} for h, c in horarios_raw]
 
     # ── Clientes nuevos por mes (12 meses) ───────────────────────────────────
+    # Una sola consulta agrupada por mes en vez de 12 queries.
+    clientes_por_mes_raw = db.session.query(
+        func.strftime("%Y-%m", Cliente.creado_en).label("ym"),
+        func.count(Cliente.id).label("n"),
+    ).filter(Cliente.creado_en >= inicio_12m)\
+     .group_by("ym").all()
+    clientes_por_mes_map = {r.ym: r.n for r in clientes_por_mes_raw}
+
     clientes_mensuales = []
-    for año, mes in _iterar_meses(12):
-        inicio, fin = _rango_mes(año, mes)
+    for año, mes in meses_12:
+        inicio, _ = _rango_mes(año, mes)
         label = inicio.strftime("%b %y").capitalize()
-        count = Cliente.query.filter(
-            Cliente.creado_en >= inicio, Cliente.creado_en <= fin
-        ).count()
-        clientes_mensuales.append({"mes": label, "count": count})
+        clave = inicio.strftime("%Y-%m")
+        clientes_mensuales.append({"mes": label, "count": clientes_por_mes_map.get(clave, 0)})
 
     # ── Origen de clientes ───────────────────────────────────────────────────
     fuentes_raw = db.session.query(

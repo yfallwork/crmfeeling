@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Error interno — CRM Feeling Experience</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #f3f4f6;
+    }
+    .wrap {
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      width: 100%;
+      max-width: 420px;
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.10);
+      overflow: hidden;
+      text-align: center;
+    }
+    .hero {
+      background: linear-gradient(135deg, #111111 0%, #2d2d2d 100%);
+      padding: 40px 28px 30px;
+    }
+    .code {
+      font-size: 3.4rem;
+      font-weight: 900;
+      color: #AD1726;
+      letter-spacing: -2px;
+    }
+    .hero p {
+      color: rgba(255,255,255,.6);
+      font-size: .85rem;
+      margin-top: 6px;
+    }
+    .body { padding: 28px; }
+    .body h1 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #111;
+      margin-bottom: 8px;
+    }
+    .body p {
+      font-size: .85rem;
+      color: #6b7280;
+      margin-bottom: 22px;
+      line-height: 1.5;
+    }
+    .btn {
+      display: inline-block;
+      background: #AD1726;
+      color: #fff;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: .88rem;
+      padding: 11px 26px;
+      border-radius: 10px;
+      transition: background .15s;
+    }
+    .btn:hover { background: #8B1020; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="hero">
+        <div class="code">500</div>
+        <p>Error interno del servidor</p>
+      </div>
+      <div class="body">
+        <h1>Algo ha fallado por nuestra parte</h1>
+        <p>El equipo técnico ya ha sido notificado. Prueba de nuevo en unos minutos.</p>
+        <a href="/" class="btn">Volver al panel</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,594 @@
+{% extends "autoclub/base.html" %}
+{% block title %}Calendario de Competición — AutoClub{% endblock %}
+{% block page_title %}Calendario de Competición{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.inscripciones_nueva') }}" class="btn btn-primary btn-sm">
+  <i class="bi bi-plus-lg me-1"></i>Nueva inscripción
+</a>
+{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" />
+<style>
+  .fc { font-family: inherit; }
+  h2.fc-toolbar-title,
+  .fc-toolbar-title {
+    font-size: 1rem !important; font-weight: 700 !important; color: var(--gray-900) !important;
+    font-family: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif !important;
+    letter-spacing: normal !important; text-transform: none !important;
+  }
+  .fc .fc-button-primary {
+    background: #fff !important; border: 1px solid var(--border) !important;
+    color: var(--gray-700) !important; font-size: .8rem !important;
+    padding: 5px 12px !important; border-radius: var(--radius-xs) !important;
+    box-shadow: none !important;
+  }
+  .fc .fc-button-primary:hover { background: var(--gray-50) !important; }
+  .fc .fc-button-primary.fc-button-active,
+  .fc .fc-today-button { background: #111 !important; color: #fff !important; border-color: #111 !important; }
+  .fc .fc-col-header-cell { font-size: .72rem; text-transform: uppercase; color: var(--gray-500); font-weight: 600; }
+  .fc .fc-daygrid-day-number { font-size: .8rem; color: var(--gray-700); padding: 6px 8px; }
+  .fc .fc-day-today { background: #f0fdf4 !important; }
+  .fc .fc-day-today .fc-daygrid-day-number {
+    color: #111 !important;
+    font-weight: 700 !important;
+    background: transparent !important;
+    border: 2px solid #16a34a !important;
+    border-radius: 50% !important;
+    width: 26px !important;
+    height: 26px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    margin: 4px !important;
+    line-height: 1 !important;
+  }
+  .fc-event { border-radius: 4px !important; border: none !important; font-size: .75rem; padding: 2px 6px; cursor: pointer; }
+  .fc-event:hover { opacity: .85; }
+  .fc-hint { font-size: .72rem; color: var(--gray-400); text-align: center; padding: 6px 0 0; }
+
+  /* Competition-only events: dashed left border */
+  .fc-event.ev-competicion {
+    background: #fef3c7 !important;
+    color: #92400e !important;
+    border-left: 3px solid #f59e0b !important;
+  }
+
+  #cal-tooltip {
+    position: fixed; z-index: 9999; pointer-events: none;
+    background: #1e293b; color: #f8fafc; border-radius: 8px;
+    padding: 10px 14px; font-size: .78rem; max-width: 260px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.18); display: none; line-height: 1.5;
+  }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+  /* Opciones del modal de fecha */
+  .cal-option {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 18px; border: 1.5px solid var(--border);
+    border-radius: 10px; cursor: pointer; transition: all .15s;
+    text-decoration: none; color: inherit;
+  }
+  .cal-option:hover { border-color: #111; background: var(--gray-50); color: inherit; }
+  .cal-option-icon {
+    width: 42px; height: 42px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; flex-shrink: 0;
+  }
+  .cal-option-title { font-weight: 700; font-size: .9rem; }
+  .cal-option-sub { font-size: .75rem; color: var(--gray-500); margin-top: 2px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+
+  <!-- Sidebar info -->
+  <div class="col-lg-3 order-lg-2">
+
+    <!-- Leyenda estados -->
+    <div class="card mb-3">
+      <div class="card-header py-2"><span class="fw-semibold text-sm">Leyenda</span></div>
+      <div class="card-body py-2">
+        {% for color, label in [
+            ('#6b7280', 'Inscripción pendiente'),
+            ('#1d4ed8', 'Inscripción enviada'),
+            ('#16a34a', 'Inscripción aceptada'),
+            ('#dc2626', 'Inscripción rechazada'),
+        ] %}
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="legend-dot" style="background:{{ color }}"></span>
+          <span class="text-sm">{{ label }}</span>
+        </div>
+        {% endfor %}
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span style="display:inline-block;width:18px;height:10px;border-radius:2px;background:#fef3c7;border-left:3px solid #f59e0b"></span>
+          <span class="text-sm">Competición anotada</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Próximas inscripciones -->
+    {% if inscripciones_proximas %}
+    <div class="card mb-3">
+      <div class="card-header py-2"><span class="fw-semibold text-sm">Próximas inscripciones</span></div>
+      <div class="card-body p-0">
+        <ul class="list-unstyled mb-0">
+          {% for insc in inscripciones_proximas %}
+          {% set colors = {'pendiente':'#6b7280','enviada':'#1d4ed8','aceptada':'#16a34a','rechazada':'#dc2626'} %}
+          {% set c = colors.get(insc.estado, '#6b7280') %}
+          <li style="border-left: 3px solid {{ c }}; padding: 10px 14px;"
+              class="{% if not loop.last %}border-bottom{% endif %}">
+            <a href="{{ url_for('autoclub.inscripciones_detalle', id=insc.id) }}"
+               class="text-decoration-none fw-semibold text-sm d-block">{{ insc.nombre_prueba }}</a>
+            <div class="text-xs text-muted mt-1">
+              <i class="bi bi-calendar3 me-1"></i>{{ insc.fecha_prueba.strftime('%d/%m/%Y') }}
+              {% if insc.campeonato %} · {{ insc.campeonato }}{% endif %}
+            </div>
+            {% if insc.piloto %}
+            <div class="text-xs text-muted">
+              <i class="bi bi-person me-1"></i>{{ insc.piloto.nombre_completo }}
+            </div>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Próximas competiciones anotadas -->
+    {% if proximos_eventos %}
+    <div class="card">
+      <div class="card-header py-2"><span class="fw-semibold text-sm">Competiciones anotadas</span></div>
+      <div class="card-body p-0">
+        <ul class="list-unstyled mb-0">
+          {% for ev in proximos_eventos %}
+          <li style="border-left: 3px solid #f59e0b; padding: 10px 14px;"
+              class="{% if not loop.last %}border-bottom{% endif %}">
+            <div class="fw-semibold text-sm">{{ ev.titulo }}</div>
+            <div class="text-xs text-muted mt-1">
+              <i class="bi bi-calendar3 me-1"></i>{{ ev.fecha.strftime('%d/%m/%Y') }}
+            </div>
+            {% if ev.descripcion %}
+            <div class="text-xs text-muted mt-1">{{ ev.descripcion }}</div>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if not inscripciones_proximas and not proximos_eventos %}
+    <div class="card">
+      <div class="empty-state" style="padding: 24px">
+        <i class="bi bi-calendar3"></i>
+        <p style="font-size:.8rem">Sin eventos próximos</p>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- Calendario -->
+  <div class="col-lg-9 order-lg-1">
+    <div class="card">
+      <div class="card-body" style="padding: 20px">
+        <div id="calendar"></div>
+        <p class="fc-hint mt-2">
+          <i class="bi bi-info-circle me-1"></i>
+          Clic en un día para anotar una competición o crear una inscripción
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="cal-tooltip"></div>
+
+<!-- ── Modal: elegir acción en un día ─────────────────────────────────────── -->
+<div class="modal fade" id="modalFecha" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:440px">
+    <div class="modal-content" style="border-radius:14px;border:none;box-shadow:0 20px 60px rgba(0,0,0,.15)">
+
+      <!-- Step 1: elegir tipo -->
+      <div id="stepElegir">
+        <div class="modal-header border-0 pb-0">
+          <div>
+            <div class="fw-bold" style="font-size:.95rem">¿Qué quieres añadir?</div>
+            <div class="text-xs text-muted mt-1">
+              <i class="bi bi-calendar3 me-1"></i><span id="labelFecha"></span>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body pt-3" style="display:flex;flex-direction:column;gap:10px">
+          <a id="btnIrInscripcion" href="#" class="cal-option">
+            <div class="cal-option-icon" style="background:#dbeafe">
+              <i class="bi bi-clipboard-check-fill" style="color:#1d4ed8"></i>
+            </div>
+            <div>
+              <div class="cal-option-title">Crear inscripción</div>
+              <div class="cal-option-sub">Para pruebas en las que ya puedes inscribirte</div>
+            </div>
+          </a>
+          <button type="button" class="cal-option" onclick="mostrarFormEvento()">
+            <div class="cal-option-icon" style="background:#fef3c7">
+              <i class="bi bi-flag-fill" style="color:#f59e0b"></i>
+            </div>
+            <div style="text-align:left">
+              <div class="cal-option-title">Anotar competición</div>
+              <div class="cal-option-sub">Para marcar una prueba futura sin inscribirse todavía</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: formulario de competición -->
+      <div id="stepEvento" style="display:none">
+        <div class="modal-header border-0 pb-0">
+          <div>
+            <div class="fw-bold" style="font-size:.95rem">Anotar competición</div>
+            <div class="text-xs text-muted mt-1">
+              <i class="bi bi-calendar3 me-1"></i><span class="labelFecha2"></span>
+            </div>
+          </div>
+          <button type="button" class="btn btn-link btn-sm p-0 text-muted" onclick="volverElegir()">
+            <i class="bi bi-arrow-left me-1"></i>Volver
+          </button>
+        </div>
+        <div class="modal-body pt-2">
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-sm">Nombre de la prueba <span class="text-danger">*</span></label>
+            <input type="text" id="evTitulo" class="form-control" placeholder="Ej: Rally de Asturias 2026" maxlength="200">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-sm">
+              Plazo de presentación de inscripción
+              <span class="text-muted fw-normal">(opcional)</span>
+            </label>
+            <input type="date" id="evPlazo" class="form-control">
+            <div class="form-text">
+              <i class="bi bi-bell me-1"></i>
+              Recibirás una notificación 10 días antes si aún no hay inscripción creada
+            </div>
+          </div>
+          <div class="mb-1">
+            <label class="form-label fw-semibold text-sm">Descripción <span class="text-muted fw-normal">(opcional)</span></label>
+            <textarea id="evDesc" class="form-control" rows="2"
+                      placeholder="Campeonato, circuito, más info…" style="resize:none"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-sm btn-primary" id="btnGuardarEvento" onclick="guardarEvento()">
+            <i class="bi bi-check-lg me-1"></i>Guardar
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: detalle de competición anotada ──────────────────────────────── -->
+<div class="modal fade" id="modalEvento" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:420px">
+    <div class="modal-content" style="border-radius:14px;border:none;box-shadow:0 20px 60px rgba(0,0,0,.15)">
+      <div class="modal-header border-0 pb-1">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;background:#fef3c7;border-radius:8px;
+                      display:flex;align-items:center;justify-content:center">
+            <i class="bi bi-flag-fill" style="color:#f59e0b"></i>
+          </div>
+          <div>
+            <div class="fw-bold" id="evModalTitulo" style="font-size:.9rem"></div>
+            <div class="text-xs text-muted" id="evModalFecha"></div>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body pt-1 pb-2">
+        <p id="evModalDesc" class="text-sm text-muted mb-2" style="white-space:pre-line"></p>
+        <div id="evModalPlazoWrap" style="display:none" class="mb-2">
+          <span class="text-xs text-muted text-uppercase fw-semibold">Plazo inscripción</span>
+          <div class="text-sm fw-semibold mt-1" id="evModalPlazo"></div>
+        </div>
+        <div class="d-flex gap-2 mt-3">
+          <button type="button" class="btn btn-sm btn-outline-danger"
+                  id="btnEliminarEvento" onclick="eliminarEvento()">
+            <i class="bi bi-trash me-1"></i>Eliminar
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-secondary ms-auto"
+                  onclick="abrirEditarEvento()">
+            <i class="bi bi-pencil me-1"></i>Editar
+          </button>
+          <a id="btnCrearInscDesde" href="#" class="btn btn-sm btn-primary">
+            <i class="bi bi-clipboard-check me-1"></i>Inscripción
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: editar competición anotada ──────────────────────────────────── -->
+<div class="modal fade" id="modalEditarEvento" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:420px">
+    <div class="modal-content" style="border-radius:14px;border:none;box-shadow:0 20px 60px rgba(0,0,0,.15)">
+      <div class="modal-header border-0 pb-1">
+        <div>
+          <div class="fw-bold" style="font-size:.95rem">Editar competición</div>
+          <div class="text-xs text-muted mt-1" id="editEvFechaLabel"></div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <div class="mb-3">
+          <label class="form-label fw-semibold text-sm">Nombre de la prueba <span class="text-danger">*</span></label>
+          <input type="text" id="editEvTitulo" class="form-control" maxlength="200">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold text-sm">Fecha de la prueba <span class="text-danger">*</span></label>
+          <input type="date" id="editEvFecha" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold text-sm">Plazo de presentación <span class="text-muted fw-normal">(opcional)</span></label>
+          <input type="date" id="editEvPlazo" class="form-control">
+        </div>
+        <div class="mb-1">
+          <label class="form-label fw-semibold text-sm">Descripción <span class="text-muted fw-normal">(opcional)</span></label>
+          <textarea id="editEvDesc" class="form-control" rows="2" style="resize:none"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-sm btn-primary" id="btnGuardarEdicion" onclick="guardarEdicionEvento()">
+          <i class="bi bi-check-lg me-1"></i>Guardar cambios
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<script>
+const NUEVA_URL    = "{{ url_for('autoclub.inscripciones_nueva') }}";
+const EVENTOS_URL  = "{{ url_for('autoclub.calendario_eventos') }}";
+const EVENTO_NEW   = "{{ url_for('autoclub.calendario_evento_nuevo') }}";
+const EVENTO_DEL   = "/autoclub/calendario/evento/__ID__/eliminar";
+const EVENTO_EDIT  = "/autoclub/calendario/evento/__ID__/editar";
+
+const tooltip  = document.getElementById('cal-tooltip');
+let calFecha        = '';   // ISO date de la celda clicada
+let eventoActualId  = null;
+let eventoActualData = {};  // datos del evento abierto en el detalle modal
+let calInstance     = null;
+
+const modalFecha        = new bootstrap.Modal(document.getElementById('modalFecha'));
+const modalEvento       = new bootstrap.Modal(document.getElementById('modalEvento'));
+const modalEditarEvento = new bootstrap.Modal(document.getElementById('modalEditarEvento'));
+
+/* Formatea fecha ISO a texto legible */
+function fmtFecha(iso) {
+  const [y,m,d] = iso.split('-');
+  const meses = ['enero','febrero','marzo','abril','mayo','junio',
+                 'julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  return `${parseInt(d)} de ${meses[parseInt(m)-1]} de ${y}`;
+}
+
+/* ── Flujo modal fecha ─────────────────────────────────── */
+function abrirModalFecha(fechaISO) {
+  calFecha = fechaISO;
+  const label = fmtFecha(fechaISO);
+  document.getElementById('labelFecha').textContent = label;
+  document.querySelectorAll('.labelFecha2').forEach(el => el.textContent = label);
+  document.getElementById('btnIrInscripcion').href = NUEVA_URL + '?fecha=' + fechaISO;
+  document.getElementById('evTitulo').value = '';
+  document.getElementById('evDesc').value   = '';
+  mostrarStep('stepElegir');
+  modalFecha.show();
+}
+
+function mostrarStep(id) {
+  ['stepElegir','stepEvento'].forEach(s => {
+    document.getElementById(s).style.display = (s === id) ? '' : 'none';
+  });
+}
+
+function mostrarFormEvento() { mostrarStep('stepEvento'); }
+function volverElegir()      { mostrarStep('stepElegir'); }
+
+async function guardarEvento() {
+  const titulo = document.getElementById('evTitulo').value.trim();
+  if (!titulo) { document.getElementById('evTitulo').focus(); return; }
+  const btn = document.getElementById('btnGuardarEvento');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando…';
+
+  const r = await fetch(EVENTO_NEW, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      titulo,
+      descripcion: document.getElementById('evDesc').value.trim(),
+      fecha: calFecha,
+      fecha_plazo: document.getElementById('evPlazo').value || null,
+    })
+  });
+  const data = await r.json();
+  btn.disabled = false;
+  btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Guardar';
+  if (data.ok) {
+    modalFecha.hide();
+    // Limpiar campos del formulario para el próximo uso
+    document.getElementById('evTitulo').value = '';
+    document.getElementById('evDesc').value   = '';
+    document.getElementById('evPlazo').value  = '';
+    calInstance.refetchEvents();
+  } else {
+    alert(data.error || 'Error al guardar.');
+  }
+}
+
+/* ── Modal detalle evento competición ───────────────────── */
+function abrirModalEvento(ev) {
+  eventoActualId   = ev.extendedProps.evento_id;
+  const fecha      = ev.start;
+  const fechaISO   = fecha.toISOString().slice(0, 10);
+  eventoActualData = {
+    titulo:      ev.title,
+    fecha:       fechaISO,
+    descripcion: ev.extendedProps.descripcion || '',
+    fecha_plazo: ev.extendedProps.fecha_plazo || '',
+  };
+  document.getElementById('evModalTitulo').textContent = ev.title;
+  document.getElementById('evModalFecha').textContent  = fmtFecha(fecha.toISOString().slice(0,10));
+
+  const desc = ev.extendedProps.descripcion || '';
+  const descEl = document.getElementById('evModalDesc');
+  descEl.textContent = desc;
+  descEl.style.display = desc ? '' : 'none';
+
+  const plazo = ev.extendedProps.fecha_plazo || '';
+  const plazoWrap = document.getElementById('evModalPlazoWrap');
+  if (plazo) {
+    document.getElementById('evModalPlazo').textContent = fmtFecha(plazo);
+    plazoWrap.style.display = '';
+  } else {
+    plazoWrap.style.display = 'none';
+  }
+
+  document.getElementById('btnCrearInscDesde').href =
+    NUEVA_URL + '?fecha=' + fecha.toISOString().slice(0,10);
+  modalEvento.show();
+}
+
+async function eliminarEvento() {
+  if (!eventoActualId) return;
+  if (!confirm('¿Eliminar este evento del calendario?')) return;
+  const url = EVENTO_DEL.replace('__ID__', eventoActualId);
+  const r = await fetch(url, { method: 'POST' });
+  const data = await r.json();
+  if (data.ok) {
+    modalEvento.hide();
+    calInstance.refetchEvents();
+  } else {
+    alert('Error al eliminar.');
+  }
+}
+
+function abrirEditarEvento() {
+  modalEvento.hide();
+  document.getElementById('editEvTitulo').value = eventoActualData.titulo || '';
+  document.getElementById('editEvFecha').value  = eventoActualData.fecha  || '';
+  document.getElementById('editEvPlazo').value  = eventoActualData.fecha_plazo || '';
+  document.getElementById('editEvDesc').value   = eventoActualData.descripcion || '';
+  document.getElementById('editEvFechaLabel').textContent = fmtFecha(eventoActualData.fecha);
+  modalEditarEvento.show();
+}
+
+async function guardarEdicionEvento() {
+  const titulo = document.getElementById('editEvTitulo').value.trim();
+  const fecha  = document.getElementById('editEvFecha').value;
+  if (!titulo || !fecha) {
+    document.getElementById(titulo ? 'editEvFecha' : 'editEvTitulo').focus();
+    return;
+  }
+  const btn = document.getElementById('btnGuardarEdicion');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando…';
+
+  const url = EVENTO_EDIT.replace('__ID__', eventoActualId);
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      titulo,
+      fecha,
+      fecha_plazo: document.getElementById('editEvPlazo').value || null,
+      descripcion: document.getElementById('editEvDesc').value.trim(),
+    })
+  });
+  const data = await r.json();
+  btn.disabled = false;
+  btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Guardar cambios';
+  if (data.ok) {
+    modalEditarEvento.hide();
+    calInstance.refetchEvents();
+  } else {
+    alert(data.error || 'Error al guardar.');
+  }
+}
+
+/* ── FullCalendar ───────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', function () {
+  const isMobile = () => window.innerWidth < 768;
+  calInstance = new FullCalendar.Calendar(document.getElementById('calendar'), {
+    locale: 'es',
+    initialView: isMobile() ? 'listMonth' : 'dayGridMonth',
+    headerToolbar: isMobile()
+      ? { left: 'prev,next', center: 'title', right: 'today' }
+      : { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
+    buttonText: { today: 'Hoy', month: 'Mes', list: 'Lista' },
+    height: 'auto',
+    events: EVENTOS_URL,
+
+    /* Añadir clase a eventos de competición para estilo CSS */
+    eventClassNames: function(arg) {
+      return arg.event.extendedProps.tipo === 'evento' ? ['ev-competicion'] : [];
+    },
+
+    eventMouseEnter: function (info) {
+      const p = info.event.extendedProps;
+      if (p.tipo === 'evento') {
+        tooltip.innerHTML =
+          '<strong>' + info.event.title + '</strong>' +
+          (p.descripcion ? '<br><span style="opacity:.75">' + p.descripcion + '</span>' : '') +
+          '<br><span style="opacity:.5;font-size:.7rem">Competición anotada · clic para ver</span>';
+      } else {
+        tooltip.innerHTML =
+          '<strong>' + info.event.title + '</strong>' +
+          (p.campeonato ? '<br><span style="opacity:.7">🏆 ' + p.campeonato + '</span>' : '') +
+          (p.piloto     ? '<br><span style="opacity:.7">👤 ' + p.piloto + '</span>' : '') +
+          (p.vehiculo   ? '<br><span style="opacity:.7">🚗 ' + p.vehiculo + '</span>' : '') +
+          '<br><span style="opacity:.5;font-size:.7rem;text-transform:capitalize">Estado: ' + p.estado + '</span>';
+      }
+      tooltip.style.display = 'block';
+    },
+    eventMouseLeave: function () { tooltip.style.display = 'none'; },
+
+    eventClick: function (info) {
+      info.jsEvent.preventDefault();
+      const p = info.event.extendedProps;
+      if (p.tipo === 'evento') {
+        abrirModalEvento(info.event);
+      } else if (info.event.url) {
+        window.location.href = info.event.url;
+      }
+    },
+
+    dateClick: function (info) {
+      abrirModalFecha(info.dateStr);
+    },
+  });
+  calInstance.render();
+
+  document.addEventListener('mousemove', function (e) {
+    tooltip.style.left = (e.clientX + 14) + 'px';
+    tooltip.style.top  = (e.clientY - 10) + 'px';
+  });
+
+  /* Ocultar tooltip cuando se abre un modal */
+  document.getElementById('modalFecha').addEventListener('show.bs.modal',  () => tooltip.style.display = 'none');
+  document.getElementById('modalEvento').addEventListener('show.bs.modal', () => tooltip.style.display = 'none');
+});
+</script>
+{% endblock %}

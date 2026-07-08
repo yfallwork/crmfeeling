@@ -12,6 +12,7 @@
 <div class="card mb-3">{% include 'marketing/_tabs.html' %}</div>
 
 <form method="POST" class="row g-3">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
 <!-- ── Columna izquierda ────────────────────────────────────── -->
 <div class="col-xl-7">

@@ -1,0 +1,178 @@
+{% extends "autoclub/base.html" %}
+{% block title %}Inscripciones — AutoClub{% endblock %}
+{% block page_title %}Inscripciones{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.inscripciones_nueva') }}" class="btn btn-primary btn-sm">
+  <i class="bi bi-plus-lg me-1"></i>Nueva inscripción
+</a>
+{% endblock %}
+
+{% block content %}
+
+{% macro estado_badge(e) %}
+  {% set cfg = {
+    'pendiente': ('#6b7280', 'bi-clock'),
+    'enviada':   ('#1d4ed8', 'bi-send'),
+    'aceptada':  ('#16a34a', 'bi-check-circle'),
+    'rechazada': ('#dc2626', 'bi-x-circle'),
+  } %}
+  {% set color = cfg.get(e, ['#6b7280', 'bi-circle'])[0] %}
+  {% set icon  = cfg.get(e, ['#6b7280', 'bi-circle'])[1] %}
+  <span class="badge rounded-pill text-xs"
+        style="background:{{ color }}20;color:{{ color }};font-weight:700">
+    <i class="bi {{ icon }} me-1"></i>{{ e | capitalize }}
+  </span>
+{% endmacro %}
+
+<div class="card">
+
+  <div class="filter-bar">
+    <form method="GET" class="d-flex align-items-center gap-2 flex-wrap w-100">
+      <div class="input-group input-group-sm" style="max-width:280px">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" class="form-control"
+               placeholder="Prueba, piloto…" value="{{ q }}" />
+      </div>
+
+      <select name="estado" class="form-select form-select-sm"
+              style="max-width:150px" onchange="this.form.submit()">
+        <option value=""          {% if not estado %}selected{% endif %}>Todos estados</option>
+        {% for e in estados_disponibles %}
+          <option value="{{ e }}" {% if estado == e %}selected{% endif %}>{{ e | capitalize }}</option>
+        {% endfor %}
+      </select>
+
+      <select name="campeonato" class="form-select form-select-sm"
+              style="max-width:160px" onchange="this.form.submit()">
+        <option value=""          {% if not campeonato %}selected{% endif %}>Todos</option>
+        {% for c in campeonatos_disponibles %}
+          <option value="{{ c }}" {% if campeonato == c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+
+      <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
+      {% if q or estado or campeonato %}
+        <a href="{{ url_for('autoclub.inscripciones_lista') }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-x me-1"></i>Limpiar
+        </a>
+      {% endif %}
+
+      <div class="ms-auto">
+        <span class="text-xs text-muted">{{ inscripciones.total }} inscripción/es</span>
+      </div>
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Prueba</th>
+          <th>Campeonato</th>
+          <th>Piloto</th>
+          <th>Vehículo</th>
+          <th>Estado</th>
+          <th style="width:80px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for i in inscripciones.items %}
+        <tr>
+          <td class="text-muted text-sm text-nowrap">
+            {{ i.fecha_prueba.strftime('%d/%m/%Y') if i.fecha_prueba else '—' }}
+          </td>
+          <td>
+            <a href="{{ url_for('autoclub.inscripciones_detalle', id=i.id) }}"
+               class="fw-semibold text-decoration-none" style="color:var(--black)">
+              {{ i.nombre_prueba }}
+            </a>
+          </td>
+          <td class="text-sm">
+            {% if i.campeonato %}
+              <span class="badge rounded-pill text-xs"
+                    style="background:var(--gray-100);color:var(--gray-700)">{{ i.campeonato }}</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="text-sm">
+            {% if i.piloto %}
+              <a href="{{ url_for('autoclub.pilotos_detalle', id=i.piloto.id) }}"
+                 class="text-decoration-none">{{ i.piloto.nombre_completo }}</a>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="text-sm">
+            {% if i.vehiculo %}
+              <a href="{{ url_for('autoclub.vehiculos_detalle', id=i.vehiculo.id) }}"
+                 class="text-decoration-none text-muted">{{ i.vehiculo.nombre_display }}</a>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>{{ estado_badge(i.estado) }}</td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('autoclub.inscripciones_detalle', id=i.id) }}"
+                 class="btn btn-xs btn-outline-secondary" title="Ver">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="{{ url_for('autoclub.inscripciones_editar', id=i.id) }}"
+                 class="btn btn-xs btn-outline-primary" title="Editar">
+                <i class="bi bi-pencil"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7">
+            <div class="empty-state">
+              <i class="bi bi-clipboard-check"></i>
+              <p>No se encontraron inscripciones{% if q %} para "{{ q }}"{% endif %}</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if inscripciones.pages > 1 %}
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <span class="text-xs text-muted">Página {{ inscripciones.page }} de {{ inscripciones.pages }}</span>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% if inscripciones.has_prev %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('autoclub.inscripciones_lista', page=inscripciones.prev_num, q=q, estado=estado, campeonato=campeonato) }}">
+              <i class="bi bi-chevron-left"></i>
+            </a>
+          </li>
+        {% endif %}
+        {% for pg in inscripciones.iter_pages() %}
+          {% if pg %}
+            <li class="page-item {% if pg == inscripciones.page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('autoclub.inscripciones_lista', page=pg, q=q, estado=estado, campeonato=campeonato) }}">{{ pg }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+        {% if inscripciones.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('autoclub.inscripciones_lista', page=inscripciones.next_num, q=q, estado=estado, campeonato=campeonato) }}">
+              <i class="bi bi-chevron-right"></i>
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

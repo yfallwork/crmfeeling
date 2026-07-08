@@ -308,6 +308,7 @@
           <i class="bi bi-pencil me-1"></i>Editar
         </a>
         <form id="modalEliminarForm" method="POST" style="display:inline" onsubmit="return confirm('¿Eliminar esta entrada?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="btn btn-outline-danger btn-sm">
             <i class="bi bi-trash me-1"></i>Eliminar
           </button>

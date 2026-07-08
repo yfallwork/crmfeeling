@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="csrf-token" content="{{ csrf_token() }}" />
   <title>{% block title %}AutoClub{% endblock %} — AutoClub</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
@@ -44,6 +45,58 @@
        class="nav-item {% if 'patrocinadores' in (request.endpoint or '') %}active{% endif %}"
        data-tooltip="Patrocinadores">
       <i class="bi bi-building"></i><span>Patrocinadores</span>
+    </a>
+
+    <a href="{{ url_for('autoclub.notas_lista') }}"
+       class="nav-item {% if request.endpoint == 'autoclub.notas_lista' %}active{% endif %}"
+       data-tooltip="Notas">
+      <i class="bi bi-journal-text"></i><span>Notas</span>
+    </a>
+
+    <div class="nav-section-label">Competición</div>
+
+    <a href="{{ url_for('autoclub.pilotos_lista') }}"
+       class="nav-item {% if request.endpoint and request.endpoint.startswith('autoclub.pilotos') %}active{% endif %}"
+       data-tooltip="Pilotos">
+      <i class="bi bi-person-badge-fill"></i><span>Pilotos</span>
+    </a>
+
+    <a href="{{ url_for('autoclub.vehiculos_lista') }}"
+       class="nav-item {% if request.endpoint and request.endpoint.startswith('autoclub.vehiculos') %}active{% endif %}"
+       data-tooltip="Vehículos">
+      <i class="bi bi-car-front-fill"></i><span>Vehículos</span>
+    </a>
+
+    <a href="{{ url_for('autoclub.inscripciones_lista') }}"
+       class="nav-item {% if request.endpoint and request.endpoint.startswith('autoclub.inscripciones') %}active{% endif %}"
+       data-tooltip="Inscripciones">
+      <i class="bi bi-clipboard-check-fill"></i><span>Inscripciones</span>
+    </a>
+
+    <a href="{{ url_for('autoclub.staff_lista') }}"
+       class="nav-item {% if request.endpoint and request.endpoint.startswith('autoclub.staff') %}active{% endif %}"
+       data-tooltip="Staff">
+      <i class="bi bi-people-fill"></i><span>Staff</span>
+    </a>
+
+    <a href="{{ url_for('autoclub.calendario') }}"
+       class="nav-item {% if request.endpoint in ('autoclub.calendario', 'autoclub.calendario_eventos') %}active{% endif %}"
+       data-tooltip="Calendario">
+      <i class="bi bi-calendar3-event-fill"></i><span>Calendario</span>
+    </a>
+
+    <a href="{{ url_for('autoclub.prensa') }}"
+       class="nav-item {% if request.endpoint and 'prensa' in request.endpoint %}active{% endif %}"
+       data-tooltip="Prensa">
+      <i class="bi bi-newspaper"></i><span>Prensa</span>
+    </a>
+
+    <div class="nav-section-label">Sistema</div>
+
+    <a href="{{ url_for('autoclub.informacion') }}"
+       class="nav-item {% if request.endpoint and ('informacion' in request.endpoint or 'credencial' in request.endpoint) %}active{% endif %}"
+       data-tooltip="Información">
+      <i class="bi bi-info-circle-fill"></i><span>Información</span>
     </a>
 
     <a href="{{ url_for('autoclub.seguimiento') }}"
@@ -107,7 +160,72 @@
   </button>
   <div class="topbar-title">{% block page_title %}{% endblock %}</div>
   <div class="ms-auto d-flex align-items-center gap-2">
-    {% block topbar_actions %}{% endblock %}
+    <div class="topbar-actions-scroll">
+      {% block topbar_actions %}{% endblock %}
+    </div>
+
+    <!-- Campana de notificaciones -->
+    <div class="dropdown">
+      <button class="btn btn-sm btn-outline-secondary position-relative"
+              data-bs-toggle="dropdown" aria-expanded="false"
+              style="width:34px;height:34px;padding:0;display:flex;align-items:center;justify-content:center">
+        <i class="bi bi-bell{% if notif_count > 0 %}-fill{% endif %}"
+           style="font-size:.9rem{% if notif_count > 0 %};color:#d97706{% endif %}"></i>
+        {% if notif_count > 0 %}
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+              style="font-size:.55rem;padding:2px 5px;min-width:16px">{{ notif_count }}</span>
+        {% endif %}
+      </button>
+
+      <div class="dropdown-menu dropdown-menu-end shadow-lg p-0"
+           style="width:340px;max-width:calc(100vw - 24px);border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
+
+        <!-- Cabecera -->
+        <div class="d-flex align-items-center justify-content-between px-3 py-2"
+             style="background:#f9fafb;border-bottom:1px solid #e5e7eb">
+          <span class="fw-semibold text-sm">Notificaciones</span>
+          {% if notif_count > 0 %}
+          <form method="POST" action="{{ url_for('autoclub.notificaciones_leer_todas') }}" style="margin:0">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-link btn-sm p-0 text-xs text-muted">
+              Marcar todas leídas
+            </button>
+          </form>
+          {% endif %}
+        </div>
+
+        <!-- Lista -->
+        <div style="max-height:360px;overflow-y:auto">
+          {% if notificaciones_recientes %}
+            {% for n in notificaciones_recientes %}
+            <div class="d-flex gap-2 px-3 py-2 {% if not loop.last %}border-bottom{% endif %}"
+                 style="background:#fff">
+              <div style="width:8px;height:8px;border-radius:50%;margin-top:6px;flex-shrink:0;
+                          background:{% if n.tipo == 'danger' %}#dc2626{% elif n.tipo == 'warning' %}#d97706{% else %}#3b82f6{% endif %}"></div>
+              <div style="flex:1;min-width:0">
+                <div class="text-sm fw-semibold text-truncate">{{ n.titulo }}</div>
+                <div class="text-xs text-muted" style="white-space:normal;line-height:1.4">{{ n.mensaje }}</div>
+                <div class="text-xs text-muted mt-1">{{ n.creado_en.strftime('%d/%m %H:%M') }}</div>
+              </div>
+              <form method="POST" action="{{ url_for('autoclub.notificacion_leer', id=n.id) }}" style="margin:0;flex-shrink:0">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-link btn-sm p-0 text-muted" title="Marcar leída">
+                  <i class="bi bi-check2" style="font-size:.85rem"></i>
+                </button>
+              </form>
+            </div>
+            {% endfor %}
+          {% else %}
+          <div class="text-center py-4 text-muted text-sm">
+            <i class="bi bi-bell-slash d-block mb-1" style="font-size:1.4rem;opacity:.4"></i>
+            Sin notificaciones pendientes
+          </div>
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+
     <button class="btn btn-sm btn-outline-secondary d-none d-lg-flex align-items-center gap-1"
             onclick="openSearch()" type="button">
       <i class="bi bi-search"></i>

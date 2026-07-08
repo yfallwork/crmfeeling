@@ -153,6 +153,14 @@
                  class="btn btn-xs btn-outline-primary" title="Editar">
                 <i class="bi bi-pencil"></i>
               </a>
+              <button type="button"
+                      class="btn btn-xs btn-outline-warning btn-nota-pat"
+                      title="Añadir nota"
+                      data-pat-id="{{ p.id }}"
+                      data-pat-nombre="{{ p.nombre }}"
+                      data-bs-toggle="modal" data-bs-target="#modalNotaPat">
+                <i class="bi bi-journal-plus"></i>
+              </button>
             </div>
           </td>
         </tr>
@@ -204,4 +212,40 @@
   {% endif %}
 
 </div>
+
+<!-- Modal nota patrocinador -->
+<div class="modal fade" id="modalNotaPat" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-journal-plus me-2"></i>Nueva nota</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="formNotaPat" method="POST" action="">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body">
+          <p class="text-sm text-muted mb-3" id="modalNotaPatNombre"></p>
+          <textarea name="contenido" class="form-control" rows="4"
+                    placeholder="Escribe una nota sobre este patrocinador…" required></textarea>
+          <input type="hidden" name="return_to" value="lista">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary btn-sm">Guardar nota</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.btn-nota-pat').forEach(btn => {
+  btn.addEventListener('click', function () {
+    const id = this.dataset.patId;
+    const nombre = this.dataset.patNombre;
+    document.getElementById('formNotaPat').action = `/autoclub/patrocinadores/${id}/notas/nueva`;
+    document.getElementById('modalNotaPatNombre').textContent = nombre;
+  });
+});
+</script>
 {% endblock %}

@@ -6,6 +6,7 @@ from flask_login import login_required
 from app.extensions import db
 from app.models.empresa import Empresa
 from app.models.empresa_nota import EmpresaNota
+from app.models.reserva import Reserva
 from app.models.tag import Tag, EmpresaTag
 from app.services.log_service import registrar_log, registrar_marketing_log
 from app.routes.autoclub import SECTORES_ESPAÑA
@@ -271,10 +272,20 @@ def empresas_eliminar(id):
     nombre = e.nombre
     for fn in [e.logo_positivo_filename, e.logo_negativo_filename, e.logo_banner_filename]:
         _delete_logo(fn)
+    # Sin esto, las reservas de esta empresa quedarían huérfanas (empresa_id
+    # apuntando a una fila ya borrada) y romperían dashboard/listados al
+    # intentar acceder a reserva.empresa. Se borran una a una (no con un bulk
+    # delete) para que la cascada ORM también elimine sus comunicaciones_log.
+    reservas_empresa = Reserva.query.filter_by(empresa_id=id).all()
+    n_reservas = len(reservas_empresa)
+    for r in reservas_empresa:
+        db.session.delete(r)
     db.session.delete(e)
     db.session.commit()
-    registrar_log("eliminar", "empresa", id, f"Empresa TB eliminada: {nombre}")
-    flash(f"Empresa {nombre} eliminada.", "info")
+    registrar_log("eliminar", "empresa", id,
+                  f"Empresa TB eliminada: {nombre} (junto con {n_reservas} reserva(s) asociada(s))")
+    flash(f"Empresa {nombre} eliminada"
+          f"{f', junto con {n_reservas} reserva(s) asociada(s)' if n_reservas else ''}.", "info")
     return redirect(url_for("teambuilding.empresas_lista"))
 
 

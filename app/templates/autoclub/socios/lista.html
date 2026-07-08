@@ -127,6 +127,14 @@
                  class="btn btn-xs btn-outline-primary" title="Editar">
                 <i class="bi bi-pencil"></i>
               </a>
+              <button type="button"
+                      class="btn btn-xs btn-outline-warning btn-nota-socio"
+                      title="Añadir nota"
+                      data-socio-id="{{ s.id }}"
+                      data-socio-nombre="{{ s.nombre }} {{ s.apellidos or '' }}"
+                      data-bs-toggle="modal" data-bs-target="#modalNotaSocio">
+                <i class="bi bi-journal-plus"></i>
+              </button>
             </div>
           </td>
         </tr>
@@ -178,4 +186,40 @@
   {% endif %}
 
 </div>
+
+<!-- Modal nota socio -->
+<div class="modal fade" id="modalNotaSocio" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-journal-plus me-2"></i>Nueva nota</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="formNotaSocio" method="POST" action="">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body">
+          <p class="text-sm text-muted mb-3" id="modalNotaSocioNombre"></p>
+          <textarea name="contenido" class="form-control" rows="4"
+                    placeholder="Escribe una nota sobre este socio…" required></textarea>
+          <input type="hidden" name="return_to" value="lista">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary btn-sm">Guardar nota</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.btn-nota-socio').forEach(btn => {
+  btn.addEventListener('click', function () {
+    const id = this.dataset.socioId;
+    const nombre = this.dataset.socioNombre;
+    document.getElementById('formNotaSocio').action = `/autoclub/socios/${id}/notas/nueva`;
+    document.getElementById('modalNotaSocioNombre').textContent = nombre;
+  });
+});
+</script>
 {% endblock %}

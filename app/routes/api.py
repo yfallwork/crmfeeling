@@ -38,23 +38,32 @@ def api_reservas():
 @api_bp.route("/reservas/<int:id>/fecha", methods=["PATCH"])
 @login_required
 def api_actualizar_fecha(id):
-    reserva = Reserva.query.get_or_404(id)
-    data = request.get_json()
+    from sqlalchemy.orm import joinedload
+    reserva = (
+        Reserva.query
+        .options(joinedload(Reserva.cliente), joinedload(Reserva.empresa))
+        .filter_by(id=id).first_or_404()
+    )
+    data = request.get_json(silent=True) or {}
     from datetime import datetime
+    fecha_str = data.get("fecha_disfrute", "")
+    if not fecha_str:
+        return jsonify({"ok": False, "error": "Fecha requerida"}), 400
+
     try:
-        fecha_str = data.get("fecha_disfrute", "")
-        if fecha_str:
-            reserva.fecha_disfrute = datetime.fromisoformat(fecha_str.replace("Z", ""))
-            if reserva.estado == "pendiente":
-                reserva.estado = "reservado"
-        db.session.commit()
-        from app.services.log_service import registrar_log
-        registrar_log("asignar_fecha", "reserva", id,
-                      f"Fecha asignada vía sidebar calendario: {reserva.fecha_disfrute.strftime('%d/%m/%Y %H:%M')} — {reserva.cliente.nombre_completo}")
-        return jsonify({"ok": True, "reserva": reserva.to_dict()})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"ok": False, "error": str(e)}), 400
+        nueva_fecha = datetime.fromisoformat(fecha_str.replace("Z", ""))
+    except (ValueError, TypeError):
+        return jsonify({"ok": False, "error": "Fecha inválida"}), 400
+
+    reserva.fecha_disfrute = nueva_fecha
+    if reserva.estado == "pendiente":
+        reserva.estado = "reservado"
+    db.session.commit()
+
+    from app.services.log_service import registrar_log
+    registrar_log("asignar_fecha", "reserva", id,
+                  f"Fecha asignada vía sidebar calendario: {reserva.fecha_disfrute.strftime('%d/%m/%Y %H:%M')} — {reserva.nombre_reservante}")
+    return jsonify({"ok": True, "reserva": reserva.to_dict()})
 
 
 @api_bp.route("/reservas/<int:id>/preview")
@@ -71,7 +80,7 @@ def api_preview(id):
     elif canal == "whatsapp":
         telefono, mensaje = build_preview_whatsapp(reserva, tipo)
         return jsonify({"telefono": telefono, "mensaje": mensaje})
-    return jsonify({"error": "Canal no válido"}), 400
+    return jsonify({"ok": False, "error": "Canal no válido"}), 400
 
 
 @api_bp.route("/reservas/<int:id>/notificar", methods=["POST"])

@@ -1,0 +1,163 @@
+{% extends "autoclub/base.html" %}
+{% block title %}{% if insc %}Editar inscripción{% else %}Nueva inscripción{% endif %} — AutoClub{% endblock %}
+{% block page_title %}{% if insc %}Editar inscripción{% else %}Nueva inscripción{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header bg-white border-bottom">
+        <h6 class="mb-0 fw-semibold">
+          <i class="bi bi-clipboard-check me-2 text-primary"></i>
+          {% if insc %}Editar inscripción{% else %}Nueva inscripción{% endif %}
+        </h6>
+      </div>
+      <div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="row g-3">
+
+            <div class="col-12">
+              <label class="form-label fw-semibold">Nombre de la prueba <span class="text-danger">*</span></label>
+              <input type="text" name="nombre_prueba" class="form-control" required
+                     placeholder="Ej: Autocross de Silleda — Prueba 3"
+                     value="{{ insc.nombre_prueba if insc else '' }}" />
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Fecha de la prueba</label>
+              <input type="date" name="fecha_prueba" class="form-control"
+                     value="{{ insc.fecha_prueba.strftime('%Y-%m-%d') if insc and insc.fecha_prueba else (fecha_pre or '') }}" />
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Plazo de presentación</label>
+              <input type="date" name="fecha_plazo" class="form-control"
+                     value="{{ insc.fecha_plazo.strftime('%Y-%m-%d') if insc and insc.fecha_plazo else '' }}" />
+              <div class="form-text">Fecha límite para entregar la inscripción</div>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Campeonato</label>
+              <select name="campeonato" class="form-select">
+                <option value="">— Seleccionar —</option>
+                {% for c in campeonatos %}
+                  <option value="{{ c }}" {% if insc and insc.campeonato == c %}selected{% endif %}>{{ c }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Estado</label>
+              <select name="estado" class="form-select">
+                {% for e in ['pendiente', 'enviada', 'aceptada', 'rechazada'] %}
+                  <option value="{{ e }}"
+                          {% if (insc and insc.estado == e) or (not insc and e == 'pendiente') %}selected{% endif %}>
+                    {{ e | capitalize }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Piloto <span class="text-danger">*</span></label>
+              <select name="piloto_id" id="pilotoSelect" class="form-select" required>
+                <option value="">— Seleccionar piloto —</option>
+                {% for p in pilotos %}
+                  <option value="{{ p.id }}"
+                          {% if (insc and insc.piloto_id == p.id) or (piloto_id_pre == p.id) %}selected{% endif %}>
+                    {{ p.nombre_completo }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Vehículo</label>
+              <select name="vehiculo_id" id="vehiculoSelect" class="form-select">
+                <option value="">— Sin asignar —</option>
+                {% for v in vehiculos %}
+                  <option value="{{ v.id }}"
+                          data-piloto="{{ v.piloto_id or '' }}"
+                          {% if insc and insc.vehiculo_id == v.id %}selected{% endif %}>
+                    {{ v.nombre_display }}
+                    {% if v.piloto %} ({{ v.piloto.nombre_completo }}){% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label fw-semibold">Concursante</label>
+              <input type="text" name="concursante" class="form-control"
+                     placeholder="Nombre o entidad concursante"
+                     value="{{ insc.concursante if insc else '' }}" />
+            </div>
+
+            <div class="col-12">
+              <label class="form-label fw-semibold">Justificante de inscripción (PDF/imagen)</label>
+              <input type="file" name="justificante" class="form-control" accept=".pdf,.jpg,.jpeg,.png" />
+              {% if insc and insc.justificante_filename %}
+                <div class="form-text">
+                  <i class="bi bi-paperclip me-1"></i>
+                  <a href="{{ url_for('static', filename='uploads/autoclub/docs/' + insc.justificante_filename) }}"
+                     target="_blank">Ver justificante actual</a>
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="col-12">
+              <label class="form-label fw-semibold">Notas</label>
+              <textarea name="notas" class="form-control" rows="3"
+                        placeholder="Observaciones…">{{ insc.notas if insc else '' }}</textarea>
+            </div>
+
+          </div>
+
+          <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-lg me-1"></i>
+              {% if insc %}Guardar cambios{% else %}Crear inscripción{% endif %}
+            </button>
+            <a href="{{ url_for('autoclub.inscripciones_detalle', id=insc.id) if insc else url_for('autoclub.inscripciones_lista') }}"
+               class="btn btn-outline-secondary">Cancelar</a>
+
+            {% if insc %}
+            <form method="POST" action="{{ url_for('autoclub.inscripciones_eliminar', id=insc.id) }}"
+                  class="ms-auto"
+                  onsubmit="return confirm('¿Eliminar esta inscripción permanentemente?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-trash me-1"></i>Eliminar
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var pilotoSel  = document.getElementById('pilotoSelect');
+  var vehiculoSel = document.getElementById('vehiculoSelect');
+
+  function filtrarVehiculos() {
+    var pid = pilotoSel.value;
+    var opts = vehiculoSel.options;
+    for (var i = 0; i < opts.length; i++) {
+      var opt = opts[i];
+      if (!opt.value) continue;
+      opt.hidden = pid ? (opt.dataset.piloto !== pid) : false;
+    }
+  }
+
+  if (pilotoSel) pilotoSel.addEventListener('change', filtrarVehiculos);
+  filtrarVehiculos();
+});
+</script>
+{% endblock %}

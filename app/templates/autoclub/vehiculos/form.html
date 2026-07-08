@@ -1,0 +1,390 @@
+{% extends "autoclub/base.html" %}
+{% block title %}{% if vehiculo %}Editar vehículo{% else %}Nuevo vehículo{% endif %} — AutoClub{% endblock %}
+{% block page_title %}{% if vehiculo %}Editar vehículo{% else %}Nuevo vehículo{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-xl-10 col-lg-11">
+
+    <form method="POST">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <!-- Tipo de vehículo -->
+      <div class="card mb-4">
+        <div class="card-header bg-white border-bottom">
+          <h6 class="mb-0 fw-semibold"><i class="bi bi-car-front me-2 text-primary"></i>Tipo de Vehículo</h6>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Tipo <span class="text-danger">*</span></label>
+              <select name="tipo_vehiculo" id="tipoVehiculo" class="form-select" required onchange="actualizarTipo()">
+                <option value="car_cross"  {% if not vehiculo or vehiculo.tipo_vehiculo == 'car_cross'  %}selected{% endif %}>Car Cross</option>
+                <option value="division_i" {% if vehiculo and vehiculo.tipo_vehiculo == 'division_i' %}selected{% endif %}>División I</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Categoría</label>
+              <select name="categoria" id="categoriaSelect" class="form-select">
+                <option value="">— Seleccionar —</option>
+                {% set cats_cc = ['Car Cross', 'CC Promoción', 'CC Series', 'Júnior'] %}
+                {% set cats_div = ['División I', 'División II', 'Off-Road Series', 'Otro'] %}
+                {% set all_cats = cats_cc + cats_div %}
+                {% for c in all_cats %}
+                  <option value="{{ c }}"
+                          data-tipo="{% if c in cats_cc %}car_cross{% else %}division_i{% endif %}"
+                          {% if vehiculo and vehiculo.categoria == c %}selected{% endif %}>{{ c }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold">Dorsal</label>
+              <input type="text" name="dorsal" class="form-control"
+                     value="{{ vehiculo.dorsal if vehiculo else '' }}" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold">Nº Transponder</label>
+              <input type="text" name="num_transponder" class="form-control"
+                     value="{{ vehiculo.num_transponder if vehiculo else '' }}" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Car Cross -->
+      <div id="seccion-car-cross" class="card mb-4">
+        <div class="card-header bg-white border-bottom">
+          <h6 class="mb-0 fw-semibold">
+            <span class="badge me-2" style="background:#fff7ed;color:#c2410c">Car Cross</span>
+            Identificación del vehículo
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Marca chasis</label>
+              <input type="text" name="cc_chasis_marca" class="form-control" list="listaMarcasChasis"
+                     value="{{ vehiculo.cc_chasis_marca if vehiculo else '' }}" />
+              <datalist id="listaMarcasChasis">
+                {% for m in ['Yacar', 'Labase', 'Speed Car', 'Semog', 'Casmat'] %}
+                  <option value="{{ m }}">
+                {% endfor %}
+              </datalist>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Modelo chasis</label>
+              <input type="text" name="cc_chasis_modelo" class="form-control"
+                     value="{{ vehiculo.cc_chasis_modelo if vehiculo else '' }}" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Nº de chasis</label>
+              <input type="text" name="cc_num_chasis" class="form-control"
+                     value="{{ vehiculo.cc_num_chasis if vehiculo else '' }}" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Pasaporte RFEDA</label>
+              <input type="text" name="cc_pasaporte_rfeda" class="form-control"
+                     value="{{ vehiculo.cc_pasaporte_rfeda if vehiculo else '' }}" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Pasaporte autonómico</label>
+              <input type="text" name="cc_pasaporte_autonomico" class="form-control"
+                     value="{{ vehiculo.cc_pasaporte_autonomico if vehiculo else '' }}" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Nº homologación</label>
+              <input type="text" name="cc_num_homologacion" class="form-control"
+                     value="{{ vehiculo.cc_num_homologacion if vehiculo else '' }}" />
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold text-muted" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.04em">Motor</label>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Marca motor</label>
+              <input type="text" name="cc_motor_marca" class="form-control" list="listaMarcasMotor"
+                     value="{{ vehiculo.cc_motor_marca if vehiculo else '' }}" />
+              <datalist id="listaMarcasMotor">
+                {% for m in ['Suzuki', 'Yamaha', 'Kawasaki', 'Honda'] %}
+                  <option value="{{ m }}">
+                {% endfor %}
+              </datalist>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Modelo motor</label>
+              <input type="text" name="cc_motor_modelo" class="form-control"
+                     value="{{ vehiculo.cc_motor_modelo if vehiculo else '' }}" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold">Año motor</label>
+              <input type="text" name="cc_motor_anio" class="form-control" placeholder="2023"
+                     value="{{ vehiculo.cc_motor_anio if vehiculo else '' }}" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold">Cilindrada (cc)</label>
+              <input type="number" name="cc_cilindrada" class="form-control"
+                     value="{{ vehiculo.cc_cilindrada if vehiculo else '' }}" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold">Nº motor</label>
+              <input type="text" name="cc_num_motor" class="form-control"
+                     value="{{ vehiculo.cc_num_motor if vehiculo else '' }}" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- División I -->
+      <div id="seccion-division-i" class="card mb-4">
+        <div class="card-header bg-white border-bottom">
+          <h6 class="mb-0 fw-semibold">
+            <span class="badge me-2" style="background:#eff6ff;color:#1d4ed8">División I</span>
+            Identificación del vehículo
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Marca</label>
+              <input type="text" name="div_marca" class="form-control"
+                     value="{{ vehiculo.div_marca if vehiculo else '' }}" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Modelo</label>
+              <input type="text" name="div_modelo" class="form-control"
+                     value="{{ vehiculo.div_modelo if vehiculo else '' }}" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Nº bastidor (VIN)</label>
+              <input type="text" name="div_num_bastidor" class="form-control"
+                     value="{{ vehiculo.div_num_bastidor if vehiculo else '' }}" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Pasaporte RFEDA</label>
+              <input type="text" name="div_pasaporte_rfeda" class="form-control"
+                     value="{{ vehiculo.div_pasaporte_rfeda if vehiculo else '' }}" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Pasaporte autonómico</label>
+              <input type="text" name="div_pasaporte_autonomico" class="form-control"
+                     value="{{ vehiculo.div_pasaporte_autonomico if vehiculo else '' }}" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Homologación</label>
+              <input type="text" name="div_homologacion" class="form-control"
+                     value="{{ vehiculo.div_homologacion if vehiculo else '' }}" />
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold text-muted" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.04em">Motor</label>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Disposición</label>
+              <select name="div_motor_disposicion" class="form-select">
+                <option value="">—</option>
+                {% for d in [('delantero','Delantero'), ('central','Central'), ('trasero','Trasero')] %}
+                  <option value="{{ d[0] }}"
+                          {% if vehiculo and vehiculo.div_motor_disposicion == d[0] %}selected{% endif %}>{{ d[1] }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Aspiración</label>
+              <select name="div_motor_aspiracion" class="form-select">
+                <option value="">—</option>
+                {% for a in [('atmosferico','Atmosférico'), ('turbo','Turbo')] %}
+                  <option value="{{ a[0] }}"
+                          {% if vehiculo and vehiculo.div_motor_aspiracion == a[0] %}selected{% endif %}>{{ a[1] }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold">Cilindrada (cc)</label>
+              <input type="number" name="div_cilindrada" class="form-control"
+                     value="{{ vehiculo.div_cilindrada if vehiculo else '' }}" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold">Factor corrección</label>
+              <input type="number" name="div_factor_correccion" class="form-control" step="0.01"
+                     value="{{ vehiculo.div_factor_correccion if vehiculo else '' }}" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold">Tracción</label>
+              <select name="div_traccion" class="form-select">
+                <option value="">—</option>
+                {% for t in [('4rm','Total 4RM'), ('2rm_trasera','Trasera 2RM'), ('2rm_delantera','Delantera 2RM')] %}
+                  <option value="{{ t[0] }}"
+                          {% if vehiculo and vehiculo.div_traccion == t[0] %}selected{% endif %}>{{ t[1] }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Seguridad -->
+      <div class="card mb-4">
+        <div class="card-header bg-white border-bottom">
+          <h6 class="mb-0 fw-semibold"><i class="bi bi-shield-check me-2 text-success"></i>Elementos de Seguridad</h6>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold text-muted" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.04em">Arnés</label>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Marca</label>
+              <input type="text" name="arnes_marca" class="form-control"
+                     value="{{ vehiculo.arnes_marca if vehiculo else '' }}" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Homologación</label>
+              <input type="text" name="arnes_homologacion" class="form-control"
+                     value="{{ vehiculo.arnes_homologacion if vehiculo else '' }}" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Caducidad</label>
+              <input type="date" name="arnes_caducidad" class="form-control"
+                     value="{{ vehiculo.arnes_caducidad.strftime('%Y-%m-%d') if vehiculo and vehiculo.arnes_caducidad else '' }}" />
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold text-muted" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.04em">Asiento</label>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Marca</label>
+              <input type="text" name="asiento_marca" class="form-control"
+                     value="{{ vehiculo.asiento_marca if vehiculo else '' }}" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Homologación</label>
+              <input type="text" name="asiento_homologacion" class="form-control"
+                     value="{{ vehiculo.asiento_homologacion if vehiculo else '' }}" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Caducidad</label>
+              <input type="date" name="asiento_caducidad" class="form-control"
+                     value="{{ vehiculo.asiento_caducidad.strftime('%Y-%m-%d') if vehiculo and vehiculo.asiento_caducidad else '' }}" />
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold text-muted" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.04em">Sistema de extinción</label>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Marca</label>
+              <input type="text" name="extincion_marca" class="form-control"
+                     value="{{ vehiculo.extincion_marca if vehiculo else '' }}" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Tipo</label>
+              <select name="extincion_tipo" class="form-select">
+                <option value="">—</option>
+                <option value="manual"    {% if vehiculo and vehiculo.extincion_tipo == 'manual' %}selected{% endif %}>Manual</option>
+                <option value="automatico" {% if vehiculo and vehiculo.extincion_tipo == 'automatico' %}selected{% endif %}>Automático</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Revisión</label>
+              <input type="date" name="extincion_revision" class="form-control"
+                     value="{{ vehiculo.extincion_revision.strftime('%Y-%m-%d') if vehiculo and vehiculo.extincion_revision else '' }}" />
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold text-muted" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.04em">Depósito FT3</label>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Marca</label>
+              <input type="text" name="deposito_marca" class="form-control"
+                     value="{{ vehiculo.deposito_marca if vehiculo else '' }}" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Caducidad</label>
+              <input type="date" name="deposito_caducidad" class="form-control"
+                     value="{{ vehiculo.deposito_caducidad.strftime('%Y-%m-%d') if vehiculo and vehiculo.deposito_caducidad else '' }}" />
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold text-muted" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.04em">Red de ventanas</label>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Estado</label>
+              <input type="text" name="red_estado" class="form-control"
+                     value="{{ vehiculo.red_estado if vehiculo else '' }}" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Homologación</label>
+              <input type="text" name="red_homologacion" class="form-control"
+                     value="{{ vehiculo.red_homologacion if vehiculo else '' }}" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Piloto asociado -->
+      <div class="card mb-4">
+        <div class="card-header bg-white border-bottom">
+          <h6 class="mb-0 fw-semibold"><i class="bi bi-person me-2 text-primary"></i>Piloto asociado</h6>
+        </div>
+        <div class="card-body">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Piloto</label>
+            <select name="piloto_id" class="form-select">
+              <option value="">— Sin asignar —</option>
+              {% for p in pilotos %}
+                <option value="{{ p.id }}"
+                        {% if (vehiculo and vehiculo.piloto_id == p.id) or (piloto_id_pre == p.id) %}selected{% endif %}>
+                  {{ p.nombre_completo }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check-lg me-1"></i>
+          {% if vehiculo %}Guardar cambios{% else %}Crear vehículo{% endif %}
+        </button>
+        <a href="{{ url_for('autoclub.vehiculos_detalle', id=vehiculo.id) if vehiculo else url_for('autoclub.vehiculos_lista') }}"
+           class="btn btn-outline-secondary">Cancelar</a>
+
+        {% if vehiculo %}
+        <form method="POST" action="{{ url_for('autoclub.vehiculos_eliminar', id=vehiculo.id) }}"
+              class="ms-auto"
+              onsubmit="return confirm('¿Eliminar este vehículo permanentemente?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-trash me-1"></i>Eliminar
+          </button>
+        </form>
+        {% endif %}
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var CATS_CC  = ['Car Cross', 'CC Promoción', 'CC Series', 'Júnior'];
+var CATS_DIV = ['División I', 'División II', 'Off-Road Series', 'Otro'];
+
+function actualizarTipo() {
+  var tipo   = document.getElementById('tipoVehiculo').value;
+  var secCC  = document.getElementById('seccion-car-cross');
+  var secDiv = document.getElementById('seccion-division-i');
+  var catSel = document.getElementById('categoriaSelect');
+  var curVal = catSel.value;
+
+  secCC.style.display  = tipo === 'car_cross'  ? '' : 'none';
+  secDiv.style.display = tipo === 'division_i' ? '' : 'none';
+
+  var cats = tipo === 'car_cross' ? CATS_CC : CATS_DIV;
+  var opts = catSel.options;
+  for (var i = 0; i < opts.length; i++) {
+    var opt = opts[i];
+    if (!opt.value) continue;
+    opt.hidden = cats.indexOf(opt.value) === -1;
+  }
+  if (cats.indexOf(curVal) === -1) catSel.value = '';
+}
+
+document.addEventListener('DOMContentLoaded', actualizarTipo);
+</script>
+{% endblock %}

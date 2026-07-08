@@ -343,6 +343,7 @@
     </div>
     <div class="chart-body" style="padding-top:8px !important">
       {% if top_clientes %}
+      <div class="table-responsive">
       <table class="top-table">
         {% for c in top_clientes %}
         <tr>
@@ -364,6 +365,7 @@
         </tr>
         {% endfor %}
       </table>
+      </div>
       {% else %}
       <div class="empty-state">
         <i class="bi bi-award"></i>

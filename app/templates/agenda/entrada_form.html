@@ -108,6 +108,7 @@
 
   <div class="form-card-body">
     <form method="POST">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
       <!-- ── DATOS BÁSICOS ── -->
       <div class="form-section-title">Datos básicos</div>
@@ -250,6 +251,7 @@
         {% if entrada %}
         <form method="POST" action="{{ url_for('agenda.eliminar_entrada', id=entrada.id) }}"
               class="ms-auto" onsubmit="return confirm('¿Eliminar esta entrada?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="btn btn-outline-danger btn-sm">
             <i class="bi bi-trash me-1"></i>Eliminar
           </button>

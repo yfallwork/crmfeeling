@@ -113,6 +113,7 @@
         <form method="POST"
               action="{{ url_for('teambuilding.empresas_nota_eliminar', id=nota.empresa_id, nid=nota.id) }}"
               onsubmit="return confirm('¿Eliminar esta nota?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="return_to" value="lista">
           <button type="submit" class="btn btn-xs btn-outline-danger" title="Eliminar nota">
             <i class="bi bi-trash"></i>

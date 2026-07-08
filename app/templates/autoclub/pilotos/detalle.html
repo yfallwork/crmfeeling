@@ -1,0 +1,329 @@
+{% extends "autoclub/base.html" %}
+{% block title %}{{ piloto.nombre_completo }} — AutoClub{% endblock %}
+{% block page_title %}{{ piloto.nombre_completo }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.pilotos_lista') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i>Pilotos
+</a>
+<a href="{{ url_for('autoclub.pilotos_editar', id=piloto.id) }}" class="btn btn-sm btn-outline-primary">
+  <i class="bi bi-pencil me-1"></i>Editar
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+
+  <!-- Columna izquierda -->
+  <div class="col-lg-4">
+    <div class="card card-accent mb-3">
+      <div class="card-body" style="padding:28px 20px 20px !important">
+        <div class="text-center mb-4">
+          <div class="avatar-lg mb-3 mx-auto"
+               style="{% if not piloto.activo %}background:var(--gray-200);color:var(--gray-500){% endif %}">
+            {{ piloto.nombre[0] | upper }}
+          </div>
+          <h5 class="fw-bold mb-1" style="font-size:1rem">{{ piloto.nombre_completo }}</h5>
+          {% if piloto.num_licencia %}
+            <div class="text-muted text-sm mb-2">
+              <i class="bi bi-award me-1"></i>{{ piloto.num_licencia }}
+              {% if piloto.tipo_licencia %}<span class="ms-1 text-xs">({{ piloto.tipo_licencia }})</span>{% endif %}
+            </div>
+          {% endif %}
+          <div class="mt-1">
+            {% if piloto.activo %}
+              <span class="badge badge-activo rounded-pill"><i class="bi bi-check-circle me-1"></i>Activo</span>
+            {% else %}
+              <span class="badge badge-inactivo rounded-pill"><i class="bi bi-pause-circle me-1"></i>Inactivo</span>
+            {% endif %}
+            {% if piloto.es_menor %}
+              <span class="badge rounded-pill ms-1" style="background:#fef3c7;color:#92400e">Menor</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <ul class="list-unstyled cliente-info mb-0">
+          {% if piloto.email %}
+          <li>
+            <i class="bi bi-envelope"></i>
+            <a href="mailto:{{ piloto.email }}" class="text-decoration-none text-sm">{{ piloto.email }}</a>
+          </li>
+          {% endif %}
+          {% if piloto.telefono %}
+          <li>
+            <i class="bi bi-telephone"></i>
+            <a href="tel:{{ piloto.telefono }}" class="text-decoration-none text-sm">{{ piloto.telefono }}</a>
+          </li>
+          {% endif %}
+          {% if piloto.telefono_asistencia %}
+          <li>
+            <i class="bi bi-headset"></i>
+            <span class="text-sm">{{ piloto.telefono_asistencia }} <span class="text-muted">(asistencia)</span></span>
+          </li>
+          {% endif %}
+          {% if piloto.dni %}
+          <li>
+            <i class="bi bi-card-text"></i>
+            <span class="text-sm">{{ piloto.dni }}</span>
+            {% if piloto.dni_doc_filename %}
+              <a href="{{ url_for('static', filename='uploads/autoclub/docs/' + piloto.dni_doc_filename) }}"
+                 target="_blank" class="ms-1 text-xs text-primary">
+                <i class="bi bi-paperclip"></i>doc
+              </a>
+            {% endif %}
+          </li>
+          {% endif %}
+          {% if piloto.fecha_nacimiento %}
+          <li>
+            <i class="bi bi-calendar3"></i>
+            <span class="text-sm">{{ piloto.fecha_nacimiento.strftime('%d/%m/%Y') }}</span>
+          </li>
+          {% endif %}
+          {% if piloto.grupo_sanguineo %}
+          <li>
+            <i class="bi bi-droplet-fill text-danger"></i>
+            <span class="text-sm fw-semibold">{{ piloto.grupo_sanguineo }}</span>
+          </li>
+          {% endif %}
+        </ul>
+
+        <div class="mt-3 d-flex flex-column gap-2">
+          <form method="POST" action="{{ url_for('autoclub.pilotos_toggle', id=piloto.id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm w-100 {% if piloto.activo %}btn-outline-warning{% else %}btn-outline-success{% endif %}">
+              <i class="bi bi-toggle-{{ 'on' if piloto.activo else 'off' }} me-1"></i>
+              {% if piloto.activo %}Desactivar{% else %}Reactivar{% endif %}
+            </button>
+          </form>
+          <form method="POST" action="{{ url_for('autoclub.pilotos_eliminar', id=piloto.id) }}"
+                onsubmit="return confirm('¿Eliminar este piloto permanentemente?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+              <i class="bi bi-trash me-1"></i>Eliminar
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Acciones rápidas -->
+    <div class="card mb-3">
+      <div class="card-header bg-white border-bottom py-2">
+        <span class="fw-semibold text-sm">Acciones rápidas</span>
+      </div>
+      <div class="card-body p-2 d-flex flex-column gap-2">
+        <a href="{{ url_for('autoclub.vehiculos_nuevo', piloto_id=piloto.id) }}"
+           class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-plus me-1"></i>Nuevo vehículo
+        </a>
+        <a href="{{ url_for('autoclub.inscripciones_nueva', piloto_id=piloto.id) }}"
+           class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-plus me-1"></i>Nueva inscripción
+        </a>
+        <a href="{{ url_for('autoclub.vehiculos_lista') }}?piloto_id={{ piloto.id }}"
+           class="btn btn-sm btn-ghost-secondary">
+          <i class="bi bi-car-front me-1"></i>Ver vehículos
+        </a>
+        <a href="{{ url_for('autoclub.inscripciones_lista') }}?piloto_id={{ piloto.id }}"
+           class="btn btn-sm btn-ghost-secondary">
+          <i class="bi bi-clipboard-check me-1"></i>Ver inscripciones
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Columna derecha -->
+  <div class="col-lg-8">
+
+    <!-- Datos federativos -->
+    {% if piloto.num_licencia or piloto.federacion %}
+    <div class="card mb-3">
+      <div class="card-header bg-white border-bottom py-2">
+        <span class="fw-semibold text-sm"><i class="bi bi-award me-2"></i>Datos Federativos</span>
+      </div>
+      <div class="card-body">
+        <div class="row g-2 text-sm">
+          {% if piloto.num_licencia %}
+          <div class="col-md-4">
+            <span class="text-muted d-block" style="font-size:.72rem;text-transform:uppercase">Nº Licencia</span>
+            <strong>{{ piloto.num_licencia }}</strong>
+          </div>
+          {% endif %}
+          {% if piloto.tipo_licencia %}
+          <div class="col-md-4">
+            <span class="text-muted d-block" style="font-size:.72rem;text-transform:uppercase">Tipo</span>
+            {{ piloto.tipo_licencia }}
+          </div>
+          {% endif %}
+          {% if piloto.federacion %}
+          <div class="col-md-4">
+            <span class="text-muted d-block" style="font-size:.72rem;text-transform:uppercase">Federación</span>
+            {{ piloto.federacion }}
+          </div>
+          {% endif %}
+          {% if piloto.num_licencia_concursante %}
+          <div class="col-md-6">
+            <span class="text-muted d-block" style="font-size:.72rem;text-transform:uppercase">Nº Lic. Concursante</span>
+            {{ piloto.num_licencia_concursante }}
+          </div>
+          {% endif %}
+          {% if piloto.nombre_concursante %}
+          <div class="col-md-6">
+            <span class="text-muted d-block" style="font-size:.72rem;text-transform:uppercase">Nombre concursante</span>
+            {{ piloto.nombre_concursante }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Dirección -->
+    {% if piloto.calle or piloto.localidad %}
+    <div class="card mb-3">
+      <div class="card-header bg-white border-bottom py-2">
+        <span class="fw-semibold text-sm"><i class="bi bi-geo-alt me-2"></i>Dirección</span>
+      </div>
+      <div class="card-body text-sm">
+        {% if piloto.calle %}<div>{{ piloto.calle }}</div>{% endif %}
+        {% if piloto.cp or piloto.localidad %}
+          <div>{{ piloto.cp }} {{ piloto.localidad }}{% if piloto.provincia %}, {{ piloto.provincia }}{% endif %}</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Emergencia -->
+    {% if piloto.contacto_emergencia_nombre %}
+    <div class="card mb-3">
+      <div class="card-header bg-white border-bottom py-2">
+        <span class="fw-semibold text-sm"><i class="bi bi-heart-pulse me-2 text-danger"></i>Contacto de emergencia</span>
+      </div>
+      <div class="card-body text-sm">
+        <div class="row g-2">
+          <div class="col-md-5"><strong>{{ piloto.contacto_emergencia_nombre }}</strong></div>
+          {% if piloto.contacto_emergencia_parentesco %}
+            <div class="col-md-3 text-muted">{{ piloto.contacto_emergencia_parentesco }}</div>
+          {% endif %}
+          {% if piloto.contacto_emergencia_telefono %}
+            <div class="col-md-4">
+              <a href="tel:{{ piloto.contacto_emergencia_telefono }}" class="text-decoration-none">
+                <i class="bi bi-telephone me-1"></i>{{ piloto.contacto_emergencia_telefono }}
+              </a>
+            </div>
+          {% endif %}
+        </div>
+        {% if piloto.alergias %}
+          <div class="mt-2 p-2 rounded" style="background:var(--gray-100);font-size:.82rem">
+            <i class="bi bi-exclamation-triangle text-warning me-1"></i>{{ piloto.alergias }}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Menores -->
+    {% if piloto.es_menor and piloto.tutor_nombre %}
+    <div class="card mb-3" style="border-color:#fcd34d">
+      <div class="card-header border-bottom py-2" style="background:#fefce8">
+        <span class="fw-semibold text-sm"><i class="bi bi-shield-exclamation me-2 text-warning"></i>Tutor legal</span>
+      </div>
+      <div class="card-body text-sm">
+        <div>{{ piloto.tutor_nombre }}{% if piloto.tutor_dni %} — {{ piloto.tutor_dni }}{% endif %}</div>
+        {% if piloto.tutor_doc_filename %}
+          <a href="{{ url_for('static', filename='uploads/autoclub/docs/' + piloto.tutor_doc_filename) }}"
+             target="_blank" class="btn btn-xs btn-outline-secondary mt-2">
+            <i class="bi bi-paperclip me-1"></i>Ver autorización
+          </a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Vehículos -->
+    <div class="card mb-3">
+      <div class="card-header bg-white border-bottom py-2 d-flex align-items-center justify-content-between">
+        <span class="fw-semibold text-sm"><i class="bi bi-car-front me-2"></i>Vehículos</span>
+        <a href="{{ url_for('autoclub.vehiculos_nuevo', piloto_id=piloto.id) }}"
+           class="btn btn-xs btn-outline-primary">
+          <i class="bi bi-plus"></i> Nuevo
+        </a>
+      </div>
+      <div class="card-body p-0">
+        {% set vehs = piloto.vehiculos.all() %}
+        {% if vehs %}
+          <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <tbody>
+              {% for v in vehs %}
+              <tr>
+                <td class="ps-3">
+                  <span class="badge rounded-pill me-2 text-xs"
+                        style="background:{% if v.tipo_vehiculo == 'car_cross' %}#fff7ed;color:#c2410c{% else %}#eff6ff;color:#1d4ed8{% endif %}">
+                    {{ 'Car Cross' if v.tipo_vehiculo == 'car_cross' else 'División I' }}
+                  </span>
+                  <a href="{{ url_for('autoclub.vehiculos_detalle', id=v.id) }}"
+                     class="text-decoration-none fw-semibold text-sm">{{ v.nombre_display }}</a>
+                </td>
+                <td class="text-muted text-sm">{{ v.categoria or '' }}</td>
+                <td class="text-muted text-sm">{{ 'Dorsal ' + v.dorsal if v.dorsal else '' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </div>
+        {% else %}
+          <div class="empty-state" style="padding:24px 0">
+            <i class="bi bi-car-front" style="font-size:1.5rem"></i>
+            <p class="text-sm">Sin vehículos registrados</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Inscripciones recientes -->
+    <div class="card mb-3">
+      <div class="card-header bg-white border-bottom py-2 d-flex align-items-center justify-content-between">
+        <span class="fw-semibold text-sm"><i class="bi bi-clipboard-check me-2"></i>Inscripciones</span>
+        <a href="{{ url_for('autoclub.inscripciones_nueva', piloto_id=piloto.id) }}"
+           class="btn btn-xs btn-outline-primary">
+          <i class="bi bi-plus"></i> Nueva
+        </a>
+      </div>
+      <div class="card-body p-0">
+        {% set inscs = piloto.inscripciones.order_by_desc_creado_en if false else piloto.inscripciones.all() %}
+        {% if inscs %}
+          <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <tbody>
+              {% for i in inscs[:5] %}
+              <tr>
+                <td class="ps-3 text-sm">
+                  <a href="{{ url_for('autoclub.inscripciones_detalle', id=i.id) }}"
+                     class="text-decoration-none fw-semibold">{{ i.nombre_prueba }}</a>
+                </td>
+                <td class="text-muted text-sm">{{ i.fecha_prueba.strftime('%d/%m/%Y') if i.fecha_prueba else '—' }}</td>
+                <td>
+                  {% set ec = {'pendiente': '#6b7280', 'enviada': '#1d4ed8', 'aceptada': '#16a34a', 'rechazada': '#dc2626'} %}
+                  <span class="badge rounded-pill text-xs"
+                        style="background:{{ ec.get(i.estado, '#6b7280') }}20;color:{{ ec.get(i.estado, '#6b7280') }}">
+                    {{ i.estado | capitalize }}
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </div>
+        {% else %}
+          <div class="empty-state" style="padding:24px 0">
+            <i class="bi bi-clipboard" style="font-size:1.5rem"></i>
+            <p class="text-sm">Sin inscripciones registradas</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

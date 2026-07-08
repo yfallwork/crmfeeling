@@ -1,0 +1,827 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#111111" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="csrf-token" content="{{ csrf_token() }}" />
+  <title>Calendarios</title>
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --red:      #AD1726;
+      --red-dk:   #8b1220;
+      --black:    #111111;
+      --gray:     #6b7280;
+      --border:   #e5e7eb;
+      --bg:       #f3f4f6;
+      --nav-h:    56px;
+      --tab-h:    52px;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      overscroll-behavior: none;
+    }
+
+    /* ── HEADER ─────────────────────────────── */
+    .v-header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--nav-h);
+      background: var(--black);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      padding-top: env(safe-area-inset-top);
+      gap: 10px;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    }
+    .v-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+    }
+    .v-logo-icon {
+      width: 34px; height: 34px;
+      background: var(--red);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .v-logo-text {
+      font-weight: 800;
+      font-size: .92rem;
+      color: #fff;
+      letter-spacing: -.2px;
+    }
+    .v-logo-sub {
+      font-size: .68rem;
+      color: rgba(255,255,255,.45);
+      margin-top: 1px;
+    }
+    .v-user {
+      font-size: .75rem;
+      color: rgba(255,255,255,.5);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .v-logout {
+      width: 34px; height: 34px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.08);
+      border: none;
+      color: rgba(255,255,255,.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .95rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .15s;
+    }
+    .v-logout:hover { background: rgba(255,255,255,.15); color: #fff; }
+
+    /* ── TAB BAR (desktop) ──────────────────── */
+    .v-tabs {
+      position: fixed;
+      top: var(--nav-h);
+      left: 0; right: 0;
+      height: var(--tab-h);
+      background: #fff;
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      z-index: 90;
+    }
+    .v-tab {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--gray);
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: color .15s, border-color .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .v-tab.active {
+      color: var(--black);
+      border-bottom-color: var(--red);
+    }
+    .v-tab i { font-size: .95rem; }
+
+    /* ── CONTENT ────────────────────────────── */
+    .v-content {
+      position: fixed;
+      top: calc(var(--nav-h) + var(--tab-h));
+      bottom: 0;
+      left: 0; right: 0;
+      overflow: hidden;
+    }
+
+    .v-panel {
+      position: absolute;
+      inset: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      padding: 12px;
+      display: none;
+    }
+    .v-panel.active { display: block; }
+
+    /* ── FULLCALENDAR OVERRIDES ─────────────── */
+    .fc { font-family: 'Segoe UI', system-ui, sans-serif !important; }
+    .fc .fc-toolbar { margin-bottom: 10px !important; }
+    .fc .fc-toolbar-title { font-size: .95rem !important; font-weight: 800 !important; }
+    .fc .fc-button {
+      background: #fff !important;
+      border: 1px solid var(--border) !important;
+      color: var(--black) !important;
+      border-radius: 8px !important;
+      font-size: .75rem !important;
+      font-weight: 600 !important;
+      padding: 5px 10px !important;
+      box-shadow: none !important;
+    }
+    .fc .fc-today-button {
+      background: var(--red) !important;
+      border-color: var(--red) !important;
+      color: #fff !important;
+    }
+    .fc .fc-button-active {
+      background: var(--black) !important;
+      border-color: var(--black) !important;
+      color: #fff !important;
+    }
+    .fc .fc-scrollgrid { border-radius: 10px; overflow: hidden; border-color: var(--border) !important; }
+    .fc .fc-col-header-cell { background: #f9fafb !important; border-color: var(--border) !important; }
+    .fc .fc-col-header-cell-cushion {
+      font-size: .7rem !important; font-weight: 700 !important;
+      text-transform: uppercase !important; letter-spacing: .5px !important;
+      color: var(--gray) !important; text-decoration: none !important;
+    }
+    .fc .fc-daygrid-day { border-color: #f3f4f6 !important; }
+    .fc .fc-daygrid-day-number {
+      font-size: .75rem !important; font-weight: 600 !important;
+      color: var(--gray) !important; text-decoration: none !important;
+      padding: 4px 6px !important;
+    }
+    .fc .fc-day-today { background: rgba(173,23,38,.04) !important; }
+    .fc .fc-day-today .fc-daygrid-day-number {
+      background: var(--red) !important; color: #fff !important;
+      border-radius: 50% !important; width: 24px !important; height: 24px !important;
+      display: flex !important; align-items: center !important;
+      justify-content: center !important; margin: 3px !important; padding: 0 !important;
+    }
+    .fc .fc-event { border: none !important; border-radius: 5px !important; cursor: pointer !important; }
+    .fc .fc-list { border: none !important; border-radius: 10px !important; border: 1px solid var(--border) !important; }
+    .fc .fc-list-day-cushion { background: var(--black) !important; padding: 6px 14px !important; }
+    .fc .fc-list-day-text, .fc .fc-list-day-side-text {
+      font-size: .75rem !important; font-weight: 700 !important;
+      color: #fff !important; text-decoration: none !important;
+    }
+    .fc .fc-list-event-title a {
+      font-size: .8rem !important; font-weight: 600 !important;
+      color: var(--black) !important; text-decoration: none !important;
+    }
+
+    /* ── CAL WRAPPER ────────────────────────── */
+    .cal-wrap {
+      background: #fff;
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid var(--border);
+    }
+
+    /* ── FAB ────────────────────────────────── */
+    .v-fab {
+      position: fixed;
+      right: 18px;
+      bottom: calc(18px + env(safe-area-inset-bottom));
+      width: 54px; height: 54px;
+      border-radius: 50%;
+      background: var(--red);
+      color: #fff;
+      border: none;
+      box-shadow: 0 6px 20px rgba(173,23,38,.45);
+      font-size: 1.3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      cursor: pointer;
+      transition: transform .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .v-fab:active { transform: scale(.92); }
+    .v-fab.hidden { display: none; }
+
+    /* ── MODAL ──────────────────────────────── */
+    .v-modal .modal-content {
+      border: none !important;
+      border-radius: 16px !important;
+      box-shadow: 0 20px 60px rgba(0,0,0,.18) !important;
+    }
+    .v-modal .modal-header {
+      background: var(--black);
+      color: #fff;
+      border: none !important;
+      border-radius: 16px 16px 0 0 !important;
+      padding: 16px 20px !important;
+    }
+    .v-modal .modal-title { font-size: .9rem !important; font-weight: 700 !important; color: #fff; }
+    .v-modal .btn-close { filter: invert(1) brightness(2); }
+    .v-modal .modal-body { padding: 20px !important; }
+    .v-modal .modal-footer {
+      padding: 12px 20px !important;
+      background: #f9fafb;
+      border-top: 1px solid var(--border) !important;
+      border-radius: 0 0 16px 16px !important;
+    }
+
+    /* ── LEGEND ─────────────────────────────── */
+    .v-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px 12px;
+      background: #fff;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      margin-bottom: 10px;
+      font-size: .72rem;
+    }
+    .v-legend-item {
+      display: flex; align-items: center; gap: 5px; color: var(--gray); font-weight: 500;
+    }
+    .v-legend-dot {
+      width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0;
+    }
+
+    /* ── EVENTO PILL ────────────────────────── */
+    .ev-pill { display: flex; align-items: center; gap: 4px; padding: 2px 5px; overflow: hidden; }
+    .ev-name { font-size: .7rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ev-time { font-size: .63rem; font-weight: 700; opacity: .8; flex-shrink: 0; background: rgba(0,0,0,.15); border-radius: 3px; padding: 1px 3px; }
+
+    @media (max-width: 576px) {
+      .v-panel { padding: 8px; }
+      .cal-wrap { padding: 8px; border-radius: 10px; }
+      .fc .fc-toolbar { gap: 4px; flex-wrap: wrap; }
+      .fc .fc-toolbar-title { font-size: .85rem !important; }
+      .fc .fc-button { font-size: .7rem !important; padding: 4px 7px !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── HEADER ──────────────────────────────────────────── -->
+<header class="v-header">
+  <div class="v-logo">
+    <div class="v-logo-icon"><i class="bi bi-calendar3"></i></div>
+    <div>
+      <div class="v-logo-text">Calendarios</div>
+      <div class="v-logo-sub">Feeling · Agenda · AutoClub</div>
+    </div>
+  </div>
+  <span class="v-user d-none d-md-flex">
+    <i class="bi bi-person-circle"></i>{{ usuario.nombre.split()[0] }}
+  </span>
+  <a href="{{ url_for('vista.logout') }}" class="v-logout" title="Cerrar sesión">
+    <i class="bi bi-box-arrow-right"></i>
+  </a>
+</header>
+
+<!-- ── TABS ────────────────────────────────────────────── -->
+<div class="v-tabs">
+  <button class="v-tab active" data-tab="feeling">
+    <i class="bi bi-flag-fill" style="color:#AD1726"></i>
+    <span>Reservas</span>
+  </button>
+  <button class="v-tab" data-tab="agenda">
+    <i class="bi bi-megaphone-fill" style="color:#7C3AED"></i>
+    <span>Agenda</span>
+  </button>
+  <button class="v-tab" data-tab="autoclub">
+    <i class="bi bi-trophy-fill" style="color:#1d4ed8"></i>
+    <span>AutoClub</span>
+  </button>
+</div>
+
+<!-- ── CONTENT ──────────────────────────────────────────── -->
+<div class="v-content">
+
+  <!-- PANEL FEELING -->
+  <div class="v-panel active" id="panel-feeling">
+    <div class="v-legend">
+      <div class="v-legend-item"><div class="v-legend-dot" style="background:#6b7280"></div>Pendiente</div>
+      <div class="v-legend-item"><div class="v-legend-dot" style="background:#1d4ed8"></div>Reservado</div>
+      <div class="v-legend-item"><div class="v-legend-dot" style="background:#16a34a"></div>Disfrutado</div>
+      <div class="v-legend-item"><div class="v-legend-dot" style="background:#dc2626"></div>Cancelado</div>
+      <div class="v-legend-item"><div class="v-legend-dot" style="background:#bbf7d0;border:1px solid #16a34a"></div>Apertura</div>
+    </div>
+    <div class="cal-wrap">
+      <div id="cal-feeling"></div>
+    </div>
+  </div>
+
+  <!-- PANEL AGENDA -->
+  <div class="v-panel" id="panel-agenda">
+    <div class="v-legend">
+      <div class="v-legend-item"><div class="v-legend-dot" style="background:#AD1726"></div>Feeling</div>
+      <div class="v-legend-item"><div class="v-legend-dot" style="background:#2563EB"></div>AutoClub</div>
+      <div class="v-legend-item"><div class="v-legend-dot" style="background:#7C3AED"></div>Ambas</div>
+    </div>
+    <div class="cal-wrap">
+      <div id="cal-agenda"></div>
+    </div>
+  </div>
+
+  <!-- PANEL AUTOCLUB -->
+  <div class="v-panel" id="panel-autoclub">
+    <div class="v-legend">
+      <div class="v-legend-item"><div class="v-legend-dot" style="background:#6b7280"></div>Pendiente</div>
+      <div class="v-legend-item"><div class="v-legend-dot" style="background:#1d4ed8"></div>Enviada</div>
+      <div class="v-legend-item"><div class="v-legend-dot" style="background:#16a34a"></div>Aceptada</div>
+      <div class="v-legend-item"><div class="v-legend-dot" style="background:#f59e0b"></div>Evento</div>
+    </div>
+    <div class="cal-wrap">
+      <div id="cal-autoclub"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── FABs ─────────────────────────────────────────────── -->
+<button class="v-fab" id="fabFeeling" title="Nueva fecha abierta">
+  <i class="bi bi-plus-lg"></i>
+</button>
+<button class="v-fab hidden" id="fabAgenda" title="Nueva entrada agenda">
+  <i class="bi bi-plus-lg"></i>
+</button>
+<button class="v-fab hidden" id="fabAutoclub" title="Nueva competición">
+  <i class="bi bi-plus-lg"></i>
+</button>
+
+<!-- ── MODAL NUEVA FECHA ABIERTA (Feeling) ────────────────── -->
+<div class="modal fade v-modal" id="modalApertura" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:400px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title"><i class="bi bi-calendar-check me-2"></i>Nueva fecha abierta</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold" style="font-size:.8rem">Fecha *</label>
+          <input type="date" id="apFecha" class="form-control form-control-sm" />
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-8">
+            <label class="form-label fw-semibold" style="font-size:.8rem">Experiencia</label>
+            <select id="apTipoExp" class="form-select form-select-sm">
+              <option value="">Todas</option>
+              {% for t in tipos_experiencia %}
+              <option value="{{ t.id }}">{{ t.nombre }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-4">
+            <label class="form-label fw-semibold" style="font-size:.8rem">Nº ideal</label>
+            <input type="number" id="apCapacidadIdeal" class="form-control form-control-sm" min="1" placeholder="8" />
+          </div>
+        </div>
+        <div class="mb-0">
+          <label class="form-label fw-semibold" style="font-size:.8rem">Notas</label>
+          <textarea id="apNotas" class="form-control form-control-sm" rows="2" placeholder="Observaciones..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-sm btn-primary" id="apGuardar">
+          <i class="bi bi-check-lg me-1"></i>Guardar
+        </button>
+        <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL AGENDA ──────────────────────────────────────── -->
+<div class="modal fade v-modal" id="modalAgenda" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:420px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title"><i class="bi bi-megaphone me-2"></i>Nueva entrada de agenda</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold" style="font-size:.8rem">Título *</label>
+          <input type="text" id="agTitulo" class="form-control form-control-sm" placeholder="Título del contenido" />
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-7">
+            <label class="form-label fw-semibold" style="font-size:.8rem">Fecha *</label>
+            <input type="date" id="agFecha" class="form-control form-control-sm" />
+          </div>
+          <div class="col-5">
+            <label class="form-label fw-semibold" style="font-size:.8rem">Empresa</label>
+            <select id="agEmpresa" class="form-select form-select-sm">
+              <option value="feeling">Feeling</option>
+              <option value="autoclub">AutoClub</option>
+              <option value="ambas">Ambas</option>
+            </select>
+          </div>
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-7">
+            <label class="form-label fw-semibold" style="font-size:.8rem">Tipo</label>
+            <select id="agTipo" class="form-select form-select-sm">
+              <option value="rrss_carrera">RRSS · Carrera</option>
+              <option value="rrss_evento">RRSS · Evento</option>
+              <option value="rrss_promocion">RRSS · Promoción</option>
+              <option value="pista_abierta">Día de Pista Abierta</option>
+              <option value="actividad_circuito">Actividad Circuito</option>
+              <option value="evento_especial">Evento Especial</option>
+              <option value="otro" selected>Otro</option>
+            </select>
+          </div>
+          <div class="col-5">
+            <label class="form-label fw-semibold" style="font-size:.8rem">Red social</label>
+            <select id="agRed" class="form-select form-select-sm">
+              <option value="">—</option>
+              <option value="instagram">Instagram</option>
+              <option value="facebook">Facebook</option>
+              <option value="tiktok">TikTok</option>
+              <option value="todas">Todas</option>
+            </select>
+          </div>
+        </div>
+        <div class="mb-0">
+          <label class="form-label fw-semibold" style="font-size:.8rem">Descripción</label>
+          <textarea id="agDesc" class="form-control form-control-sm" rows="2" placeholder="Descripción o idea del contenido..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-sm btn-primary" id="agGuardar">
+          <i class="bi bi-check-lg me-1"></i>Guardar
+        </button>
+        <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL AUTOCLUB ────────────────────────────────────── -->
+<div class="modal fade v-modal" id="modalAutoclub" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:400px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title"><i class="bi bi-trophy me-2"></i>Anotar competición</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold" style="font-size:.8rem">Prueba / Evento *</label>
+          <input type="text" id="acTitulo" class="form-control form-control-sm" placeholder="Nombre de la competición" />
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="form-label fw-semibold" style="font-size:.8rem">Fecha evento *</label>
+            <input type="date" id="acFecha" class="form-control form-control-sm" />
+          </div>
+          <div class="col-6">
+            <label class="form-label fw-semibold" style="font-size:.8rem">Plazo inscripción</label>
+            <input type="date" id="acPlazo" class="form-control form-control-sm" />
+          </div>
+        </div>
+        <div class="mb-0">
+          <label class="form-label fw-semibold" style="font-size:.8rem">Descripción</label>
+          <textarea id="acDesc" class="form-control form-control-sm" rows="2" placeholder="Notas..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-sm btn-primary" id="acGuardar">
+          <i class="bi bi-check-lg me-1"></i>Guardar
+        </button>
+        <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL DETALLE RESERVA ─────────────────────────────── -->
+<div class="modal fade v-modal" id="modalReservaVista" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:380px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="vResNombre">—</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="padding:16px 20px !important">
+        <div class="row g-2">
+          <div class="col-6">
+            <div style="font-size:.68rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px">Experiencia</div>
+            <div style="font-size:.84rem;font-weight:600" id="vResExp">—</div>
+          </div>
+          <div class="col-6">
+            <div style="font-size:.68rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px">Horario</div>
+            <div style="font-size:.84rem;font-weight:600" id="vResHorario">—</div>
+          </div>
+          <div class="col-6 mt-2">
+            <div style="font-size:.68rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px">Estado</div>
+            <div id="vResEstado">—</div>
+          </div>
+          <div class="col-6 mt-2">
+            <div style="font-size:.68rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px">Teléfono</div>
+            <div style="font-size:.82rem" id="vResTel">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <a id="vResEditBtn" href="#" class="btn btn-sm btn-primary" target="_blank">
+          <i class="bi bi-pencil me-1"></i>Editar reserva
+        </a>
+        <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<script>
+(function () {
+  const meta = document.querySelector('meta[name="csrf-token"]');
+  if (!meta) return;
+  const token = meta.content;
+  const UNSAFE_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
+  const originalFetch = window.fetch;
+  window.fetch = function (input, init) {
+    init = init || {};
+    const method = (init.method || 'GET').toUpperCase();
+    if (UNSAFE_METHODS.includes(method)) {
+      init.headers = new Headers(init.headers || {});
+      if (!init.headers.has('X-CSRFToken')) {
+        init.headers.set('X-CSRFToken', token);
+      }
+    }
+    return originalFetch(input, init);
+  };
+})();
+
+document.addEventListener('DOMContentLoaded', function () {
+
+  const isMobile = () => window.innerWidth < 576;
+
+  // ── CALENDARIOS ────────────────────────────────────────
+  function mkCalOpts(elId, sources, extraOpts) {
+    return Object.assign({
+      locale:       'es',
+      initialView:  isMobile() ? 'listMonth' : 'dayGridMonth',
+      firstDay:     1,
+      headerToolbar: isMobile()
+        ? { left: 'prev,next', center: 'title', right: 'today' }
+        : { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
+      buttonText: { today:'Hoy', month:'Mes', list:'Lista' },
+      height:       'auto',
+      dayMaxEvents: 3,
+      nowIndicator: true,
+      eventSources: sources,
+    }, extraOpts || {});
+  }
+
+  // ── FEELING ────────────────────────────────────────────
+  function renderEvFeeling(arg) {
+    const p = arg.event.extendedProps;
+    if (p.tipo === 'apertura') return true;   // true = usa el renderizado nativo (all-day)
+    const nombre = p.cliente || arg.event.title;
+    const wrap = document.createElement('div');
+    wrap.className = 'ev-pill';
+    const hor = p.horario || (arg.event.start
+      ? arg.event.start.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) : '');
+    wrap.innerHTML =
+      (hor ? `<span class="ev-time">${hor.split('-')[0]}</span>` : '') +
+      `<span class="ev-name">${nombre}</span>`;
+    return { domNodes: [wrap] };
+  }
+
+  const modalReservaVista = new bootstrap.Modal(document.getElementById('modalReservaVista'));
+
+  const calFeeling = new FullCalendar.Calendar(document.getElementById('cal-feeling'),
+    mkCalOpts('cal-feeling',
+      [
+        { url: '/calendario/eventos', method: 'GET' },
+        { url: '/calendario/aperturas', method: 'GET' },
+      ],
+      {
+        eventContent: renderEvFeeling,
+        eventClick: function(info) {
+          const p = info.event.extendedProps;
+          if (p.tipo === 'apertura') return;
+          document.getElementById('vResNombre').textContent  = p.cliente || '—';
+          document.getElementById('vResExp').textContent     = p.experiencia || '—';
+          document.getElementById('vResHorario').textContent = p.horario || '—';
+          document.getElementById('vResTel').textContent     = p.telefono || '—';
+          document.getElementById('vResEstado').innerHTML    =
+            `<span class="badge bg-secondary">${p.estado || '—'}</span>`;
+          document.getElementById('vResEditBtn').href = `/reservas/${p.reserva_id}/editar`;
+          modalReservaVista.show();
+        },
+      }
+    )
+  );
+
+  // ── AGENDA ────────────────────────────────────────────
+  const calAgenda = new FullCalendar.Calendar(document.getElementById('cal-agenda'),
+    mkCalOpts('cal-agenda', [{ url: '/agenda/api/eventos', method: 'GET' }])
+  );
+
+  // ── AUTOCLUB ──────────────────────────────────────────
+  const calAutoclub = new FullCalendar.Calendar(document.getElementById('cal-autoclub'),
+    mkCalOpts('cal-autoclub', [{ url: '/autoclub/calendario/eventos', method: 'GET' }])
+  );
+
+  // Renderizar solo el activo al inicio
+  calFeeling.render();
+
+  const cals = { feeling: calFeeling, agenda: calAgenda, autoclub: calAutoclub };
+  const initialized = { feeling: true, agenda: false, autoclub: false };
+
+  // ── TABS ──────────────────────────────────────────────
+  const fabs = {
+    feeling:  document.getElementById('fabFeeling'),
+    agenda:   document.getElementById('fabAgenda'),
+    autoclub: document.getElementById('fabAutoclub'),
+  };
+
+  document.querySelectorAll('.v-tab').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const tab = this.dataset.tab;
+
+      document.querySelectorAll('.v-tab').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+
+      document.querySelectorAll('.v-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('panel-' + tab).classList.add('active');
+
+      Object.values(fabs).forEach(f => f.classList.add('hidden'));
+      fabs[tab].classList.remove('hidden');
+
+      if (!initialized[tab]) {
+        cals[tab].render();
+        initialized[tab] = true;
+      } else {
+        setTimeout(() => cals[tab].updateSize(), 50);
+      }
+    });
+  });
+
+  // ── MODAL NUEVA FECHA ABIERTA (Feeling) ────────────────
+  const modalApertura = new bootstrap.Modal(document.getElementById('modalApertura'));
+
+  document.getElementById('fabFeeling').addEventListener('click', function () {
+    document.getElementById('apFecha').value = '';
+    document.getElementById('apTipoExp').value = '';
+    document.getElementById('apCapacidadIdeal').value = '';
+    document.getElementById('apNotas').value = '';
+    modalApertura.show();
+  });
+
+  document.getElementById('apGuardar').addEventListener('click', function () {
+    const fecha = document.getElementById('apFecha').value;
+    if (!fecha) { document.getElementById('apFecha').focus(); return; }
+
+    const btn = this;
+    btn.disabled = true;
+
+    fetch('/calendario/aperturas/nueva', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        fecha:               fecha,
+        tipo_experiencia_id: document.getElementById('apTipoExp').value || null,
+        capacidad_ideal:     document.getElementById('apCapacidadIdeal').value || null,
+        notas:               document.getElementById('apNotas').value,
+      }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        modalApertura.hide();
+        calFeeling.refetchEvents();
+      } else {
+        alert('Error: ' + (data.error || 'No se pudo guardar'));
+      }
+    })
+    .catch(() => alert('Error de red'))
+    .finally(() => { btn.disabled = false; });
+  });
+
+  // ── MODAL AGENDA ──────────────────────────────────────
+  const modalAgenda = new bootstrap.Modal(document.getElementById('modalAgenda'));
+
+  document.getElementById('fabAgenda').addEventListener('click', function () {
+    document.getElementById('agTitulo').value  = '';
+    document.getElementById('agFecha').value   = new Date().toISOString().slice(0, 10);
+    document.getElementById('agDesc').value    = '';
+    modalAgenda.show();
+  });
+
+  document.getElementById('agGuardar').addEventListener('click', function () {
+    const titulo = document.getElementById('agTitulo').value.trim();
+    const fecha  = document.getElementById('agFecha').value;
+    if (!titulo || !fecha) {
+      alert('Título y fecha son obligatorios');
+      return;
+    }
+    const btn = this;
+    btn.disabled = true;
+
+    const fd = new FormData();
+    fd.append('titulo',      titulo);
+    fd.append('fecha',       fecha);
+    fd.append('empresa',     document.getElementById('agEmpresa').value);
+    fd.append('tipo',        document.getElementById('agTipo').value);
+    fd.append('red_social',  document.getElementById('agRed').value);
+    fd.append('descripcion', document.getElementById('agDesc').value);
+    fd.append('estado',      'planificado');
+
+    fetch('/agenda/entradas/nueva', { method: 'POST', body: fd })
+      .then(r => {
+        // La ruta hace redirect 302 al guardar con éxito; fetch lo sigue y r.redirected=true
+        if (r.redirected) {
+          modalAgenda.hide();
+          calAgenda.refetchEvents();
+        } else {
+          alert('Error al guardar. Comprueba los datos.');
+        }
+      })
+      .catch(() => alert('Error de red'))
+      .finally(() => { btn.disabled = false; });
+  });
+
+  // ── MODAL AUTOCLUB ─────────────────────────────────────
+  const modalAutoclub = new bootstrap.Modal(document.getElementById('modalAutoclub'));
+
+  document.getElementById('fabAutoclub').addEventListener('click', function () {
+    document.getElementById('acTitulo').value = '';
+    document.getElementById('acFecha').value  = new Date().toISOString().slice(0, 10);
+    document.getElementById('acPlazo').value  = '';
+    document.getElementById('acDesc').value   = '';
+    modalAutoclub.show();
+  });
+
+  document.getElementById('acGuardar').addEventListener('click', function () {
+    const titulo = document.getElementById('acTitulo').value.trim();
+    const fecha  = document.getElementById('acFecha').value;
+    if (!titulo || !fecha) { alert('Prueba y fecha son obligatorios'); return; }
+
+    const btn = this;
+    btn.disabled = true;
+
+    fetch('/autoclub/calendario/evento/nuevo', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        titulo:      titulo,
+        fecha:       fecha,
+        fecha_plazo: document.getElementById('acPlazo').value || null,
+        descripcion: document.getElementById('acDesc').value,
+      }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        modalAutoclub.hide();
+        calAutoclub.refetchEvents();
+      } else {
+        alert('Error: ' + (data.error || 'No se pudo guardar'));
+      }
+    })
+    .catch(() => alert('Error de red'))
+    .finally(() => { btn.disabled = false; });
+  });
+
+});
+</script>
+</body>
+</html>

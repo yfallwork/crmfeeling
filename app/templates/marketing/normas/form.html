@@ -10,6 +10,7 @@
 
 {% block content %}
 <form method="POST" id="normaForm" class="row g-3">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <input type="hidden" name="acciones_count" id="accionesCount" value="0" />
 
 <!-- ── Columna izquierda ──────────────────────────────── -->
@@ -196,6 +197,7 @@
     {% if rule %}
     <form method="POST" action="{{ url_for('marketing.normas_eliminar', id=rule.id) }}"
           class="ms-auto" onsubmit="return confirm('Eliminar la norma {{ rule.nombre }}?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="btn btn-outline-danger">
         <i class="bi bi-trash me-1"></i>Eliminar
       </button>

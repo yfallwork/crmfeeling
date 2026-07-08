@@ -79,6 +79,7 @@
       action="{{ url_for('teambuilding.empresas_editar', id=e.id) if e else url_for('teambuilding.empresas_nueva') }}"
       enctype="multipart/form-data"
       novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
   <div class="row g-3">
 

@@ -10,9 +10,9 @@ class Tag(db.Model):
     nombre = db.Column(db.String(100), nullable=False)
     descripcion = db.Column(db.Text, default="")
 
-    tipo     = db.Column(db.String(20), default="sistematica")  # sistematica | dinamica
+    tipo     = db.Column(db.String(20), default="sistematica", index=True)  # sistematica | dinamica
     entidad  = db.Column(db.String(20), default="cliente")      # cliente | empresa
-    segmento = db.Column(db.String(5),  default="b2c")          # b2c | b2b
+    segmento = db.Column(db.String(5),  default="b2c", index=True)          # b2c | b2b
 
     color = db.Column(db.String(7),  default="#6B7280")
     icono = db.Column(db.String(50), default="bi-tag-fill")
@@ -28,7 +28,7 @@ class Tag(db.Model):
     criterio_min_reservas  = db.Column(db.Integer, nullable=True)  # nº mínimo de experiencias (B2C)
     criterio_min_empleados = db.Column(db.Integer, nullable=True)  # nº mínimo de empleados (B2B)
 
-    activo       = db.Column(db.Boolean,  default=True)
+    activo       = db.Column(db.Boolean,  default=True, index=True)
     creado_en    = db.Column(db.DateTime, default=datetime.utcnow)
     actualizado_en = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

@@ -307,15 +307,14 @@ function updateSidebar(events) {
 
 /* ── FullCalendar ─────────────────────────────────────────────────────── */
 document.addEventListener("DOMContentLoaded", function() {
+  const isMobile = () => window.innerWidth < 768;
   const cal = new FullCalendar.Calendar(document.getElementById("calendarEl"), {
     locale:        "es",
-    initialView:   "dayGridMonth",
-    headerToolbar: {
-      left:   "prev,next today",
-      center: "title",
-      right:  "dayGridMonth,timeGridWeek,timeGridDay",
-    },
-    buttonText:  { today:"Hoy", month:"Mes", week:"Semana", day:"Día" },
+    initialView:   isMobile() ? "listMonth" : "dayGridMonth",
+    headerToolbar: isMobile()
+      ? { left: "prev,next", center: "title", right: "today" }
+      : { left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" },
+    buttonText:  { today:"Hoy", month:"Mes", week:"Semana", day:"Día", list:"Lista" },
     height:      "auto",
     firstDay:    1,
     nowIndicator: true,

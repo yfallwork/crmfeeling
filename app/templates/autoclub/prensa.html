@@ -1,0 +1,584 @@
+{% extends "autoclub/base.html" %}
+{% block title %}Prensa & Crónica — AutoClub{% endblock %}
+{% block page_title %}Prensa & Crónica{% endblock %}
+
+{% block head %}
+<style>
+/* ── Editor ──────────────────────────────────────────────────────────────── */
+.editor-toolbar {
+  display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+  padding: 8px 12px; background: #161b22;
+  border-radius: 8px 8px 0 0; border: 1px solid #30363d;
+}
+.toolbar-btn {
+  background: none; border: 1px solid transparent; color: #8b949e;
+  border-radius: 5px; width: 28px; height: 28px; cursor: pointer;
+  font-size: .8rem; display: flex; align-items: center; justify-content: center;
+  transition: all .12s;
+}
+.toolbar-btn:hover { background: #21262d; color: #c9d1d9; border-color: #30363d; }
+.toolbar-sep { width: 1px; height: 18px; background: #30363d; margin: 0 2px; }
+
+#cuerpoHtml {
+  width: 100%; min-height: 320px; resize: vertical;
+  font-family: 'Segoe UI', system-ui, sans-serif; font-size: .875rem;
+  background: #0d1117; color: #c9d1d9; line-height: 1.6;
+  border: 1px solid #30363d; border-top: none;
+  border-radius: 0 0 8px 8px; padding: 14px 16px;
+  outline: none; tab-size: 2;
+}
+#cuerpoHtml:focus { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,.12); }
+
+/* ── Chips de variables ──────────────────────────────────────────────────── */
+.var-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 99px; cursor: pointer;
+  font-size: .72rem; font-weight: 700; font-family: monospace;
+  background: #1e3a2f; color: #4ade80; border: 1px solid #166534;
+  transition: all .12s; user-select: none;
+}
+.var-chip:hover { background: #166534; color: #bbf7d0; }
+
+/* ── Editor firma ────────────────────────────────────────────────────────── */
+#firmaHtml {
+  width: 100%; min-height: 120px; resize: vertical;
+  font-family: 'Segoe UI', system-ui, sans-serif; font-size: .875rem;
+  background: #0d1117; color: #c9d1d9; line-height: 1.6;
+  border: 1px solid #30363d; border-top: none;
+  border-radius: 0 0 8px 8px; padding: 12px 16px;
+  outline: none;
+}
+#firmaHtml:focus { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,.12); }
+
+/* ── Tabla medios ────────────────────────────────────────────────────────── */
+.medio-row td { padding: 10px 14px; vertical-align: middle; font-size: .84rem; }
+.medio-inactivo td { opacity: .45; }
+.badge-medio {
+  font-size: .68rem; font-weight: 700; padding: 2px 8px; border-radius: 99px;
+  background: #f0fdf4; color: #16a34a;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if not mail_prensa_ok %}
+<div class="alert alert-warning d-flex align-items-center gap-2 mb-3" style="border-radius:10px">
+  <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+  <div>
+    La cuenta de correo de prensa no está configurada.
+    Rellena <code>MAIL_PRENSA_USERNAME</code>, <code>MAIL_PRENSA_PASSWORD</code> y
+    <code>MAIL_PRENSA_SENDER</code> en el archivo <code>.env</code> para poder enviar crónicas.
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-3">
+
+  <!-- ── Col izquierda: redactor ──────────────────────────────────────────── -->
+  <div class="col-lg-8">
+
+    <div class="card mb-3">
+      <div class="card-header d-flex align-items-center gap-2">
+        <div style="width:32px;height:32px;background:#dcfce7;border-radius:8px;
+                    display:flex;align-items:center;justify-content:center">
+          <i class="bi bi-newspaper" style="color:#16a34a;font-size:.85rem"></i>
+        </div>
+        <span class="fw-semibold">Redactar crónica</span>
+      </div>
+
+      <form method="POST" action="{{ url_for('autoclub.prensa_enviar') }}" id="formCronica">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="card-body" style="padding-bottom:0">
+
+          <!-- Asunto -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-sm">Asunto del email <span class="text-danger">*</span></label>
+            <input type="text" name="asunto" id="asuntoInput" class="form-control"
+                   placeholder="Crónica Rally de Asturias 2026 — AutoClub Feeling Experience" required>
+          </div>
+
+          <!-- Editor -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-sm d-flex align-items-center justify-content-between">
+              <span>Cuerpo del email <span class="text-danger">*</span></span>
+              <div class="d-flex gap-1">
+                <span class="mode-tab active" id="tabEditor"
+                      onclick="setMode('editor')"
+                      style="padding:4px 12px;border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer;background:#111;color:#fff">
+                  <i class="bi bi-code me-1"></i>HTML
+                </span>
+                <span class="mode-tab" id="tabPreview"
+                      onclick="setMode('preview')"
+                      style="padding:4px 12px;border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer;background:#f3f4f6;color:#374151">
+                  <i class="bi bi-eye me-1"></i>Vista previa
+                </span>
+              </div>
+            </label>
+
+            <!-- Chips de variables -->
+            <div class="mb-2 d-flex align-items-center gap-2 flex-wrap">
+              <span class="text-xs text-muted" style="font-weight:600">Insertar variable:</span>
+              <span class="var-chip" onclick="insertVar('{{ '{{' }}nombre{{ '}}' }}')" title="Nombre del contacto">
+                <i class="bi bi-person-fill" style="font-size:.65rem"></i>{{ '{{nombre}}' }}
+              </span>
+              <span class="var-chip" onclick="insertVar('{{ '{{' }}medio{{ '}}' }}')" title="Nombre del medio / publicación">
+                <i class="bi bi-newspaper" style="font-size:.65rem"></i>{{ '{{medio}}' }}
+              </span>
+            </div>
+
+            <div id="editorWrap">
+              <div class="editor-toolbar">
+                <button type="button" class="toolbar-btn" onclick="wrapSel('<b>','</b>')" title="Negrita"><i class="bi bi-type-bold"></i></button>
+                <button type="button" class="toolbar-btn" onclick="wrapSel('<i>','</i>')" title="Cursiva"><i class="bi bi-type-italic"></i></button>
+                <button type="button" class="toolbar-btn" onclick="wrapSel('<u>','</u>')" title="Subrayado"><i class="bi bi-type-underline"></i></button>
+                <div class="toolbar-sep"></div>
+                <button type="button" class="toolbar-btn" onclick="wrapSel('<h2>','</h2>')" title="Título"><i class="bi bi-type-h2"></i></button>
+                <button type="button" class="toolbar-btn" onclick="wrapSel('<h3>','</h3>')" title="Subtítulo"><i class="bi bi-type-h3"></i></button>
+                <div class="toolbar-sep"></div>
+                <button type="button" class="toolbar-btn" onclick="wrapSel('<p>','</p>')" title="Párrafo"><i class="bi bi-paragraph"></i></button>
+                <button type="button" class="toolbar-btn" onclick="wrapSel('<ul>\n  <li>','</li>\n</ul>')" title="Lista"><i class="bi bi-list-ul"></i></button>
+                <div class="toolbar-sep"></div>
+                <button type="button" class="toolbar-btn"
+                        onclick="wrapSel('<a href=&quot;&quot;>','</a>')" title="Enlace">
+                  <i class="bi bi-link-45deg"></i>
+                </button>
+                <button type="button" class="toolbar-btn"
+                        onclick="insertSnippet('<hr style=&quot;border:none;border-top:1px solid #e5e7eb;margin:24px 0&quot;>')"
+                        title="Separador">
+                  <i class="bi bi-dash-lg"></i>
+                </button>
+                <div class="toolbar-sep"></div>
+                <button type="button" class="toolbar-btn" onclick="insertPlantilla()" title="Plantilla base" style="width:auto;padding:0 8px;font-size:.7rem;font-weight:600;color:#16a34a">
+                  <i class="bi bi-file-earmark-text me-1"></i>Plantilla
+                </button>
+              </div>
+              <textarea name="cuerpo_html" id="cuerpoHtml"
+                        spellcheck="false"
+                        placeholder="<p>Estimado/a {{ '{{nombre}}' }},</p>&#10;<p>Desde el AutoClub Feeling Experience queremos compartir la crónica de la prueba...</p>"></textarea>
+            </div>
+
+            <div id="previewWrap" style="display:none;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+              <iframe id="previewFrame" style="width:100%;min-height:320px;border:none;background:#fff"></iframe>
+            </div>
+          </div>
+
+          <!-- Firma -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-sm d-flex align-items-center justify-content-between">
+              <span>Firma del email</span>
+              <span class="text-xs text-muted">Se añade automáticamente al final del mensaje</span>
+            </label>
+            <div class="mb-2 d-flex align-items-center gap-2 flex-wrap">
+              <span class="text-xs text-muted" style="font-weight:600">Insertar variable:</span>
+              <span class="var-chip" onclick="insertVarFirma('{{ '{{' }}nombre{{ '}}' }}')" title="Nombre del contacto">
+                <i class="bi bi-person-fill" style="font-size:.65rem"></i>{{ '{{nombre}}' }}
+              </span>
+              <span class="var-chip" onclick="insertVarFirma('{{ '{{' }}medio{{ '}}' }}')" title="Nombre del medio / publicación">
+                <i class="bi bi-newspaper" style="font-size:.65rem"></i>{{ '{{medio}}' }}
+              </span>
+            </div>
+            <div>
+              <div class="editor-toolbar" id="firmaToolbar">
+                <button type="button" class="toolbar-btn" onclick="wrapFirma('<b>','</b>')" title="Negrita"><i class="bi bi-type-bold"></i></button>
+                <button type="button" class="toolbar-btn" onclick="wrapFirma('<i>','</i>')" title="Cursiva"><i class="bi bi-type-italic"></i></button>
+                <div class="toolbar-sep"></div>
+                <button type="button" class="toolbar-btn" onclick="wrapFirma('<a href=&quot;&quot;>','</a>')" title="Enlace"><i class="bi bi-link-45deg"></i></button>
+                <button type="button" class="toolbar-btn" onclick="wrapFirma('<span style=&quot;color:#16a34a&quot;>','</span>')" title="Verde"><i class="bi bi-palette" style="color:#16a34a"></i></button>
+                <div class="toolbar-sep"></div>
+                <button type="button" class="toolbar-btn" onclick="insertFirmaPlantilla()" title="Plantilla rápida" style="width:auto;padding:0 8px;font-size:.7rem;font-weight:600;color:#16a34a">
+                  <i class="bi bi-file-earmark-text me-1"></i>Plantilla
+                </button>
+              </div>
+              <textarea name="firma_html" id="firmaHtml"
+                        spellcheck="false"
+                        placeholder="<p>Atentamente,<br><strong>AutoClub La Dehesa</strong><br>escuderia@autoclubladehesa.com</p>">{{ firma_guardada or '' }}</textarea>
+            </div>
+          </div>
+
+          <!-- Selector de destinatarios -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-sm d-flex align-items-center justify-content-between">
+              <span>Destinatarios <span class="text-danger">*</span></span>
+              {% set activos = medios | selectattr('activo') | list %}
+              {% if activos %}
+              <button type="button" class="btn btn-link btn-sm p-0 text-sm" onclick="toggleTodos()">
+                <span id="lblTodos">Seleccionar todos</span>
+              </button>
+              {% endif %}
+            </label>
+            {% if medios %}
+            <div style="border:1px solid var(--border);border-radius:8px;max-height:220px;overflow-y:auto">
+              {% for m in medios %}
+              <label class="d-flex align-items-center gap-3 px-3 py-2
+                            {% if not loop.last %}border-bottom{% endif %}
+                            {% if not m.activo %}text-muted{% endif %}"
+                     style="cursor:pointer;margin:0;{% if not m.activo %}opacity:.45{% endif %}">
+                <input type="checkbox" name="destinatarios" value="{{ m.id }}"
+                       class="dest-check form-check-input mt-0 flex-shrink-0"
+                       {% if not m.activo %}disabled{% endif %}>
+                <div style="min-width:0;flex:1">
+                  <div class="fw-semibold text-sm">{{ m.nombre }}</div>
+                  <div class="text-xs text-muted">
+                    {% if m.medio %}<span class="me-2">{{ m.medio }}</span>{% endif %}
+                    {{ m.email }}
+                    {% if not m.activo %}<span class="ms-1 badge bg-secondary" style="font-size:.62rem">Inactivo</span>{% endif %}
+                  </div>
+                </div>
+              </label>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-sm text-muted p-3 border rounded-3 text-center">
+              Aún no hay contactos de prensa.
+              <button type="button" class="btn btn-link btn-sm p-0"
+                      data-bs-toggle="modal" data-bs-target="#modalNuevoMedio">Añadir el primero</button>
+            </div>
+            {% endif %}
+          </div>
+
+        </div>
+
+        <div class="card-footer d-flex align-items-center justify-content-between">
+          <span class="text-xs text-muted" id="contadorDest">0 destinatario(s) seleccionado(s)</span>
+          <button type="submit" class="btn btn-primary btn-sm" id="btnEnviar" disabled>
+            <i class="bi bi-send-fill me-1"></i>Enviar crónica
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ── Historial de envíos ─────────────────────────────────────────── -->
+    {% if historial %}
+    <div class="card">
+      <div class="card-header">
+        <span class="fw-semibold text-sm">Historial de envíos</span>
+      </div>
+      {% for c in historial %}
+      {% set dest = c.destinatarios | from_json if c.destinatarios else [] %}
+      <div class="d-flex align-items-start gap-3 px-4 py-3
+                  {% if not loop.last %}border-bottom{% endif %}">
+        <div style="width:36px;height:36px;border-radius:8px;flex-shrink:0;margin-top:1px;
+                    background:{% if c.total_errores == 0 %}#dcfce7{% else %}#fef3c7{% endif %};
+                    display:flex;align-items:center;justify-content:center">
+          <i class="bi bi-{% if c.total_errores == 0 %}check-circle-fill{% else %}exclamation-triangle-fill{% endif %}"
+             style="color:{% if c.total_errores == 0 %}#16a34a{% else %}#d97706{% endif %};font-size:.85rem"></i>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div class="fw-semibold text-sm">{{ c.asunto }}</div>
+          <div class="text-xs text-muted mt-1">
+            {{ c.enviado_en.strftime('%d/%m/%Y %H:%M') }} · {{ c.enviado_por }}
+            · <span style="color:{% if c.total_errores==0 %}#16a34a{% else %}#d97706{% endif %}">
+                {{ c.total_enviados }} enviado{{ 's' if c.total_enviados != 1 }}
+                {% if c.total_errores %}, {{ c.total_errores }} error{{ 'es' if c.total_errores != 1 }}{% endif %}
+              </span>
+          </div>
+          {% if dest %}
+          <div class="text-xs text-muted mt-1">
+            {% for d in dest %}
+              <span style="margin-right:6px">
+                {% if d.ok %}<i class="bi bi-check text-success"></i>{% else %}<i class="bi bi-x text-danger"></i>{% endif %}
+                {{ d.nombre }}{% if d.medio %} ({{ d.medio }}){% endif %}
+              </span>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        <button class="btn btn-link btn-sm p-0 text-muted flex-shrink-0"
+                onclick="reutilizarCronica({{ c.asunto | tojson }}, {{ c.cuerpo_html | tojson }})"
+                title="Reutilizar como borrador">
+          <i class="bi bi-arrow-counterclockwise" style="font-size:.85rem"></i>
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- ── Col derecha: gestión de medios ──────────────────────────────────── -->
+  <div class="col-lg-4" id="medios">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          <div style="width:32px;height:32px;background:#fef3c7;border-radius:8px;
+                      display:flex;align-items:center;justify-content:center">
+            <i class="bi bi-people-fill" style="color:#d97706;font-size:.85rem"></i>
+          </div>
+          <span class="fw-semibold text-sm">Contactos de prensa</span>
+          {% if medios %}
+          <span class="badge" style="background:#f3f4f6;color:#6b7280;font-size:.7rem">{{ medios|length }}</span>
+          {% endif %}
+        </div>
+        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalNuevoMedio">
+          <i class="bi bi-plus-lg me-1"></i>Añadir
+        </button>
+      </div>
+
+      {% if medios %}
+      <div style="max-height:520px;overflow-y:auto">
+        {% for m in medios %}
+        <div class="d-flex align-items-start gap-2 px-3 py-2
+                    {% if not loop.last %}border-bottom{% endif %}
+                    medio-row {{ 'medio-inactivo' if not m.activo }}">
+          <div style="width:32px;height:32px;background:{% if m.activo %}#fef3c7{% else %}#f3f4f6{% endif %};
+                      border-radius:6px;flex-shrink:0;margin-top:2px;
+                      display:flex;align-items:center;justify-content:center">
+            <i class="bi bi-newspaper" style="color:{% if m.activo %}#d97706{% else %}#9ca3af{% endif %};font-size:.75rem"></i>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div class="fw-semibold text-sm text-truncate">{{ m.nombre }}</div>
+            {% if m.medio %}
+            <div class="text-xs" style="color:#d97706;font-weight:600">{{ m.medio }}</div>
+            {% endif %}
+            <div class="text-xs text-muted text-truncate">{{ m.email }}</div>
+            {% if m.notas %}
+            <div class="text-xs text-muted mt-1" style="white-space:pre-line">{{ m.notas }}</div>
+            {% endif %}
+          </div>
+          <div class="d-flex flex-column gap-1 align-items-end flex-shrink-0">
+            <div class="d-flex gap-1">
+              <button class="btn btn-link btn-sm p-0 text-muted btn-editar-medio"
+                      data-id="{{ m.id }}"
+                      data-nombre="{{ m.nombre | e }}"
+                      data-medio="{{ m.medio | e }}"
+                      data-email="{{ m.email | e }}"
+                      data-notas="{{ m.notas | e }}"
+                      title="Editar">
+                <i class="bi bi-pencil" style="font-size:.75rem"></i>
+              </button>
+              <form method="POST" action="{{ url_for('autoclub.prensa_medio_toggle', id=m.id) }}" style="display:inline">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-link btn-sm p-0 text-muted"
+                        title="{{ 'Desactivar' if m.activo else 'Activar' }}">
+                  <i class="bi bi-{% if m.activo %}toggle-on text-success{% else %}toggle-off{% endif %}"
+                     style="font-size:.9rem"></i>
+                </button>
+              </form>
+              <form method="POST" action="{{ url_for('autoclub.prensa_medio_eliminar', id=m.id) }}"
+                    style="display:inline"
+                    onsubmit="return confirm('¿Eliminar a {{ m.nombre }}?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-link btn-sm p-0 text-danger" title="Eliminar">
+                  <i class="bi bi-trash" style="font-size:.75rem"></i>
+                </button>
+              </form>
+            </div>
+            {% if not m.activo %}
+            <span class="badge bg-secondary" style="font-size:.6rem">Inactivo</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding:36px 0">
+        <i class="bi bi-people"></i>
+        <p style="font-size:.82rem">Sin contactos de prensa todavía</p>
+        <button class="btn btn-sm btn-primary mt-1" data-bs-toggle="modal" data-bs-target="#modalNuevoMedio">
+          <i class="bi bi-plus-lg me-1"></i>Añadir primero
+        </button>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Modal: nuevo medio ─────────────────────────────────────────────────── -->
+<div class="modal fade" id="modalNuevoMedio" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:440px">
+    <div class="modal-content" style="border-radius:14px;border:none;box-shadow:0 20px 60px rgba(0,0,0,.15)">
+      <div class="modal-header border-0 pb-1">
+        <h6 class="modal-title fw-bold">Nuevo contacto de prensa</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('autoclub.prensa_medio_nuevo') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body pt-2">
+          {% include "autoclub/_medio_fields.html" %}
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-check-lg me-1"></i>Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: editar medio ────────────────────────────────────────────────── -->
+<div class="modal fade" id="modalEditarMedio" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:440px">
+    <div class="modal-content" style="border-radius:14px;border:none;box-shadow:0 20px 60px rgba(0,0,0,.15)">
+      <div class="modal-header border-0 pb-1">
+        <h6 class="modal-title fw-bold">Editar contacto</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" id="formEditarMedio">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body pt-2">
+          {% include "autoclub/_medio_fields.html" %}
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-check-lg me-1"></i>Guardar cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ── Editor HTML ────────────────────────────────────────────────────────── */
+const firmaEl     = document.getElementById('firmaHtml');
+const cuerpoEl    = document.getElementById('cuerpoHtml');
+const editorWrap  = document.getElementById('editorWrap');
+const previewWrap = document.getElementById('previewWrap');
+const previewFrame= document.getElementById('previewFrame');
+
+/* Insertar variable en el editor activo (cuerpo o firma) */
+function insertVar(text) {
+  cuerpoEl.focus();
+  const s = cuerpoEl.selectionStart;
+  cuerpoEl.setRangeText(text, s, s, 'end');
+}
+function insertVarFirma(text) {
+  firmaEl.focus();
+  const s = firmaEl.selectionStart;
+  firmaEl.setRangeText(text, s, s, 'end');
+}
+
+/* Firma: wrap y snippet helpers */
+function wrapFirma(open, close) {
+  firmaEl.focus();
+  const s = firmaEl.selectionStart, e = firmaEl.selectionEnd;
+  const sel = firmaEl.value.slice(s, e);
+  firmaEl.setRangeText(open + sel + close, s, e, 'end');
+}
+function insertFirmaPlantilla() {
+  firmaEl.value = `<p style="margin:0;font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;color:#374151">
+  Atentamente,<br>
+  <strong style="color:#111">Youssef Fallouh</strong><br>
+  <strong style="color:#111">AutoClub La Dehesa</strong><br>
+  <a href="mailto:escuderia@autoclubladehesa.com" style="color:#16a34a;text-decoration:none">escuderia@autoclubladehesa.com</a>
+</p>`;
+}
+
+function wrapSel(open, close) {
+  cuerpoEl.focus();
+  const s = cuerpoEl.selectionStart, e = cuerpoEl.selectionEnd;
+  const sel = cuerpoEl.value.slice(s, e);
+  const rep = open + sel + close;
+  cuerpoEl.setRangeText(rep, s, e, 'end');
+}
+
+function insertSnippet(html) {
+  cuerpoEl.focus();
+  const s = cuerpoEl.selectionStart;
+  cuerpoEl.setRangeText(html, s, s, 'end');
+}
+
+function insertPlantilla() {
+  cuerpoEl.value = `<div style="font-family:'Segoe UI',system-ui,sans-serif;max-width:640px;margin:0 auto;color:#111">
+  <div style="background:#111;padding:24px 32px;border-radius:12px 12px 0 0;text-align:center">
+    <h1 style="color:#fff;font-size:20px;margin:0">AutoClub La Dehesa</h1>
+    <p style="color:#9ca3af;font-size:13px;margin:6px 0 0">Cr\xf3nica de competici\xf3n</p>
+  </div>
+  <div style="background:#f9f9f9;padding:32px">
+    <h2 style="font-size:18px;margin-bottom:16px">Cr\xf3nica de competici\xf3n</h2>
+
+    <p>Estimado/a {{ '{{nombre}}' }},</p>
+    <p>Nos complace compartir la cr\xf3nica de nuestra participaci\xf3n en la pasada prueba...</p>
+
+    <h3 style="font-size:15px;color:#16a34a;margin-top:24px">Resultado</h3>
+    <p>Escribir aqu\xed el resultado del piloto / escuder\xeda...</p>
+
+    <h3 style="font-size:15px;color:#16a34a;margin-top:24px">Cr\xf3nica</h3>
+    <p>Desarrollo de la prueba...</p>
+
+    <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0">
+    <p style="font-size:12px;color:#9ca3af;text-align:center;margin:0">
+      AutoClub La Dehesa \xb7 <a href="mailto:escuderia@autoclubladehesa.com" style="color:#9ca3af">escuderia@autoclubladehesa.com</a>
+    </p>
+  </div>
+</div>`;
+}
+
+function setMode(mode) {
+  if (mode === 'preview') {
+    editorWrap.style.display  = 'none';
+    previewWrap.style.display = 'block';
+    document.getElementById('tabEditor').style.cssText  = 'padding:4px 12px;border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer;background:#f3f4f6;color:#374151';
+    document.getElementById('tabPreview').style.cssText = 'padding:4px 12px;border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer;background:#111;color:#fff';
+    const html = cuerpoEl.value;
+    previewFrame.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+      <style>body{margin:0;padding:16px;font-family:'Segoe UI',system-ui,sans-serif;font-size:14px}</style>
+    </head><body>${html || '<p style="color:#999;font-style:italic">El editor está vacío.</p>'}</body></html>`;
+  } else {
+    previewWrap.style.display = 'none';
+    editorWrap.style.display  = 'block';
+    document.getElementById('tabEditor').style.cssText  = 'padding:4px 12px;border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer;background:#111;color:#fff';
+    document.getElementById('tabPreview').style.cssText = 'padding:4px 12px;border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer;background:#f3f4f6;color:#374151';
+  }
+}
+
+/* ── Destinatarios ──────────────────────────────────────────────────────── */
+const checks  = document.querySelectorAll('.dest-check');
+const btnEnv  = document.getElementById('btnEnviar');
+const counter = document.getElementById('contadorDest');
+
+function actualizarContador() {
+  const n = [...checks].filter(c => c.checked).length;
+  counter.textContent = n + ' destinatario' + (n !== 1 ? 's' : '') + ' seleccionado' + (n !== 1 ? 's' : '');
+  btnEnv.disabled = n === 0;
+}
+
+checks.forEach(c => c.addEventListener('change', actualizarContador));
+actualizarContador();
+
+let todosSeleccionados = false;
+function toggleTodos() {
+  todosSeleccionados = !todosSeleccionados;
+  checks.forEach(c => { if (!c.disabled) c.checked = todosSeleccionados; });
+  document.getElementById('lblTodos').textContent =
+    todosSeleccionados ? 'Deseleccionar todos' : 'Seleccionar todos';
+  actualizarContador();
+}
+
+/* ── Reutilizar crónica ─────────────────────────────────────────────────── */
+function reutilizarCronica(asunto, cuerpo) {
+  document.getElementById('asuntoInput').value = asunto;
+  cuerpoEl.value = cuerpo;
+  setMode('editor');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ── Modal editar medio ─────────────────────────────────────────────────── */
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.btn-editar-medio');
+  if (!btn) return;
+  const f = document.getElementById('formEditarMedio');
+  f.action = '/autoclub/prensa/medio/' + btn.dataset.id + '/editar';
+  f.querySelector('[name="nombre"]').value = btn.dataset.nombre || '';
+  f.querySelector('[name="medio"]').value  = btn.dataset.medio  || '';
+  f.querySelector('[name="email"]').value  = btn.dataset.email  || '';
+  f.querySelector('[name="notas"]').value  = btn.dataset.notas  || '';
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditarMedio')).show();
+});
+
+/* Tab key en textareas */
+[cuerpoEl, firmaEl].forEach(el => {
+  el.addEventListener('keydown', function(e) {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const s = this.selectionStart;
+      this.setRangeText('  ', s, s, 'end');
+    }
+  });
+});
+</script>
+{% endblock %}

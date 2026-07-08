@@ -173,6 +173,7 @@
           <i class="bi bi-pencil"></i>
         </a>
         <form method="POST" action="{{ url_for('marketing.normas_toggle', id=r.id) }}" class="d-inline">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="btn btn-xs btn-outline-secondary"
                   title="{{ 'Desactivar' if r.activo else 'Activar' }}">
             <i class="bi {{ 'bi-pause-fill' if r.activo else 'bi-play-fill' }}"></i>
@@ -180,6 +181,7 @@
         </form>
         <form method="POST" action="{{ url_for('marketing.normas_eliminar', id=r.id) }}" class="d-inline"
               onsubmit="return confirm('Eliminar la norma {{ r.nombre }}?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="btn btn-xs btn-outline-danger" title="Eliminar">
             <i class="bi bi-trash"></i>
           </button>

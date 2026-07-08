@@ -1,7 +1,8 @@
 ﻿import csv
 import io
 from datetime import datetime
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, Response
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, Response, stream_with_context
+from sqlalchemy.orm import joinedload
 from flask_login import login_required
 from app.extensions import db
 from app.models.reserva import Reserva, ESTADOS
@@ -124,41 +125,54 @@ def exportar():
                 Cliente.email.ilike(like),
                 Empresa.nombre.ilike(like),
             ))
-    reservas = query.order_by(Reserva.fecha_disfrute.asc().nullslast()).all()
+    query = (
+        query
+        .options(joinedload(Reserva.cliente), joinedload(Reserva.empresa), joinedload(Reserva.tipo_experiencia))
+        .order_by(Reserva.fecha_disfrute.asc().nullslast())
+    )
 
-    output = io.StringIO()
-    writer = csv.writer(output, delimiter=";")
-    writer.writerow([
-        "ID", "WC_Order", "Tipo", "Nombre", "Email", "Telefono",
-        "Experiencia", "Variante", "Fecha_compra", "Fecha_disfrute",
-        "Horario", "Estado", "Precio_EUR", "Participantes",
-    ])
-    for r in reservas:
-        if r.es_teambuilding:
-            nombre   = r.empresa.nombre if r.empresa else ""
-            email    = r.empresa.email if r.empresa else ""
-            telefono = r.empresa.telefono if r.empresa else ""
-            tipo_str = "TeamBuilding"
-            partic   = r.num_participantes or ""
-        else:
-            nombre   = r.cliente.nombre_completo if r.cliente else ""
-            email    = r.cliente.email if r.cliente else ""
-            telefono = r.cliente.telefono if r.cliente else ""
-            tipo_str = "Individual"
-            partic   = ""
+    def generar_csv():
+        buffer = io.StringIO()
+        writer = csv.writer(buffer, delimiter=";")
+
+        buffer.write("﻿")  # BOM para Excel
         writer.writerow([
-            r.id, r.woo_order_id or "",
-            tipo_str, nombre, email, telefono,
-            r.tipo_experiencia.nombre, r.variante or "",
-            r.fecha_compra.strftime("%d/%m/%Y") if r.fecha_compra else "",
-            r.fecha_disfrute.strftime("%d/%m/%Y %H:%M") if r.fecha_disfrute else "",
-            r.horario or "", r.estado,
-            f"{r.precio:.2f}".replace(".", ","),
-            partic,
+            "ID", "WC_Order", "Tipo", "Nombre", "Email", "Telefono",
+            "Experiencia", "Variante", "Fecha_compra", "Fecha_disfrute",
+            "Horario", "Estado", "Precio_EUR", "Participantes",
         ])
+        yield buffer.getvalue()
+        buffer.seek(0); buffer.truncate(0)
+
+        # yield_per evita cargar toda la tabla de reservas en memoria de golpe
+        for r in query.yield_per(200):
+            if r.es_teambuilding:
+                nombre   = r.empresa.nombre if r.empresa else ""
+                email    = r.empresa.email if r.empresa else ""
+                telefono = r.empresa.telefono if r.empresa else ""
+                tipo_str = "TeamBuilding"
+                partic   = r.num_participantes or ""
+            else:
+                nombre   = r.cliente.nombre_completo if r.cliente else ""
+                email    = r.cliente.email if r.cliente else ""
+                telefono = r.cliente.telefono if r.cliente else ""
+                tipo_str = "Individual"
+                partic   = ""
+            writer.writerow([
+                r.id, r.woo_order_id or "",
+                tipo_str, nombre, email, telefono,
+                r.tipo_experiencia.nombre, r.variante or "",
+                r.fecha_compra.strftime("%d/%m/%Y") if r.fecha_compra else "",
+                r.fecha_disfrute.strftime("%d/%m/%Y %H:%M") if r.fecha_disfrute else "",
+                r.horario or "", r.estado,
+                f"{r.precio:.2f}".replace(".", ","),
+                partic,
+            ])
+            yield buffer.getvalue()
+            buffer.seek(0); buffer.truncate(0)
 
     return Response(
-        "﻿" + output.getvalue(),
+        stream_with_context(generar_csv()),
         mimetype="text/csv; charset=utf-8",
         headers={"Content-Disposition": "attachment; filename=reservas.csv"},
     )
@@ -360,6 +374,8 @@ def cambiar_estado(id):
             except Exception:
                 pass
         flash(f"Estado cambiado a {nuevo_estado}.", "success")
+    else:
+        flash(f"Estado '{nuevo_estado}' no válido. No se ha modificado la reserva.", "danger")
     return redirect(request.referrer or url_for("reservas.detalle", id=id))
 
 

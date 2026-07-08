@@ -1,0 +1,233 @@
+{% extends "autoclub/base.html" %}
+{% block title %}{{ vehiculo.nombre_display }} — AutoClub{% endblock %}
+{% block page_title %}{{ vehiculo.nombre_display }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.vehiculos_lista') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i>Vehículos
+</a>
+<a href="{{ url_for('autoclub.vehiculos_editar', id=vehiculo.id) }}" class="btn btn-sm btn-outline-primary">
+  <i class="bi bi-pencil me-1"></i>Editar
+</a>
+{% endblock %}
+
+{% block content %}
+{% set hoy = namespace(d=none) %}
+
+<div class="row g-3">
+
+  <!-- Columna izquierda -->
+  <div class="col-lg-4">
+    <div class="card card-accent mb-3">
+      <div class="card-body" style="padding:28px 20px 20px !important">
+        <div class="text-center mb-4">
+          <div class="avatar-lg mb-3 mx-auto"
+               style="background:{% if vehiculo.tipo_vehiculo == 'car_cross' %}#fff7ed;color:#c2410c{% else %}#eff6ff;color:#1d4ed8{% endif %}">
+            <i class="bi bi-car-front" style="font-size:1.4rem"></i>
+          </div>
+          <h5 class="fw-bold mb-1" style="font-size:1rem">{{ vehiculo.nombre_display }}</h5>
+          <div class="mt-2">
+            {% if vehiculo.tipo_vehiculo == 'car_cross' %}
+              <span class="badge rounded-pill" style="background:#fff7ed;color:#c2410c;font-weight:700">Car Cross</span>
+            {% else %}
+              <span class="badge rounded-pill" style="background:#eff6ff;color:#1d4ed8;font-weight:700">División I</span>
+            {% endif %}
+            {% if vehiculo.categoria %}
+              <span class="badge rounded-pill ms-1" style="background:var(--gray-100);color:var(--gray-700)">{{ vehiculo.categoria }}</span>
+            {% endif %}
+          </div>
+          {% if vehiculo.dorsal %}
+            <div class="mt-2 fw-bold" style="font-size:1.5rem;color:var(--gray-700)">#{{ vehiculo.dorsal }}</div>
+          {% endif %}
+        </div>
+
+        <ul class="list-unstyled cliente-info mb-0">
+          {% if vehiculo.piloto %}
+          <li>
+            <i class="bi bi-person"></i>
+            <a href="{{ url_for('autoclub.pilotos_detalle', id=vehiculo.piloto.id) }}"
+               class="text-decoration-none text-sm">{{ vehiculo.piloto.nombre_completo }}</a>
+          </li>
+          {% endif %}
+          {% if vehiculo.num_transponder %}
+          <li>
+            <i class="bi bi-broadcast"></i>
+            <span class="text-sm">{{ vehiculo.num_transponder }}</span>
+          </li>
+          {% endif %}
+        </ul>
+
+        <div class="mt-3">
+          <form method="POST" action="{{ url_for('autoclub.vehiculos_eliminar', id=vehiculo.id) }}"
+                onsubmit="return confirm('¿Eliminar este vehículo permanentemente?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+              <i class="bi bi-trash me-1"></i>Eliminar
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Caducidades -->
+    {% set cads = [] %}
+    {% if vehiculo.arnes_caducidad %}{% set _ = cads.append(('Arnés', vehiculo.arnes_caducidad)) %}{% endif %}
+    {% if vehiculo.asiento_caducidad %}{% set _ = cads.append(('Asiento', vehiculo.asiento_caducidad)) %}{% endif %}
+    {% if vehiculo.extincion_revision %}{% set _ = cads.append(('Extinción (revisión)', vehiculo.extincion_revision)) %}{% endif %}
+    {% if vehiculo.deposito_caducidad %}{% set _ = cads.append(('Depósito FT3', vehiculo.deposito_caducidad)) %}{% endif %}
+    {% if cads %}
+    <div class="card mb-3">
+      <div class="card-header bg-white border-bottom py-2">
+        <span class="fw-semibold text-sm"><i class="bi bi-calendar-x me-2"></i>Caducidades</span>
+      </div>
+      <div class="card-body p-0">
+        <ul class="list-group list-group-flush">
+          {% for nombre_cad, fecha_cad in cads %}
+          <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-3">
+            <span class="text-sm">{{ nombre_cad }}</span>
+            <span class="text-sm fw-semibold
+                         {% if fecha_cad %}text-muted{% endif %}">
+              <i class="bi bi-calendar3 me-1"></i>{{ fecha_cad.strftime('%d/%m/%Y') if fecha_cad }}
+            </span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Columna derecha -->
+  <div class="col-lg-8">
+
+    <!-- Identificación -->
+    <div class="card mb-3">
+      <div class="card-header bg-white border-bottom py-2">
+        <span class="fw-semibold text-sm">
+          <i class="bi bi-info-circle me-2"></i>Identificación
+          {% if vehiculo.tipo_vehiculo == 'car_cross' %}
+            <span class="badge ms-1" style="background:#fff7ed;color:#c2410c;font-size:.7rem">Car Cross</span>
+          {% else %}
+            <span class="badge ms-1" style="background:#eff6ff;color:#1d4ed8;font-size:.7rem">División I</span>
+          {% endif %}
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="row g-2 text-sm">
+          {% if vehiculo.tipo_vehiculo == 'car_cross' %}
+            {% set fields = [
+              ('Marca chasis', vehiculo.cc_chasis_marca),
+              ('Modelo chasis', vehiculo.cc_chasis_modelo),
+              ('Nº chasis', vehiculo.cc_num_chasis),
+              ('Pasaporte RFEDA', vehiculo.cc_pasaporte_rfeda),
+              ('Pasaporte autonómico', vehiculo.cc_pasaporte_autonomico),
+              ('Nº homologación', vehiculo.cc_num_homologacion),
+              ('Marca motor', vehiculo.cc_motor_marca),
+              ('Modelo motor', vehiculo.cc_motor_modelo),
+              ('Año motor', vehiculo.cc_motor_anio),
+              ('Cilindrada', vehiculo.cc_cilindrada ~ ' cc' if vehiculo.cc_cilindrada else none),
+              ('Nº motor', vehiculo.cc_num_motor),
+            ] %}
+          {% else %}
+            {% set fields = [
+              ('Marca', vehiculo.div_marca),
+              ('Modelo', vehiculo.div_modelo),
+              ('Nº bastidor', vehiculo.div_num_bastidor),
+              ('Pasaporte RFEDA', vehiculo.div_pasaporte_rfeda),
+              ('Pasaporte autonómico', vehiculo.div_pasaporte_autonomico),
+              ('Homologación', vehiculo.div_homologacion),
+              ('Disposición motor', vehiculo.div_motor_disposicion | capitalize if vehiculo.div_motor_disposicion else none),
+              ('Aspiración', vehiculo.div_motor_aspiracion | capitalize if vehiculo.div_motor_aspiracion else none),
+              ('Cilindrada', vehiculo.div_cilindrada ~ ' cc' if vehiculo.div_cilindrada else none),
+              ('Factor corrección', vehiculo.div_factor_correccion),
+              ('Tracción', vehiculo.div_traccion),
+            ] %}
+          {% endif %}
+          {% for label, val in fields %}
+            {% if val %}
+            <div class="col-md-4">
+              <span class="text-muted d-block" style="font-size:.72rem;text-transform:uppercase">{{ label }}</span>
+              <strong>{{ val }}</strong>
+            </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Seguridad -->
+    <div class="card mb-3">
+      <div class="card-header bg-white border-bottom py-2">
+        <span class="fw-semibold text-sm"><i class="bi bi-shield-check me-2 text-success"></i>Seguridad</span>
+      </div>
+      <div class="card-body">
+        <div class="row g-2 text-sm">
+          {% set seg_fields = [
+            ('Arnés marca', vehiculo.arnes_marca),
+            ('Arnés homologación', vehiculo.arnes_homologacion),
+            ('Arnés caducidad', vehiculo.arnes_caducidad.strftime('%d/%m/%Y') if vehiculo.arnes_caducidad else none),
+            ('Asiento marca', vehiculo.asiento_marca),
+            ('Asiento homologación', vehiculo.asiento_homologacion),
+            ('Asiento caducidad', vehiculo.asiento_caducidad.strftime('%d/%m/%Y') if vehiculo.asiento_caducidad else none),
+            ('Extinción marca', vehiculo.extincion_marca),
+            ('Extinción tipo', vehiculo.extincion_tipo | capitalize if vehiculo.extincion_tipo else none),
+            ('Extinción revisión', vehiculo.extincion_revision.strftime('%d/%m/%Y') if vehiculo.extincion_revision else none),
+            ('Depósito FT3 marca', vehiculo.deposito_marca),
+            ('Depósito caducidad', vehiculo.deposito_caducidad.strftime('%d/%m/%Y') if vehiculo.deposito_caducidad else none),
+            ('Red estado', vehiculo.red_estado),
+            ('Red homologación', vehiculo.red_homologacion),
+          ] %}
+          {% for label, val in seg_fields %}
+            {% if val %}
+            <div class="col-md-4">
+              <span class="text-muted d-block" style="font-size:.72rem;text-transform:uppercase">{{ label }}</span>
+              <strong>{{ val }}</strong>
+            </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Inscripciones -->
+    <div class="card mb-3">
+      <div class="card-header bg-white border-bottom py-2 d-flex align-items-center justify-content-between">
+        <span class="fw-semibold text-sm"><i class="bi bi-clipboard-check me-2"></i>Inscripciones</span>
+      </div>
+      <div class="card-body p-0">
+        {% set inscs = vehiculo.inscripciones.all() %}
+        {% if inscs %}
+          <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <tbody>
+              {% for i in inscs %}
+              <tr>
+                <td class="ps-3 text-sm">
+                  <a href="{{ url_for('autoclub.inscripciones_detalle', id=i.id) }}"
+                     class="text-decoration-none fw-semibold">{{ i.nombre_prueba }}</a>
+                </td>
+                <td class="text-muted text-sm">{{ i.fecha_prueba.strftime('%d/%m/%Y') if i.fecha_prueba else '—' }}</td>
+                <td>
+                  {% set ec = {'pendiente': '#6b7280', 'enviada': '#1d4ed8', 'aceptada': '#16a34a', 'rechazada': '#dc2626'} %}
+                  <span class="badge rounded-pill text-xs"
+                        style="background:{{ ec.get(i.estado, '#6b7280') }}20;color:{{ ec.get(i.estado, '#6b7280') }}">
+                    {{ i.estado | capitalize }}
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </div>
+        {% else %}
+          <div class="empty-state" style="padding:20px 0">
+            <i class="bi bi-clipboard" style="font-size:1.5rem"></i>
+            <p class="text-sm">Sin inscripciones registradas</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

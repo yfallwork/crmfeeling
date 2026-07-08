@@ -6,7 +6,7 @@ from flask_login import login_required
 from app.services.woo_sync import sync_orders, fetch_orders
 from app.models.reserva import Reserva
 from app.models.experiencia import TipoExperiencia
-from app.extensions import db
+from app.extensions import db, csrf
 
 woo_bp = Blueprint("woocommerce", __name__)
 
@@ -115,10 +115,11 @@ def inspeccionar_pedido():
             resultado.append(pedido)
         return jsonify(resultado)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @woo_bp.route("/webhook", methods=["POST"])
+@csrf.exempt
 def webhook():
     """
     Endpoint para webhooks de WooCommerce.
@@ -126,17 +127,26 @@ def webhook():
       - Tema: Pedido creado / Pedido actualizado
       - URL: https://tu-servidor.com/woocommerce/webhook
       - Secreto: el valor de WOO_WEBHOOK_SECRET en .env
+
+    Exento de CSRF porque es una llamada servidor-a-servidor (WooCommerce),
+    no una petición de navegador con sesión — la autenticidad se verifica
+    con la firma HMAC de abajo, no con cookies de sesión.
     """
     secret = current_app.config.get("WOO_WEBHOOK_SECRET", "")
-    if secret:
-        sig_header = request.headers.get("X-WC-Webhook-Signature", "")
-        payload    = request.get_data()
-        expected   = base64.b64encode(
-            hmac.new(secret.encode("utf-8"), payload, hashlib.sha256).digest()
-        ).decode()
-        if not hmac.compare_digest(sig_header, expected):
-            current_app.logger.warning("Webhook: firma inválida")
-            return jsonify({"error": "Firma invalida"}), 401
+    if not secret:
+        current_app.logger.error(
+            "Webhook rechazado: WOO_WEBHOOK_SECRET no está configurado en el entorno."
+        )
+        return jsonify({"ok": False, "error": "Webhook no configurado"}), 503
+
+    sig_header = request.headers.get("X-WC-Webhook-Signature", "")
+    payload    = request.get_data()
+    expected   = base64.b64encode(
+        hmac.new(secret.encode("utf-8"), payload, hashlib.sha256).digest()
+    ).decode()
+    if not sig_header or not hmac.compare_digest(sig_header, expected):
+        current_app.logger.warning("Webhook: firma inválida")
+        return jsonify({"ok": False, "error": "Firma invalida"}), 401
 
     topic = request.headers.get("X-WC-Webhook-Topic", "")
     if not topic.startswith("order."):
@@ -144,7 +154,7 @@ def webhook():
 
     order = request.get_json(force=True, silent=True)
     if not order:
-        return jsonify({"error": "Sin datos"}), 400
+        return jsonify({"ok": False, "error": "Sin datos"}), 400
 
     stats = {"nuevas": 0, "actualizadas": 0, "errores": 0}
     try:
@@ -159,7 +169,7 @@ def webhook():
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Webhook error: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
     return jsonify({"ok": True, "stats": stats})
 

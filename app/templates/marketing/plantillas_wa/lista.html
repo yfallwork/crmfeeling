@@ -150,6 +150,7 @@
                   <form method="POST"
                         action="{{ url_for('marketing.plantillas_wa_eliminar', id=p.id) }}"
                         onsubmit="return confirm('¿Eliminar la plantilla «{{ p.nombre }}»?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="dropdown-item text-danger">
                       <i class="bi bi-trash me-2"></i>Eliminar
                     </button>

@@ -9,6 +9,7 @@
 {% if plantilla %}
 <form method="POST" action="{{ url_for('marketing.plantillas_eliminar', id=plantilla.id) }}"
       onsubmit="return confirm('¿Eliminar la plantilla «{{ plantilla.nombre }}»? Esta acción no se puede deshacer.')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <button type="submit" class="btn btn-sm btn-outline-danger">
     <i class="bi bi-trash me-1"></i>Eliminar
   </button>
@@ -151,6 +152,7 @@
 </style>
 
 <form method="POST" id="formPlantilla">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <div class="row g-3">
 
   <!-- ── Col izquierda: formulario ── -->

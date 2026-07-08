@@ -1,0 +1,129 @@
+{% extends "autoclub/base.html" %}
+{% block title %}Staff — AutoClub{% endblock %}
+{% block page_title %}Staff{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.staff_nuevo') }}" class="btn btn-primary btn-sm">
+  <i class="bi bi-plus-lg me-1"></i>Nuevo miembro
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-content">
+
+  <!-- Filtros -->
+  <div class="card mb-4">
+    <div class="card-body py-3">
+      <form method="GET" class="d-flex flex-wrap gap-2 align-items-center">
+        <div class="input-group input-group-sm" style="max-width:300px">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" class="form-control" placeholder="Buscar por nombre o email…" value="{{ q }}">
+        </div>
+        <select name="tipo" class="form-select form-select-sm" style="max-width:180px" onchange="this.form.submit()">
+          <option value="">Todos los tipos</option>
+          {% for t in tipos %}
+          <option value="{{ t }}" {% if tipo == t %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary btn-sm">Buscar</button>
+        {% if q or tipo %}
+        <a href="{{ url_for('autoclub.staff_lista') }}" class="btn btn-ghost-secondary btn-sm">Limpiar</a>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  <div class="card">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr style="font-size:.72rem;text-transform:uppercase;color:var(--gray-500)">
+              <th style="padding-left:20px">Nombre</th>
+              <th>Tipo</th>
+              <th>Teléfono</th>
+              <th>Email</th>
+              <th>Estado</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in miembros.items %}
+            <tr>
+              <td style="padding-left:20px">
+                <div class="d-flex align-items-center gap-2">
+                  <div class="avatar avatar-sm" style="background:{% if m.tipo == 'Mecánico' %}var(--blue-50,#eff6ff);color:#1d4ed8{% else %}var(--purple-50,#f3e8ff);color:#7c3aed{% endif %}">
+                    <i class="bi {% if m.tipo == 'Mecánico' %}bi-wrench{% else %}bi-person-badge{% endif %}"></i>
+                  </div>
+                  <div>
+                    <div class="fw-semibold text-sm">{{ m.nombre_completo }}</div>
+                    {% if m.dni %}<div class="text-xs text-muted">{{ m.dni }}</div>{% endif %}
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="badge rounded-pill"
+                      style="background:{% if m.tipo == 'Mecánico' %}#eff6ff;color:#1d4ed8{% else %}#f3e8ff;color:#7c3aed{% endif %};font-size:.7rem">
+                  <i class="bi {% if m.tipo == 'Mecánico' %}bi-wrench{% else %}bi-person-badge{% endif %} me-1"></i>{{ m.tipo }}
+                </span>
+              </td>
+              <td class="text-sm">{{ m.telefono or '—' }}</td>
+              <td class="text-sm">{{ m.email or '—' }}</td>
+              <td>
+                {% if m.activo %}
+                  <span class="badge badge-activo rounded-pill"><i class="bi bi-check-circle me-1"></i>Activo</span>
+                {% else %}
+                  <span class="badge badge-inactivo rounded-pill"><i class="bi bi-pause-circle me-1"></i>Inactivo</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="d-flex gap-1 justify-content-end pe-2">
+                  <a href="{{ url_for('autoclub.staff_detalle', id=m.id) }}"
+                     class="btn btn-xs btn-outline-secondary" title="Ver detalle">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                  <a href="{{ url_for('autoclub.staff_editar', id=m.id) }}"
+                     class="btn btn-xs btn-outline-primary" title="Editar">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="6">
+                <div class="empty-state">
+                  <i class="bi bi-people"></i>
+                  <p>No hay miembros de staff{% if q %} para "{{ q }}"{% endif %}</p>
+                  <a href="{{ url_for('autoclub.staff_nuevo') }}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-lg me-1"></i>Añadir primero
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {% if miembros.pages > 1 %}
+  <nav class="mt-4">
+    <ul class="pagination pagination-sm justify-content-center mb-0">
+      {% for p in miembros.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+          <li class="page-item {% if p == miembros.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('autoclub.staff_lista', page=p, q=q, tipo=tipo) }}">{{ p }}</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+  </nav>
+  {% endif %}
+
+</div>
+{% endblock %}

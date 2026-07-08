@@ -1,0 +1,174 @@
+{% extends "autoclub/base.html" %}
+{% block title %}Pilotos — AutoClub{% endblock %}
+{% block page_title %}Pilotos{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.pilotos_nuevo') }}" class="btn btn-primary btn-sm">
+  <i class="bi bi-plus-lg me-1"></i>Nuevo piloto
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+
+  <div class="filter-bar">
+    <form method="GET" class="d-flex align-items-center gap-2 flex-wrap w-100">
+      <div class="input-group input-group-sm" style="max-width:300px">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" class="form-control"
+               placeholder="Nombre, DNI, licencia…" value="{{ q }}" />
+      </div>
+
+      <select name="estado" class="form-select form-select-sm"
+              style="max-width:160px" onchange="this.form.submit()">
+        <option value="activos"   {% if estado == 'activos'   %}selected{% endif %}>Activos</option>
+        <option value="inactivos" {% if estado == 'inactivos' %}selected{% endif %}>Inactivos</option>
+        <option value="todos"     {% if estado == 'todos'     %}selected{% endif %}>Todos</option>
+      </select>
+
+      <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
+      {% if q or estado not in ('activos', '') %}
+        <a href="{{ url_for('autoclub.pilotos_lista') }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-x me-1"></i>Limpiar
+        </a>
+      {% endif %}
+
+      <div class="ms-auto d-flex align-items-center gap-2">
+        <span class="text-xs text-muted">{{ pilotos.total }} piloto{{ 's' if pilotos.total != 1 }}</span>
+      </div>
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th style="width:44px"></th>
+          <th>Nombre</th>
+          <th>DNI</th>
+          <th>Licencia</th>
+          <th>Federación</th>
+          <th>Teléfono</th>
+          <th>Email</th>
+          <th>Estado</th>
+          <th style="width:100px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in pilotos.items %}
+        <tr {% if not p.activo %}style="opacity:.55"{% endif %}>
+          <td>
+            <div class="row-avatar"
+                 style="{% if not p.activo %}background:var(--gray-200);color:var(--gray-500){% endif %}">
+              {{ p.nombre[0]|upper }}
+            </div>
+          </td>
+          <td>
+            <a href="{{ url_for('autoclub.pilotos_detalle', id=p.id) }}"
+               class="fw-semibold text-decoration-none" style="color:var(--black)">
+              {{ p.nombre_completo }}
+            </a>
+            {% if p.es_menor %}
+              <span class="badge rounded-pill ms-1" style="font-size:.65rem;background:#fef3c7;color:#92400e">Menor</span>
+            {% endif %}
+          </td>
+          <td class="text-muted text-sm">{{ p.dni or '—' }}</td>
+          <td class="text-sm">
+            {% if p.num_licencia %}
+              <span class="fw-semibold">{{ p.num_licencia }}</span>
+              {% if p.tipo_licencia %}<span class="text-muted ms-1">({{ p.tipo_licencia }})</span>{% endif %}
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="text-muted text-sm">{{ p.federacion or '—' }}</td>
+          <td class="text-sm">
+            {% if p.telefono %}
+              <a href="tel:{{ p.telefono }}" class="text-decoration-none">{{ p.telefono }}</a>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="text-sm">
+            {% if p.email %}
+              <a href="mailto:{{ p.email }}" class="text-muted text-decoration-none">{{ p.email }}</a>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if p.activo %}
+              <span class="badge badge-activo rounded-pill"><i class="bi bi-check-circle me-1"></i>Activo</span>
+            {% else %}
+              <span class="badge badge-inactivo rounded-pill"><i class="bi bi-pause-circle me-1"></i>Inactivo</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('autoclub.pilotos_detalle', id=p.id) }}"
+                 class="btn btn-xs btn-outline-secondary" title="Ver detalle">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="{{ url_for('autoclub.pilotos_editar', id=p.id) }}"
+                 class="btn btn-xs btn-outline-primary" title="Editar">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <form method="POST" action="{{ url_for('autoclub.pilotos_toggle', id=p.id) }}" class="d-inline">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-xs btn-outline-secondary"
+                        title="{{ 'Desactivar' if p.activo else 'Activar' }}">
+                  <i class="bi bi-toggle-{{ 'on' if p.activo else 'off' }}"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9">
+            <div class="empty-state">
+              <i class="bi bi-person-badge"></i>
+              <p>No se encontraron pilotos{% if q %} para "{{ q }}"{% endif %}</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pilotos.pages > 1 %}
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <span class="text-xs text-muted">Página {{ pilotos.page }} de {{ pilotos.pages }}</span>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% if pilotos.has_prev %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('autoclub.pilotos_lista', page=pilotos.prev_num, q=q, estado=estado) }}">
+              <i class="bi bi-chevron-left"></i>
+            </a>
+          </li>
+        {% endif %}
+        {% for pg in pilotos.iter_pages() %}
+          {% if pg %}
+            <li class="page-item {% if pg == pilotos.page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('autoclub.pilotos_lista', page=pg, q=q, estado=estado) }}">{{ pg }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+        {% if pilotos.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('autoclub.pilotos_lista', page=pilotos.next_num, q=q, estado=estado) }}">
+              <i class="bi bi-chevron-right"></i>
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

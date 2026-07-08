@@ -117,14 +117,18 @@
             <div class="d-flex align-items-center gap-2">
               {% if r.es_teambuilding %}
                 <div class="row-avatar" style="background:rgba(220,38,38,.1);color:var(--red)">
-                  {{ r.empresa.nombre[0]|upper }}
+                  {{ (r.empresa.nombre[0] if r.empresa else '?')|upper }}
                 </div>
                 <div class="min-w-0">
+                  {% if r.empresa %}
                   <a href="{{ url_for('teambuilding.empresas_detalle', id=r.empresa_id) }}"
                      class="fw-semibold text-decoration-none d-block"
                      style="color:var(--black);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
                     {{ r.empresa.nombre }}
                   </a>
+                  {% else %}
+                  <span class="fw-semibold text-muted d-block">Empresa eliminada</span>
+                  {% endif %}
                   <span class="badge rounded-pill"
                         style="background:rgba(220,38,38,.08);color:var(--red);font-size:.68rem">
                     <i class="bi bi-buildings me-1"></i>TB
@@ -132,14 +136,18 @@
                   </span>
                 </div>
               {% else %}
-                <div class="row-avatar">{{ r.cliente.nombre[0]|upper }}</div>
+                <div class="row-avatar">{{ (r.cliente.nombre[0] if r.cliente else '?')|upper }}</div>
                 <div class="min-w-0">
+                  {% if r.cliente %}
                   <a href="{{ url_for('clientes.detalle', id=r.cliente_id) }}"
                      class="fw-semibold text-decoration-none d-block"
                      style="color:var(--black);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
                     {{ r.cliente.nombre_completo }}
                   </a>
                   <div class="text-xs text-muted">{{ r.cliente.email }}</div>
+                  {% else %}
+                  <span class="fw-semibold text-muted d-block">Cliente eliminado</span>
+                  {% endif %}
                 </div>
               {% endif %}
             </div>

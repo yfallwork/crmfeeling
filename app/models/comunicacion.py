@@ -25,7 +25,8 @@ class ComunicacionLog(db.Model):
     enviado_en = db.Column(db.DateTime,  default=datetime.utcnow)
 
     reserva = db.relationship("Reserva", backref=db.backref(
-        "comunicaciones", lazy="dynamic", order_by="ComunicacionLog.enviado_en.desc()"
+        "comunicaciones", lazy="dynamic", order_by="ComunicacionLog.enviado_en.desc()",
+        cascade="all, delete-orphan",
     ))
 
     @property

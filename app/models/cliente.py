@@ -14,7 +14,7 @@ class Cliente(db.Model):
     fuente = db.Column(db.String(20), default="manual")  # woocommerce / manual
     woo_customer_id = db.Column(db.Integer, nullable=True)
     notas = db.Column(db.Text, default="")
-    creado_en = db.Column(db.DateTime, default=datetime.utcnow)
+    creado_en = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     actualizado_en = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     reservas = db.relationship("Reserva", back_populates="cliente", lazy="dynamic", cascade="all, delete-orphan")

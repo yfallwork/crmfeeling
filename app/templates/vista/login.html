@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#AD1726" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Calendarios · Acceso</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --red:    #AD1726;
+      --red-dk: #8b1220;
+      --black:  #111111;
+      --gray:   #6b7280;
+      --border: #e5e7eb;
+      --bg:     #f9fafb;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+    }
+
+    .login-wrap {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 20px;
+      padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 380px;
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.10);
+      overflow: hidden;
+    }
+
+    .login-hero {
+      background: linear-gradient(135deg, var(--black) 0%, #2d2d2d 100%);
+      padding: 36px 28px 28px;
+      text-align: center;
+    }
+    .login-icon {
+      width: 64px; height: 64px;
+      border-radius: 18px;
+      background: var(--red);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      color: #fff;
+      margin-bottom: 14px;
+      box-shadow: 0 8px 24px rgba(173,23,38,.4);
+    }
+    .login-title {
+      color: #fff;
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: -.3px;
+    }
+    .login-subtitle {
+      color: rgba(255,255,255,.5);
+      font-size: .8rem;
+      margin-top: 4px;
+    }
+
+    .login-body {
+      padding: 28px 28px 24px;
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+    .field label {
+      display: block;
+      font-size: .78rem;
+      font-weight: 700;
+      color: var(--gray);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 6px;
+    }
+    .field input {
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: .95rem;
+      color: var(--black);
+      outline: none;
+      transition: border-color .15s;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .field input:focus {
+      border-color: var(--red);
+    }
+
+    .login-error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: .82rem;
+      color: #b91c1c;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-login {
+      width: 100%;
+      background: var(--red);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .15s, transform .1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-login:active { transform: scale(.97); background: var(--red-dk); }
+
+    .login-footer {
+      text-align: center;
+      padding-top: 18px;
+      font-size: .75rem;
+      color: var(--gray);
+    }
+    .login-footer a {
+      color: var(--red);
+      text-decoration: none;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="login-hero">
+      <div class="login-icon"><i class="bi bi-calendar3"></i></div>
+      <div class="login-title">Calendarios</div>
+      <div class="login-subtitle">Feeling Experience · AutoClub</div>
+    </div>
+    <div class="login-body">
+      {% if error %}
+      <div class="login-error">
+        <i class="bi bi-exclamation-circle-fill"></i>{{ error }}
+      </div>
+      {% endif %}
+      <form method="POST">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field">
+          <label>Usuario o email</label>
+          <input type="text" name="email" autocomplete="username"
+                 autocapitalize="none" autocorrect="off" spellcheck="false"
+                 placeholder="nombre@ejemplo.com" required autofocus />
+        </div>
+        <div class="field">
+          <label>Contraseña</label>
+          <input type="password" name="password" autocomplete="current-password"
+                 placeholder="••••••••" required />
+        </div>
+        <button type="submit" class="btn-login">
+          <i class="bi bi-box-arrow-in-right me-2"></i>Entrar
+        </button>
+      </form>
+      <div class="login-footer">
+        ¿Acceso al CRM completo? <a href="/login">Ir al panel</a>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -2,6 +2,26 @@
    CRM Feeling Experience — JS principal
    ══════════════════════════════════════════════════════ */
 
+/* ── CSRF: adjuntar el token a toda petición fetch() de escritura ── */
+(function () {
+  const meta = document.querySelector('meta[name="csrf-token"]');
+  if (!meta) return;
+  const token = meta.content;
+  const UNSAFE_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
+  const originalFetch = window.fetch;
+  window.fetch = function (input, init) {
+    init = init || {};
+    const method = (init.method || 'GET').toUpperCase();
+    if (UNSAFE_METHODS.includes(method)) {
+      init.headers = new Headers(init.headers || {});
+      if (!init.headers.has('X-CSRFToken')) {
+        init.headers.set('X-CSRFToken', token);
+      }
+    }
+    return originalFetch(input, init);
+  };
+})();
+
 /* ── SIDEBAR MOBILE TOGGLE ───────────────────────────── */
 function toggleSidebar() {
   const sidebar   = document.getElementById('sidebar');
@@ -28,45 +48,6 @@ document.addEventListener('click', function (e) {
     closeSidebar();
   }
 });
-
-
-/* ── SIDEBAR MINI-RAIL (colapsar/expandir) ───────────── */
-(function () {
-  const KEY = 'crm-sidebar-collapsed';
-
-  function applyCollapsed(collapsed) {
-    const sidebar  = document.getElementById('sidebar');
-    const topbar   = document.querySelector('.topbar');
-    const content  = document.querySelector('.main-content');
-    const icon     = document.getElementById('sidebarCollapseIcon');
-    if (!sidebar) return;
-
-    sidebar.classList.toggle('collapsed', collapsed);
-    topbar?.classList.toggle('sidebar-collapsed', collapsed);
-    content?.classList.toggle('sidebar-collapsed', collapsed);
-    if (icon) {
-      icon.className = collapsed
-        ? 'bi bi-layout-sidebar-reverse'
-        : 'bi bi-layout-sidebar';
-    }
-  }
-
-  // Restaurar estado guardado antes de que se pinte la página
-  const saved = localStorage.getItem(KEY) === 'true';
-  if (saved) {
-    // Aplicar clase directamente al DOM si ya existe (evita flash)
-    const s = document.getElementById('sidebar');
-    if (s) s.classList.add('collapsed');
-  }
-  document.addEventListener('DOMContentLoaded', () => applyCollapsed(saved));
-
-  window.toggleSidebarCollapse = function () {
-    const sidebar   = document.getElementById('sidebar');
-    const collapsed = !sidebar.classList.contains('collapsed');
-    applyCollapsed(collapsed);
-    localStorage.setItem(KEY, String(collapsed));
-  };
-})();
 
 
 /* ── CONTADORES ANIMADOS ─────────────────────────────── */

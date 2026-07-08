@@ -305,15 +305,19 @@
           <td>
             <div class="d-flex align-items-center gap-2">
               <div class="row-avatar" style="background:rgba(220,38,38,.1);color:var(--red)">
-                {{ r.empresa.nombre[0]|upper }}
+                {{ (r.empresa.nombre[0] if r.empresa else '?')|upper }}
               </div>
               <div class="min-w-0">
+                {% if r.empresa %}
                 <a href="{{ url_for('teambuilding.empresas_detalle', id=r.empresa_id) }}"
                    class="fw-semibold text-decoration-none d-block"
                    style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--black)">
                   {{ r.empresa.nombre }}
                 </a>
                 <div class="text-muted text-xs">{{ r.empresa.persona_contacto or r.empresa.email }}</div>
+                {% else %}
+                <span class="fw-semibold text-muted d-block">Empresa eliminada</span>
+                {% endif %}
               </div>
             </div>
           </td>

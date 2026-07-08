@@ -154,6 +154,7 @@
           <form method="POST"
                 action="{{ url_for('marketing.notificaciones_resolver', id=n.id) }}"
                 class="flex-shrink-0">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button class="btn btn-xs btn-outline-success" title="Marcar resuelta">
               <i class="bi bi-check-lg"></i>
             </button>

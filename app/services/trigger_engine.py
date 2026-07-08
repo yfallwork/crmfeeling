@@ -19,6 +19,16 @@ from datetime import datetime, timedelta
 log = logging.getLogger(__name__)
 
 
+def _marketing_activo():
+    """Interruptor global desde Configuración general. Si está desactivado,
+    ninguna automatización de marketing debe ejecutarse."""
+    try:
+        from app.models.configuracion import Configuracion
+        return Configuracion.get().marketing_activo
+    except Exception:
+        return True  # fail-open: un error de BD no debe bloquear el flujo normal
+
+
 # ── Sustitución de variables ──────────────────────────────────────────────────
 
 def _sustituir(texto, ctx):
@@ -268,10 +278,21 @@ def _disparar_por_tag_nuevo(tag_id, entidad_tipo, entidad_id):
     Evalúa normas activas que requieran tag_id, igual que _disparar()
     pero partiendo de un tag ya asignado (no de un evento).
     """
+    if not _marketing_activo():
+        log.info("[TriggerEngine] Procesos de marketing desactivados — se omite evaluación de normas")
+        return
+
+    from sqlalchemy.orm import joinedload
     from app.models.rule import Rule
     active_tag_ids = _get_entity_tag_ids(entidad_tipo, entidad_id)
 
-    for rule in Rule.query.filter_by(activo=True).all():
+    reglas = (
+        Rule.query
+        .options(joinedload(Rule.rule_tags))
+        .filter_by(activo=True)
+        .all()
+    )
+    for rule in reglas:
         req_ids = {rt.tag_id for rt in rule.rule_tags if rt.tipo == "requerida"}
         exc_ids = {rt.tag_id for rt in rule.rule_tags if rt.tipo == "excluida"}
 
@@ -301,6 +322,9 @@ def disparar_trigger(evento, entidad_tipo, entidad_id):
       3. Evalúa normas activas que requieran esos tags
       4. Ejecuta las acciones (inmediato si delay=0, programado si delay>0)
     """
+    if not _marketing_activo():
+        log.info(f"[TriggerEngine] Procesos de marketing desactivados — se omite '{evento}'")
+        return
     try:
         _disparar(evento, entidad_tipo, entidad_id)
     except Exception as e:
@@ -360,7 +384,14 @@ def _disparar(evento, entidad_tipo, entidad_id):
     active_tag_ids = _get_entity_tag_ids(entidad_tipo, entidad_id)
 
     # 4. Evaluar normas
-    for rule in Rule.query.filter_by(activo=True).all():
+    from sqlalchemy.orm import joinedload
+    reglas = (
+        Rule.query
+        .options(joinedload(Rule.rule_tags))
+        .filter_by(activo=True)
+        .all()
+    )
+    for rule in reglas:
         req_ids = {rt.tag_id for rt in rule.rule_tags if rt.tipo == "requerida"}
         exc_ids = {rt.tag_id for rt in rule.rule_tags if rt.tipo == "excluida"}
 

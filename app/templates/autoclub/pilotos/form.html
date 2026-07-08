@@ -1,0 +1,286 @@
+{% extends "autoclub/base.html" %}
+{% block title %}{% if piloto %}Editar piloto{% else %}Nuevo piloto{% endif %} — AutoClub{% endblock %}
+{% block page_title %}{% if piloto %}Editar piloto{% else %}Nuevo piloto{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-xl-9 col-lg-10">
+
+    <form method="POST" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <!-- Datos Personales -->
+      <div class="card mb-4">
+        <div class="card-header bg-white border-bottom">
+          <h6 class="mb-0 fw-semibold">
+            <i class="bi bi-person me-2 text-primary"></i>Datos Personales
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
+              <input type="text" name="nombre" class="form-control" required
+                     value="{{ piloto.nombre if piloto else '' }}" />
+            </div>
+            <div class="col-md-8">
+              <label class="form-label fw-semibold">Apellidos <span class="text-danger">*</span></label>
+              <input type="text" name="apellidos" class="form-control" required
+                     value="{{ piloto.apellidos if piloto else '' }}" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">DNI / NIF</label>
+              <input type="text" name="dni" class="form-control" placeholder="12345678A"
+                     value="{{ piloto.dni if piloto else '' }}" />
+            </div>
+            <div class="col-md-8">
+              <label class="form-label fw-semibold">Documento DNI (PDF/imagen)</label>
+              <input type="file" name="dni_doc" class="form-control" accept=".pdf,.jpg,.jpeg,.png" />
+              {% if piloto and piloto.dni_doc_filename %}
+                <div class="form-text">
+                  <i class="bi bi-paperclip me-1"></i>
+                  <a href="{{ url_for('static', filename='uploads/autoclub/docs/' + piloto.dni_doc_filename) }}"
+                     target="_blank">Ver documento actual</a>
+                </div>
+              {% endif %}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Fecha de nacimiento</label>
+              <input type="date" name="fecha_nacimiento" id="fechaNacimiento" class="form-control"
+                     value="{{ piloto.fecha_nacimiento.strftime('%Y-%m-%d') if piloto and piloto.fecha_nacimiento else '' }}" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Nacionalidad</label>
+              <input type="text" name="nacionalidad" class="form-control" placeholder="Española"
+                     value="{{ piloto.nacionalidad if piloto else '' }}" />
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Dirección</label>
+              <input type="text" name="calle" class="form-control mb-2" placeholder="Calle y número"
+                     value="{{ piloto.calle if piloto else '' }}" />
+              <div class="row g-2">
+                <div class="col-md-3">
+                  <input type="text" name="cp" class="form-control" placeholder="CP"
+                         value="{{ piloto.cp if piloto else '' }}" />
+                </div>
+                <div class="col-md-5">
+                  <input type="text" name="localidad" class="form-control" placeholder="Localidad"
+                         value="{{ piloto.localidad if piloto else '' }}" />
+                </div>
+                <div class="col-md-4">
+                  <input type="text" name="provincia" class="form-control" placeholder="Provincia"
+                         value="{{ piloto.provincia if piloto else '' }}" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contacto -->
+      <div class="card mb-4">
+        <div class="card-header bg-white border-bottom">
+          <h6 class="mb-0 fw-semibold">
+            <i class="bi bi-telephone me-2 text-primary"></i>Contacto
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Teléfono</label>
+              <input type="tel" name="telefono" class="form-control" placeholder="+34 600 000 000"
+                     value="{{ piloto.telefono if piloto else '' }}" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Teléfono asistencia en carrera</label>
+              <input type="tel" name="telefono_asistencia" class="form-control" placeholder="+34 600 000 000"
+                     value="{{ piloto.telefono_asistencia if piloto else '' }}" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Email</label>
+              <input type="email" name="email" class="form-control"
+                     value="{{ piloto.email if piloto else '' }}" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Datos Federativos -->
+      <div class="card mb-4">
+        <div class="card-header bg-white border-bottom">
+          <h6 class="mb-0 fw-semibold">
+            <i class="bi bi-award me-2 text-primary"></i>Datos Federativos
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Nº Licencia piloto</label>
+              <input type="text" name="num_licencia" class="form-control"
+                     value="{{ piloto.num_licencia if piloto else '' }}" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Tipo de licencia</label>
+              <select name="tipo_licencia" class="form-select">
+                <option value="">— Seleccionar —</option>
+                {% for t in ['PR', 'ITC-R', 'E-X', 'M', 'Nacional'] %}
+                  <option value="{{ t }}" {% if piloto and piloto.tipo_licencia == t %}selected{% endif %}>{{ t }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Federación</label>
+              <select name="federacion" class="form-select">
+                <option value="">— Seleccionar —</option>
+                {% for f in ['FAG', 'FADA', 'FACM', 'FACYL', 'RFEDA', 'Otro'] %}
+                  <option value="{{ f }}" {% if piloto and piloto.federacion == f %}selected{% endif %}>{{ f }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Nº Licencia concursante</label>
+              <input type="text" name="num_licencia_concursante" class="form-control"
+                     value="{{ piloto.num_licencia_concursante if piloto else '' }}" />
+            </div>
+            <div class="col-md-8">
+              <label class="form-label fw-semibold">Nombre del concursante</label>
+              <input type="text" name="nombre_concursante" class="form-control"
+                     value="{{ piloto.nombre_concursante if piloto else '' }}" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Datos Médicos y Emergencia -->
+      <div class="card mb-4">
+        <div class="card-header bg-white border-bottom">
+          <h6 class="mb-0 fw-semibold">
+            <i class="bi bi-heart-pulse me-2 text-danger"></i>Datos Médicos y Emergencia
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Grupo sanguíneo</label>
+              <select name="grupo_sanguineo" class="form-select">
+                <option value="">— —</option>
+                {% for g in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] %}
+                  <option value="{{ g }}" {% if piloto and piloto.grupo_sanguineo == g %}selected{% endif %}>{{ g }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-9">
+              <label class="form-label fw-semibold">Alergias / observaciones médicas</label>
+              <textarea name="alergias" class="form-control" rows="2">{{ piloto.alergias if piloto else '' }}</textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold text-muted" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.04em">Contacto de emergencia</label>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Nombre</label>
+              <input type="text" name="contacto_emergencia_nombre" class="form-control"
+                     value="{{ piloto.contacto_emergencia_nombre if piloto else '' }}" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Parentesco</label>
+              <input type="text" name="contacto_emergencia_parentesco" class="form-control"
+                     placeholder="Cónyuge, padre, madre…"
+                     value="{{ piloto.contacto_emergencia_parentesco if piloto else '' }}" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Teléfono</label>
+              <input type="tel" name="contacto_emergencia_telefono" class="form-control"
+                     value="{{ piloto.contacto_emergencia_telefono if piloto else '' }}" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gestión de Menores -->
+      <div class="card mb-4" id="seccionMenores"
+           style="{% if not (piloto and piloto.es_menor) %}display:none{% endif %}">
+        <div class="card-header bg-white border-bottom">
+          <h6 class="mb-0 fw-semibold">
+            <i class="bi bi-shield-exclamation me-2 text-warning"></i>Gestión de Menores
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-warning py-2 mb-3" style="font-size:.85rem">
+            <i class="bi bi-info-circle me-1"></i>
+            El piloto es menor de edad. Se requiere autorización del tutor legal.
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Nombre del tutor legal</label>
+              <input type="text" name="tutor_nombre" class="form-control"
+                     value="{{ piloto.tutor_nombre if piloto else '' }}" />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">DNI del tutor</label>
+              <input type="text" name="tutor_dni" class="form-control"
+                     value="{{ piloto.tutor_dni if piloto else '' }}" />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Documento autorización</label>
+              <input type="file" name="tutor_doc" class="form-control" accept=".pdf,.jpg,.jpeg,.png" />
+              {% if piloto and piloto.tutor_doc_filename %}
+                <div class="form-text">
+                  <a href="{{ url_for('static', filename='uploads/autoclub/docs/' + piloto.tutor_doc_filename) }}"
+                     target="_blank">Ver documento actual</a>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check-lg me-1"></i>
+          {% if piloto %}Guardar cambios{% else %}Crear piloto{% endif %}
+        </button>
+        <a href="{{ url_for('autoclub.pilotos_detalle', id=piloto.id) if piloto else url_for('autoclub.pilotos_lista') }}"
+           class="btn btn-outline-secondary">Cancelar</a>
+
+        {% if piloto %}
+        <form method="POST" action="{{ url_for('autoclub.pilotos_eliminar', id=piloto.id) }}"
+              class="ms-auto"
+              onsubmit="return confirm('¿Eliminar este piloto permanentemente?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-trash me-1"></i>Eliminar
+          </button>
+        </form>
+        {% endif %}
+      </div>
+
+    </form>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var input = document.getElementById('fechaNacimiento');
+  var seccion = document.getElementById('seccionMenores');
+
+  function checkMenor() {
+    var val = input.value;
+    if (!val) { seccion.style.display = 'none'; return; }
+    var hoy = new Date();
+    var nac = new Date(val);
+    var edad = hoy.getFullYear() - nac.getFullYear();
+    var m = hoy.getMonth() - nac.getMonth();
+    if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
+    seccion.style.display = edad < 18 ? '' : 'none';
+  }
+
+  if (input) {
+    input.addEventListener('change', checkMenor);
+    checkMenor();
+  }
+})();
+</script>
+{% endblock %}

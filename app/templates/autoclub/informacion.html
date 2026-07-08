@@ -1,0 +1,369 @@
+{% extends "autoclub/base.html" %}
+{% block title %}Información del AutoClub{% endblock %}
+{% block page_title %}Información del AutoClub{% endblock %}
+
+{% block content %}
+
+<!-- ── Datos del club ─────────────────────────────────────────────────────── -->
+<div class="card mb-4">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-2">
+      <div style="width:32px;height:32px;background:#dcfce7;border-radius:8px;
+                  display:flex;align-items:center;justify-content:center">
+        <i class="bi bi-shield-fill-check" style="color:#16a34a;font-size:.85rem"></i>
+      </div>
+      <span class="fw-semibold">Datos de la escudería</span>
+    </div>
+    <button class="btn btn-sm btn-outline-secondary" id="btnEditarInfo" onclick="toggleEdit()">
+      <i class="bi bi-pencil me-1"></i>Editar
+    </button>
+  </div>
+
+  <!-- Vista de solo lectura -->
+  <div id="infoView" class="card-body">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="text-xs text-muted fw-semibold mb-1">Nombre de la escudería</div>
+        <div class="fw-semibold">{{ info.nombre_escuderia or '—' }}</div>
+      </div>
+      <div class="col-md-3">
+        <div class="text-xs text-muted fw-semibold mb-1">CIF</div>
+        <div class="fw-semibold font-monospace">{{ info.cif or '—' }}</div>
+      </div>
+      <div class="col-md-3">
+        <div class="text-xs text-muted fw-semibold mb-1">Licencia escudería</div>
+        <div class="fw-semibold font-monospace">{{ info.licencia_escuderia or '—' }}</div>
+      </div>
+      <div class="col-md-4">
+        <div class="text-xs text-muted fw-semibold mb-1">Email de contacto</div>
+        <div>{{ info.email_contacto or '—' }}</div>
+      </div>
+      <div class="col-md-2">
+        <div class="text-xs text-muted fw-semibold mb-1">Teléfono</div>
+        <div>{{ info.telefono or '—' }}</div>
+      </div>
+      <div class="col-md-6">
+        <div class="text-xs text-muted fw-semibold mb-1">Dirección</div>
+        <div>{{ info.direccion or '—' }}</div>
+      </div>
+      {% if info.notas %}
+      <div class="col-12">
+        <div class="text-xs text-muted fw-semibold mb-1">Notas</div>
+        <div class="text-sm" style="white-space:pre-line">{{ info.notas }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Formulario de edición (oculto por defecto) -->
+  <div id="infoForm" style="display:none">
+    <form method="POST" action="{{ url_for('autoclub.informacion') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="card-body border-top">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold text-sm">Nombre de la escudería</label>
+            <input type="text" name="nombre_escuderia" class="form-control"
+                   value="{{ info.nombre_escuderia or '' }}" placeholder="Escudería Feeling AC">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold text-sm">CIF</label>
+            <input type="text" name="cif" class="form-control font-monospace"
+                   value="{{ info.cif or '' }}" placeholder="B12345678">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold text-sm">Licencia escudería</label>
+            <input type="text" name="licencia_escuderia" class="form-control font-monospace"
+                   value="{{ info.licencia_escuderia or '' }}" placeholder="ESC-2024-0001">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold text-sm">Email de contacto</label>
+            <input type="email" name="email_contacto" class="form-control"
+                   value="{{ info.email_contacto or '' }}">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold text-sm">Teléfono</label>
+            <input type="tel" name="telefono" class="form-control"
+                   value="{{ info.telefono or '' }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold text-sm">Dirección</label>
+            <input type="text" name="direccion" class="form-control"
+                   value="{{ info.direccion or '' }}">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold text-sm">Notas internas</label>
+            <textarea name="notas" class="form-control" rows="2"
+                      style="resize:none">{{ info.notas or '' }}</textarea>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleEdit()">Cancelar</button>
+        <button type="submit" class="btn btn-sm btn-primary">
+          <i class="bi bi-check-lg me-1"></i>Guardar cambios
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Credenciales de acceso ─────────────────────────────────────────────── -->
+<div class="card" id="credenciales">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-2">
+      <div style="width:32px;height:32px;background:#fef3c7;border-radius:8px;
+                  display:flex;align-items:center;justify-content:center">
+        <i class="bi bi-key-fill" style="color:#d97706;font-size:.85rem"></i>
+      </div>
+      <span class="fw-semibold">Credenciales de acceso</span>
+      {% if credenciales %}
+      <span class="badge" style="background:#f3f4f6;color:#6b7280;font-size:.7rem">{{ credenciales|length }}</span>
+      {% endif %}
+    </div>
+    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalNuevaCred">
+      <i class="bi bi-plus-lg me-1"></i>Añadir
+    </button>
+  </div>
+
+  {% if credenciales %}
+  <div class="table-responsive">
+    <table class="table table-hover mb-0" style="font-size:.85rem">
+      <thead style="background:var(--gray-50)">
+        <tr>
+          <th style="padding:10px 16px;font-weight:600;font-size:.72rem;text-transform:uppercase;color:var(--gray-500)">Sitio</th>
+          <th style="padding:10px 16px;font-weight:600;font-size:.72rem;text-transform:uppercase;color:var(--gray-500)">URL</th>
+          <th style="padding:10px 16px;font-weight:600;font-size:.72rem;text-transform:uppercase;color:var(--gray-500)">Usuario</th>
+          <th style="padding:10px 16px;font-weight:600;font-size:.72rem;text-transform:uppercase;color:var(--gray-500)">Contraseña</th>
+          <th style="padding:10px 16px;font-weight:600;font-size:.72rem;text-transform:uppercase;color:var(--gray-500)">Notas</th>
+          <th style="padding:10px 16px;width:90px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cred in credenciales %}
+        <tr>
+          <td style="padding:12px 16px;font-weight:600;vertical-align:middle">
+            <div class="d-flex align-items-center gap-2">
+              <div style="width:28px;height:28px;background:#fef3c7;border-radius:6px;
+                          display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <i class="bi bi-globe" style="color:#d97706;font-size:.7rem"></i>
+              </div>
+              {{ cred.nombre }}
+            </div>
+          </td>
+          <td style="padding:12px 16px;vertical-align:middle">
+            {% if cred.url %}
+            <a href="{{ cred.url }}" target="_blank" rel="noopener"
+               class="text-sm text-decoration-none text-muted d-inline-flex align-items-center gap-1">
+              <i class="bi bi-box-arrow-up-right" style="font-size:.65rem"></i>
+              {{ cred.url | truncate(35, True, '…') }}
+            </a>
+            {% else %}—{% endif %}
+          </td>
+          <td style="padding:12px 16px;vertical-align:middle">
+            {% if cred.usuario %}
+            <div class="d-flex align-items-center gap-1">
+              <code style="font-size:.8rem;background:#f3f4f6;padding:2px 6px;border-radius:4px">{{ cred.usuario }}</code>
+              <button class="btn btn-link btn-sm p-0 ms-1 text-muted copy-btn"
+                      data-val="{{ cred.usuario }}" title="Copiar usuario"
+                      style="font-size:.7rem">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </div>
+            {% else %}—{% endif %}
+          </td>
+          <td style="padding:12px 16px;vertical-align:middle">
+            {% if cred.password %}
+            <div class="d-flex align-items-center gap-1">
+              <code class="pwd-mask" data-real="{{ cred.password }}"
+                    style="font-size:.8rem;background:#f3f4f6;padding:2px 6px;border-radius:4px;letter-spacing:2px">••••••••</code>
+              <button class="btn btn-link btn-sm p-0 text-muted toggle-pwd" title="Mostrar/ocultar"
+                      style="font-size:.7rem">
+                <i class="bi bi-eye"></i>
+              </button>
+              <button class="btn btn-link btn-sm p-0 ms-1 text-muted copy-btn"
+                      data-val="{{ cred.password }}" title="Copiar contraseña"
+                      style="font-size:.7rem">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </div>
+            {% else %}—{% endif %}
+          </td>
+          <td style="padding:12px 16px;vertical-align:middle;color:var(--gray-500);font-size:.8rem">
+            {{ cred.notas or '' }}
+          </td>
+          <td style="padding:12px 16px;vertical-align:middle;text-align:right">
+            <button class="btn btn-link btn-sm p-0 text-muted me-2"
+                    onclick="abrirEditarCred({{ cred.id }}, {{ cred.nombre|tojson }}, {{ cred.url|tojson }}, {{ cred.usuario|tojson }}, {{ cred.password|tojson }}, {{ cred.notas|tojson }})"
+                    title="Editar">
+              <i class="bi bi-pencil" style="font-size:.8rem"></i>
+            </button>
+            <form method="POST" action="{{ url_for('autoclub.credencial_eliminar', id=cred.id) }}"
+                  style="display:inline"
+                  onsubmit="return confirm('¿Eliminar la credencial «{{ cred.nombre }}»?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-link btn-sm p-0 text-danger" title="Eliminar">
+                <i class="bi bi-trash" style="font-size:.8rem"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state" style="padding:48px 0">
+    <i class="bi bi-key"></i>
+    <p>Sin credenciales almacenadas</p>
+    <button class="btn btn-sm btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#modalNuevaCred">
+      <i class="bi bi-plus-lg me-1"></i>Añadir primera credencial
+    </button>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ── Modal: nueva credencial ────────────────────────────────────────────── -->
+<div class="modal fade" id="modalNuevaCred" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:480px">
+    <div class="modal-content" style="border-radius:14px;border:none;box-shadow:0 20px 60px rgba(0,0,0,.15)">
+      <div class="modal-header border-0 pb-1">
+        <h6 class="modal-title fw-bold">Nueva credencial</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('autoclub.credencial_nueva') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body pt-2">
+          {% include "autoclub/_credencial_fields.html" with context %}
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-sm btn-primary">
+            <i class="bi bi-check-lg me-1"></i>Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: editar credencial ───────────────────────────────────────────── -->
+<div class="modal fade" id="modalEditarCred" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:480px">
+    <div class="modal-content" style="border-radius:14px;border:none;box-shadow:0 20px 60px rgba(0,0,0,.15)">
+      <div class="modal-header border-0 pb-1">
+        <h6 class="modal-title fw-bold">Editar credencial</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" id="formEditarCred">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body pt-2">
+          {% include "autoclub/_credencial_fields.html" with context %}
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-sm btn-primary">
+            <i class="bi bi-check-lg me-1"></i>Guardar cambios
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ── Exportar gastos por período ────────────────────────────────────────── -->
+<div class="card border-0 shadow-sm rounded-4 mt-4">
+  <div class="card-body p-4">
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <div class="rounded-3 d-flex align-items-center justify-content-center"
+           style="width:38px;height:38px;background:#f0fdf4">
+        <i class="bi bi-file-earmark-spreadsheet text-success fs-5"></i>
+      </div>
+      <div>
+        <h6 class="fw-bold mb-0">Exportar gastos</h6>
+        <small class="text-muted">Descarga todos los gastos de inscripciones filtrados por fecha</small>
+      </div>
+    </div>
+
+    <form method="GET" action="{{ url_for('autoclub.informacion_gastos_exportar') }}"
+          class="row g-3 align-items-end">
+      <div class="col-sm-5">
+        <label class="form-label fw-semibold small">Desde</label>
+        <input type="date" name="fecha_desde" class="form-control form-control-sm" />
+      </div>
+      <div class="col-sm-5">
+        <label class="form-label fw-semibold small">Hasta</label>
+        <input type="date" name="fecha_hasta" class="form-control form-control-sm" />
+      </div>
+      <div class="col-sm-2">
+        <button type="submit" class="btn btn-success btn-sm w-100">
+          <i class="bi bi-download me-1"></i>Descargar
+        </button>
+      </div>
+    </form>
+    <p class="text-muted small mt-2 mb-0">
+      Deja los campos vacíos para exportar todos los gastos sin filtrar por fecha.
+    </p>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ── Toggle edición datos del club ──────────── */
+function toggleEdit() {
+  const view = document.getElementById('infoView');
+  const form = document.getElementById('infoForm');
+  const btn  = document.getElementById('btnEditarInfo');
+  const editing = form.style.display !== 'none';
+  view.style.display = editing ? '' : 'none';
+  form.style.display = editing ? 'none' : '';
+  btn.innerHTML = editing
+    ? '<i class="bi bi-pencil me-1"></i>Editar'
+    : '<i class="bi bi-x me-1"></i>Cancelar';
+}
+
+/* ── Modal editar credencial ────────────────── */
+function abrirEditarCred(id, nombre, url, usuario, password, notas) {
+  const f = document.getElementById('formEditarCred');
+  f.action = '/autoclub/informacion/credencial/' + id + '/editar';
+  f.querySelector('[name="nombre"]').value   = nombre   || '';
+  f.querySelector('[name="url"]').value      = url      || '';
+  f.querySelector('[name="usuario"]').value  = usuario  || '';
+  f.querySelector('[name="password"]').value = password || '';
+  f.querySelector('[name="notas"]').value    = notas    || '';
+  new bootstrap.Modal(document.getElementById('modalEditarCred')).show();
+}
+
+/* ── Mostrar/ocultar contraseñas ────────────── */
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.toggle-pwd');
+  if (!btn) return;
+  const row  = btn.closest('td');
+  const mask = row.querySelector('.pwd-mask');
+  const icon = btn.querySelector('i');
+  if (mask.textContent === '••••••••') {
+    mask.textContent = mask.dataset.real;
+    mask.style.letterSpacing = 'normal';
+    icon.className = 'bi bi-eye-slash';
+  } else {
+    mask.textContent = '••••••••';
+    mask.style.letterSpacing = '2px';
+    icon.className = 'bi bi-eye';
+  }
+});
+
+/* ── Copiar al portapapeles ─────────────────── */
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.copy-btn');
+  if (!btn) return;
+  navigator.clipboard.writeText(btn.dataset.val).then(() => {
+    const icon = btn.querySelector('i');
+    icon.className = 'bi bi-clipboard-check';
+    icon.style.color = '#16a34a';
+    setTimeout(() => { icon.className = 'bi bi-clipboard'; icon.style.color = ''; }, 1800);
+  });
+});
+</script>
+{% endblock %}

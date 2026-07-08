@@ -167,6 +167,7 @@
       {% if not n.resuelta %}
       <form method="POST"
             action="{{ url_for('marketing.notificaciones_resolver', id=n.id, estado=estado, tipo=tipo, prioridad=prioridad) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button class="btn btn-xs btn-outline-success" title="Marcar como resuelta">
           <i class="bi bi-check-lg"></i>
         </button>
@@ -174,6 +175,7 @@
       {% endif %}
       <form method="POST" action="{{ url_for('marketing.notificaciones_eliminar', id=n.id) }}"
             onsubmit="return confirm('Eliminar esta notificación?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button class="btn btn-xs btn-outline-danger" title="Eliminar">
           <i class="bi bi-trash"></i>
         </button>
@@ -191,6 +193,7 @@
   <div class="modal-dialog modal-dialog-centered" style="max-width:520px">
     <div class="modal-content">
       <form method="POST" action="{{ url_for('marketing.notificaciones_nueva') }}" id="formNueva">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="modal-header">
           <h5 class="modal-title"><i class="bi bi-bell-fill me-2"></i>Nueva notificación</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

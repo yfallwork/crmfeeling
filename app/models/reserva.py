@@ -17,15 +17,15 @@ class Reserva(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     # Exactamente uno de los dos estará relleno
-    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=True)
-    empresa_id = db.Column(db.Integer, db.ForeignKey("empresas_tb.id"), nullable=True)
+    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=True, index=True)
+    empresa_id = db.Column(db.Integer, db.ForeignKey("empresas_tb.id"), nullable=True, index=True)
 
     tipo_experiencia_id = db.Column(db.Integer, db.ForeignKey("tipos_experiencia.id"), nullable=False)
 
     fecha_compra   = db.Column(db.DateTime, default=datetime.utcnow)
-    fecha_disfrute = db.Column(db.DateTime, nullable=True)
+    fecha_disfrute = db.Column(db.DateTime, nullable=True, index=True)
 
-    estado   = db.Column(db.String(20),  default="pendiente")
+    estado   = db.Column(db.String(20),  default="pendiente", index=True)
     precio   = db.Column(db.Float,       default=0.0)
     horario  = db.Column(db.String(20),  default="")
     variante = db.Column(db.String(150), default="")

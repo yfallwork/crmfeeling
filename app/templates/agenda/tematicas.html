@@ -138,6 +138,7 @@
         </button>
         <form method="POST" action="{{ url_for('agenda.eliminar_tematica', id=t.id) }}"
               onsubmit="return confirm('¿Eliminar «{{ t.nombre }}»? Se desasociará de todas las entradas.')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2" style="font-size:.75rem">
             <i class="bi bi-trash"></i>
           </button>
@@ -175,6 +176,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <form method="POST" action="{{ url_for('agenda.nueva_tematica') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="modal-body" style="padding:20px 22px">
           <div class="mb-3">
             <label class="form-label fw-semibold" style="font-size:.82rem">Nombre <span class="text-danger">*</span></label>
@@ -234,6 +236,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <form method="POST" id="formEditar">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="modal-body" style="padding:20px 22px">
           <div class="mb-3">
             <label class="form-label fw-semibold" style="font-size:.82rem">Nombre <span class="text-danger">*</span></label>

@@ -5,6 +5,7 @@
 {% block topbar_actions %}
 <form method="POST" action="{{ url_for('marketing.logs_limpiar') }}"
       onsubmit="return confirm('¿Eliminar todos los logs con más de 90 días?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <button class="btn btn-sm btn-outline-secondary">
     <i class="bi bi-trash me-1"></i>Limpiar &gt;90 días
   </button>

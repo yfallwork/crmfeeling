@@ -597,6 +597,9 @@
 {% endblock %}
 
 {% block topbar_actions %}
+<button class="btn btn-outline-success btn-sm" id="btnNuevaApertura">
+  <i class="bi bi-calendar-check me-1"></i>Fecha apertura
+</button>
 <a href="{{ url_for('reservas.nueva') }}" class="btn btn-primary btn-sm">
   <i class="bi bi-plus-lg me-1"></i>Nueva reserva
 </a>
@@ -752,6 +755,106 @@
   </div>
 </div>
 
+<!-- ── MODAL: Nueva apertura ─────────────────────────────────── -->
+<div class="modal fade" id="modalNuevaApertura" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:420px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title fw-bold" style="font-size:.88rem">
+          <i class="bi bi-calendar-check text-success me-2"></i>Nueva fecha de apertura
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="padding:20px 24px">
+        <div class="mb-3">
+          <label class="form-label" style="font-size:.8rem;font-weight:600">Fecha</label>
+          <input type="date" id="apFecha" class="form-control form-control-sm" />
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-8">
+            <label class="form-label" style="font-size:.8rem;font-weight:600">Experiencia <span class="text-muted fw-normal">(opcional)</span></label>
+            <select id="apTipoExp" class="form-select form-select-sm">
+              <option value="">Todas las experiencias</option>
+              {% for t in tipos_experiencia %}
+              <option value="{{ t.id }}">{{ t.nombre }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-4">
+            <label class="form-label" style="font-size:.8rem;font-weight:600">Nº ideal</label>
+            <input type="number" id="apCapacidadIdeal" class="form-control form-control-sm" min="1" placeholder="Ej: 8" />
+          </div>
+        </div>
+        <div class="mb-0">
+          <label class="form-label" style="font-size:.8rem;font-weight:600">Notas <span class="text-muted fw-normal">(opcional)</span></label>
+          <textarea id="apNotas" class="form-control form-control-sm" rows="2" placeholder="Observaciones..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-success btn-sm" id="apGuardar">
+          <i class="bi bi-check-lg me-1"></i>Guardar apertura
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: Detalle apertura ─────────────────────────────── -->
+<div class="modal fade" id="modalApertura" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:440px">
+    <div class="modal-content">
+      <div class="modal-header" style="background:#15803d;color:#fff;border:none">
+        <div>
+          <div class="fw-bold" id="apDetFecha" style="font-size:.95rem">—</div>
+          <div style="font-size:.75rem;opacity:.8" id="apDetTipo">—</div>
+        </div>
+        <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="padding:0">
+        <!-- Info y reservas del día -->
+        <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <i class="bi bi-people text-success"></i>
+            <span style="font-size:.82rem;font-weight:600" id="apDetNReservas">—</span>
+          </div>
+          <div id="apDetNotas" class="text-muted mb-2" style="font-size:.78rem"></div>
+          <div class="d-flex align-items-center gap-2">
+            <label class="form-label mb-0" style="font-size:.75rem;font-weight:600;color:var(--gray-400)">Nº ideal de reservas</label>
+            <input type="number" id="apDetCapacidadIdeal" class="form-control form-control-sm" min="1"
+                   style="width:80px" placeholder="—" />
+            <button class="btn btn-sm btn-outline-success" id="apDetCapacidadGuardar">
+              <i class="bi bi-check-lg"></i>
+            </button>
+          </div>
+        </div>
+        <!-- Lista de reservas asignadas a este día -->
+        <div id="apDetListaReservas" style="max-height:160px;overflow-y:auto;border-bottom:1px solid var(--border)">
+        </div>
+        <!-- Asignar pendiente -->
+        <div style="padding:16px 20px">
+          <div class="fw-semibold mb-2" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-400)">Asignar reserva pendiente</div>
+          <select id="apAsignarSelect" class="form-select form-select-sm mb-2">
+            <option value="">Seleccionar cliente sin fecha...</option>
+          </select>
+          <div class="d-flex gap-2">
+            <input type="time" id="apAsignarHora" class="form-control form-control-sm" value="10:00" style="width:120px" />
+            <button class="btn btn-success btn-sm flex-grow-1" id="apAsignarGuardar">
+              <i class="bi bi-calendar-plus me-1"></i>Asignar
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="background:var(--gray-50)">
+        <button class="btn btn-sm btn-outline-danger" id="apEliminarBtn">
+          <i class="bi bi-trash me-1"></i>Eliminar apertura
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- FAB móvil -->
 <button class="fab-pendientes" id="fabPendientes" aria-label="Reservas sin fecha">
   <i class="bi bi-calendar-plus"></i>
@@ -785,11 +888,14 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  const modalReserva = new bootstrap.Modal(document.getElementById('reservaModal'));
-  const modalAsignar = new bootstrap.Modal(document.getElementById('asignarModal'));
-  let calInstance    = null;
-  let reservaActiva  = null;
-  let todosPendientes = [];
+  const modalReserva   = new bootstrap.Modal(document.getElementById('reservaModal'));
+  const modalAsignar   = new bootstrap.Modal(document.getElementById('asignarModal'));
+  const modalApertura  = new bootstrap.Modal(document.getElementById('modalApertura'));
+  const modalNuevaAp   = new bootstrap.Modal(document.getElementById('modalNuevaApertura'));
+  let calInstance      = null;
+  let reservaActiva    = null;
+  let aperturaActiva   = null;
+  let todosPendientes  = [];
   const isMobile = () => window.innerWidth < 768;
 
   // ── BOTTOM SHEET ──────────────────────────────────────
@@ -891,21 +997,31 @@ document.addEventListener('DOMContentLoaded', function () {
     height: 'auto',
     eventContent: renderEvento,
 
-    eventSources: [{
-      url: '/calendario/eventos',
-      method: 'GET',
-      success: function(eventos) {
-        actualizarStats(eventos);
+    eventSources: [
+      {
+        url: '/calendario/eventos',
+        method: 'GET',
+        success: function(eventos) { actualizarStats(eventos); },
+        failure: function() { document.getElementById('cal-error').classList.remove('d-none'); },
       },
-      failure: function() {
-        document.getElementById('cal-error').classList.remove('d-none');
+      {
+        url: '/calendario/aperturas',
+        method: 'GET',
       },
-    }],
+    ],
 
     eventClick: function (info) {
       const p = info.event.extendedProps;
-      const nombre = p.cliente || '?';
 
+      // ── Apertura ──────────────────────────────────────────
+      if (p.tipo === 'apertura') {
+        info.jsEvent.preventDefault();
+        abrirModalApertura(p);
+        return;
+      }
+
+      // ── Reserva ───────────────────────────────────────────
+      const nombre = p.cliente || '?';
       document.getElementById('modalAvatar').textContent        = iniciales(nombre);
       document.getElementById('modalClienteNombre').textContent = nombre;
       document.getElementById('modalTelefono').textContent      = p.telefono || 'Sin teléfono';
@@ -1088,6 +1204,164 @@ document.addEventListener('DOMContentLoaded', function () {
     .finally(() => {
       this.disabled = false;
       this.innerHTML = '<i class="bi bi-check-lg me-1"></i>Guardar fecha';
+    });
+  });
+
+  // ── APERTURA: modal detalle ────────────────────────────
+  function abrirModalApertura(p) {
+    aperturaActiva = p;
+
+    const d = new Date(p.fecha_iso + 'T00:00:00');
+    document.getElementById('apDetFecha').textContent =
+      d.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    document.getElementById('apDetTipo').textContent = p.tipo_exp_nombre;
+    const ocupacionTxt = p.capacidad_ideal
+      ? `${p.n_reservas} / ${p.capacidad_ideal} reservas (ideal)`
+      : (p.n_reservas === 1 ? '1 reserva asignada este día' : `${p.n_reservas} reservas asignadas este día`);
+    document.getElementById('apDetNReservas').textContent = ocupacionTxt;
+    document.getElementById('apDetNotas').textContent = p.notas || '';
+    document.getElementById('apDetCapacidadIdeal').value = p.capacidad_ideal || '';
+
+    // Reservas ya asignadas a este día (filtrado de eventos en calendario)
+    const reservasHoy = [];
+    calInstance.getEvents().forEach(ev => {
+      if (ev.extendedProps.tipo !== 'apertura' && ev.start) {
+        const evDate = ev.start.toISOString().slice(0, 10);
+        if (evDate === p.fecha_iso) {
+          reservasHoy.push(ev.extendedProps);
+        }
+      }
+    });
+    const listaEl = document.getElementById('apDetListaReservas');
+    if (reservasHoy.length === 0) {
+      listaEl.innerHTML = '<div class="py-2 px-4 text-muted" style="font-size:.75rem">Sin reservas asignadas aún</div>';
+    } else {
+      listaEl.innerHTML = reservasHoy.map(r => `
+        <div class="d-flex align-items-center gap-2 px-4 py-2" style="border-bottom:1px solid var(--gray-50)">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0">
+            ${iniciales(r.cliente || '?')}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.79rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.cliente || '—'}</div>
+            <div style="font-size:.7rem;color:var(--gray-400)">${r.experiencia || ''}${r.horario ? ' · ' + r.horario : ''}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Pendientes en select
+    const sel = document.getElementById('apAsignarSelect');
+    sel.innerHTML = '<option value="">Seleccionar cliente sin fecha...</option>' +
+      todosPendientes.map(r =>
+        `<option value="${r.id}">${r.cliente} · ${r.experiencia}</option>`
+      ).join('');
+
+    modalApertura.show();
+  }
+
+  // ── APERTURA: asignar pendiente ────────────────────────
+  document.getElementById('apAsignarGuardar').addEventListener('click', function () {
+    const rid  = document.getElementById('apAsignarSelect').value;
+    const hora = document.getElementById('apAsignarHora').value || '10:00';
+    if (!rid || !aperturaActiva) return;
+
+    const fechaISO = aperturaActiva.fecha_iso + 'T' + hora;
+
+    this.disabled = true;
+    this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
+
+    fetch(`/api/reservas/${rid}/fecha`, {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ fecha_disfrute: fechaISO }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        modalApertura.hide();
+        calInstance.refetchEvents();
+        cargarPendientes();
+      } else {
+        alert('Error: ' + (data.error || 'No se pudo asignar'));
+      }
+    })
+    .finally(() => {
+      this.disabled = false;
+      this.innerHTML = '<i class="bi bi-calendar-plus me-1"></i>Asignar';
+    });
+  });
+
+  // ── APERTURA: guardar capacidad ideal ──────────────────
+  document.getElementById('apDetCapacidadGuardar').addEventListener('click', function () {
+    if (!aperturaActiva) return;
+    const valor = document.getElementById('apDetCapacidadIdeal').value;
+    const btn = this;
+    btn.disabled = true;
+
+    fetch(`/calendario/aperturas/${aperturaActiva.apertura_id}/editar`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ capacidad_ideal: valor || null }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        calInstance.refetchEvents();
+      } else {
+        alert('Error: ' + (data.error || 'No se pudo guardar'));
+      }
+    })
+    .finally(() => { btn.disabled = false; });
+  });
+
+  // ── APERTURA: eliminar ─────────────────────────────────
+  document.getElementById('apEliminarBtn').addEventListener('click', function () {
+    if (!aperturaActiva || !confirm('¿Eliminar esta fecha de apertura?')) return;
+    fetch(`/calendario/aperturas/${aperturaActiva.apertura_id}/eliminar`, { method: 'POST' })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) { modalApertura.hide(); calInstance.refetchEvents(); }
+      });
+  });
+
+  // ── APERTURA: nueva ───────────────────────────────────
+  document.getElementById('btnNuevaApertura').addEventListener('click', function () {
+    document.getElementById('apFecha').value    = '';
+    document.getElementById('apTipoExp').value  = '';
+    document.getElementById('apCapacidadIdeal').value = '';
+    document.getElementById('apNotas').value    = '';
+    modalNuevaAp.show();
+  });
+
+  document.getElementById('apGuardar').addEventListener('click', function () {
+    const fecha = document.getElementById('apFecha').value;
+    if (!fecha) { document.getElementById('apFecha').focus(); return; }
+
+    this.disabled = true;
+    this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando...';
+
+    fetch('/calendario/aperturas/nueva', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        fecha:               fecha,
+        tipo_experiencia_id: document.getElementById('apTipoExp').value || null,
+        capacidad_ideal:     document.getElementById('apCapacidadIdeal').value || null,
+        notas:               document.getElementById('apNotas').value,
+      }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        modalNuevaAp.hide();
+        calInstance.refetchEvents();
+      } else {
+        alert('Error: ' + (data.error || 'No se pudo guardar'));
+      }
+    })
+    .finally(() => {
+      this.disabled = false;
+      this.innerHTML = '<i class="bi bi-check-lg me-1"></i>Guardar apertura';
     });
   });
 });

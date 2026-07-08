@@ -1,0 +1,577 @@
+{% extends "autoclub/base.html" %}
+{% block title %}{{ insc.nombre_prueba }} — AutoClub{% endblock %}
+{% block page_title %}{{ insc.nombre_prueba }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.inscripciones_lista') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i>Inscripciones
+</a>
+<a href="{{ url_for('autoclub.inscripciones_editar', id=insc.id) }}" class="btn btn-sm btn-outline-primary">
+  <i class="bi bi-pencil me-1"></i>Editar
+</a>
+{% endblock %}
+
+{% block content %}
+
+{% set estado_cfg = {
+  'pendiente': ('#6b7280', 'bi-clock', 'Pendiente'),
+  'enviada':   ('#1d4ed8', 'bi-send', 'Enviada'),
+  'aceptada':  ('#16a34a', 'bi-check-circle', 'Aceptada'),
+  'rechazada': ('#dc2626', 'bi-x-circle', 'Rechazada'),
+} %}
+{% set sc = estado_cfg.get(insc.estado, ('#6b7280', 'bi-circle', insc.estado | capitalize)) %}
+
+<div class="row g-3">
+
+  <!-- Columna izquierda -->
+  <div class="col-lg-4">
+    <div class="card card-accent mb-3">
+      <div class="card-body" style="padding:24px 20px 20px !important">
+        <div class="text-center mb-4">
+          <div class="avatar-lg mb-3 mx-auto" style="background:#eff6ff;color:#1d4ed8">
+            <i class="bi bi-clipboard-check" style="font-size:1.4rem"></i>
+          </div>
+          <h5 class="fw-bold mb-1" style="font-size:.95rem">{{ insc.nombre_prueba }}</h5>
+          {% if insc.campeonato %}
+            <span class="badge rounded-pill mt-1" style="background:var(--gray-100);color:var(--gray-700)">{{ insc.campeonato }}</span>
+          {% endif %}
+          <div class="mt-2">
+            <span class="badge rounded-pill"
+                  style="background:{{ sc[0] }}20;color:{{ sc[0] }};font-weight:700">
+              <i class="bi {{ sc[1] }} me-1"></i>{{ sc[2] }}
+            </span>
+          </div>
+        </div>
+
+        <ul class="list-unstyled cliente-info mb-0">
+          {% if insc.fecha_prueba %}
+          <li>
+            <i class="bi bi-calendar3"></i>
+            <span class="text-sm">{{ insc.fecha_prueba.strftime('%d/%m/%Y') }}</span>
+          </li>
+          {% endif %}
+          {% if insc.fecha_plazo %}
+          {% set dias = (insc.fecha_plazo - today).days %}
+          <li>
+            <i class="bi bi-hourglass-split" style="color:{% if dias < 0 %}#dc2626{% elif dias <= 7 %}#d97706{% else %}#6b7280{% endif %}"></i>
+            <span class="text-sm" style="color:{% if dias < 0 %}#dc2626{% elif dias <= 7 %}#d97706{% else %}inherit{% endif %}">
+              Plazo: {{ insc.fecha_plazo.strftime('%d/%m/%Y') }}
+              {% if dias < 0 %}
+                <span class="badge ms-1" style="background:#fef2f2;color:#dc2626;font-size:.65rem">Vencido</span>
+              {% elif dias <= 7 %}
+                <span class="badge ms-1" style="background:#fffbeb;color:#d97706;font-size:.65rem">{{ dias }}d</span>
+              {% endif %}
+            </span>
+          </li>
+          {% endif %}
+          {% if insc.piloto %}
+          <li>
+            <i class="bi bi-person"></i>
+            <a href="{{ url_for('autoclub.pilotos_detalle', id=insc.piloto.id) }}"
+               class="text-decoration-none text-sm">{{ insc.piloto.nombre_completo }}</a>
+          </li>
+          {% endif %}
+          {% if insc.vehiculo %}
+          <li>
+            <i class="bi bi-car-front"></i>
+            <a href="{{ url_for('autoclub.vehiculos_detalle', id=insc.vehiculo.id) }}"
+               class="text-decoration-none text-sm">{{ insc.vehiculo.nombre_display }}</a>
+          </li>
+          {% endif %}
+          {% if insc.concursante %}
+          <li>
+            <i class="bi bi-building"></i>
+            <span class="text-sm">{{ insc.concursante }}</span>
+          </li>
+          {% endif %}
+        </ul>
+
+        {% if insc.justificante_filename %}
+        <div class="mt-3">
+          <a href="{{ url_for('static', filename='uploads/autoclub/docs/' + insc.justificante_filename) }}"
+             target="_blank" class="btn btn-sm btn-outline-secondary w-100">
+            <i class="bi bi-paperclip me-1"></i>Ver justificante
+          </a>
+        </div>
+        {% endif %}
+
+        <div class="mt-3">
+          <form method="POST" action="{{ url_for('autoclub.inscripciones_eliminar', id=insc.id) }}"
+                onsubmit="return confirm('¿Eliminar esta inscripción permanentemente?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+              <i class="bi bi-trash me-1"></i>Eliminar
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cambiar estado -->
+    <div class="card mb-3">
+      <div class="card-header bg-white border-bottom py-2">
+        <span class="fw-semibold text-sm">Cambiar estado</span>
+      </div>
+      <div class="card-body p-2 d-flex flex-column gap-2">
+        {% for e, cfg in estado_cfg.items() %}
+          {% if e != insc.estado %}
+          <form method="POST" action="{{ url_for('autoclub.inscripciones_estado', id=insc.id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="estado" value="{{ e }}" />
+            <button type="submit" class="btn btn-sm w-100 btn-outline-secondary">
+              <i class="bi {{ cfg[1] }} me-1" style="color:{{ cfg[0] }}"></i>{{ cfg[2] }}
+            </button>
+          </form>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Columna derecha -->
+  <div class="col-lg-8">
+    <div class="card mb-3">
+      <div class="card-header bg-white border-bottom py-2">
+        <span class="fw-semibold text-sm"><i class="bi bi-info-circle me-2"></i>Detalles</span>
+      </div>
+      <div class="card-body">
+        <div class="row g-3 text-sm">
+          <div class="col-md-6">
+            <span class="text-muted d-block" style="font-size:.72rem;text-transform:uppercase">Prueba</span>
+            <strong>{{ insc.nombre_prueba }}</strong>
+          </div>
+          {% if insc.fecha_prueba %}
+          <div class="col-md-6">
+            <span class="text-muted d-block" style="font-size:.72rem;text-transform:uppercase">Fecha de la prueba</span>
+            <strong>{{ insc.fecha_prueba.strftime('%d/%m/%Y') }}</strong>
+          </div>
+          {% endif %}
+          {% if insc.fecha_plazo %}
+          {% set dias = (insc.fecha_plazo - today).days %}
+          <div class="col-md-6">
+            <span class="text-muted d-block" style="font-size:.72rem;text-transform:uppercase">Plazo de presentación</span>
+            <strong style="color:{% if dias < 0 %}#dc2626{% elif dias <= 7 %}#d97706{% else %}inherit{% endif %}">
+              {{ insc.fecha_plazo.strftime('%d/%m/%Y') }}
+              {% if dias < 0 %}<span class="badge ms-1" style="background:#fef2f2;color:#dc2626;font-size:.65rem">Vencido</span>
+              {% elif dias <= 7 %}<span class="badge ms-1" style="background:#fffbeb;color:#d97706;font-size:.65rem">{{ dias }}d</span>
+              {% endif %}
+            </strong>
+          </div>
+          {% endif %}
+          {% if insc.campeonato %}
+          <div class="col-md-6">
+            <span class="text-muted d-block" style="font-size:.72rem;text-transform:uppercase">Campeonato</span>
+            <strong>{{ insc.campeonato }}</strong>
+          </div>
+          {% endif %}
+          {% if insc.concursante %}
+          <div class="col-md-6">
+            <span class="text-muted d-block" style="font-size:.72rem;text-transform:uppercase">Concursante</span>
+            <strong>{{ insc.concursante }}</strong>
+          </div>
+          {% endif %}
+          <div class="col-md-6">
+            <span class="text-muted d-block" style="font-size:.72rem;text-transform:uppercase">Piloto</span>
+            {% if insc.piloto %}
+              <a href="{{ url_for('autoclub.pilotos_detalle', id=insc.piloto.id) }}" class="text-decoration-none fw-semibold">
+                {{ insc.piloto.nombre_completo }}
+              </a>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </div>
+          <div class="col-md-6">
+            <span class="text-muted d-block" style="font-size:.72rem;text-transform:uppercase">Vehículo</span>
+            {% if insc.vehiculo %}
+              <a href="{{ url_for('autoclub.vehiculos_detalle', id=insc.vehiculo.id) }}" class="text-decoration-none fw-semibold">
+                {{ insc.vehiculo.nombre_display }}
+              </a>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </div>
+          <div class="col-md-6">
+            <span class="text-muted d-block" style="font-size:.72rem;text-transform:uppercase">Estado</span>
+            <span class="badge rounded-pill"
+                  style="background:{{ sc[0] }}20;color:{{ sc[0] }};font-weight:700">
+              <i class="bi {{ sc[1] }} me-1"></i>{{ sc[2] }}
+            </span>
+          </div>
+          <div class="col-md-6">
+            <span class="text-muted d-block" style="font-size:.72rem;text-transform:uppercase">Creado</span>
+            {{ insc.creado_en.strftime('%d/%m/%Y %H:%M') if insc.creado_en else '—' }}
+          </div>
+          {% if insc.notas %}
+          <div class="col-12">
+            <span class="text-muted d-block" style="font-size:.72rem;text-transform:uppercase">Descripción / Notas internas del formulario</span>
+            <div class="p-2 rounded mt-1" style="background:var(--gray-100);white-space:pre-wrap">{{ insc.notas }}</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULTADO -->
+    <div class="card mb-3" id="resultado">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-trophy" style="color:#d97706"></i>
+          <span class="fw-semibold">Resultado de la prueba</span>
+        </div>
+        {% if insc.resultado %}
+        <div class="d-flex align-items-center gap-2">
+          {% if insc.resultado.abandono %}
+            <span class="badge rounded-pill" style="background:#fee2e2;color:#dc2626">
+              <i class="bi bi-x-circle me-1"></i>Abandono
+            </span>
+          {% elif insc.resultado.posicion_final %}
+            <span class="badge rounded-pill" style="background:#fef9c3;color:#854d0e;font-size:.8rem;font-weight:800">
+              P{{ insc.resultado.posicion_final }}
+            </span>
+          {% endif %}
+          <form method="POST" action="{{ url_for('autoclub.inscripcion_resultado_eliminar', id=insc.id) }}"
+                onsubmit="return confirm('¿Eliminar el resultado?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-xs btn-ghost-danger" title="Eliminar resultado">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('autoclub.inscripcion_resultado_guardar', id=insc.id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {% set r = insc.resultado %}
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label text-xs text-muted text-uppercase mb-1">Posición salida</label>
+              <input type="number" name="posicion_salida" class="form-control form-control-sm"
+                     min="1" placeholder="—" value="{{ r.posicion_salida if r and r.posicion_salida else '' }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label text-xs text-muted text-uppercase mb-1">Posición final</label>
+              <input type="number" name="posicion_final" class="form-control form-control-sm"
+                     min="1" placeholder="—" value="{{ r.posicion_final if r and r.posicion_final else '' }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label text-xs text-muted text-uppercase mb-1">Mejor vuelta</label>
+              <input type="text" name="mejor_vuelta" class="form-control form-control-sm"
+                     placeholder="1:42.350" value="{{ r.mejor_vuelta if r and r.mejor_vuelta else '' }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label text-xs text-muted text-uppercase mb-1">Tiempo total</label>
+              <input type="text" name="tiempo_total" class="form-control form-control-sm"
+                     placeholder="32:15.820" value="{{ r.tiempo_total if r and r.tiempo_total else '' }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label text-xs text-muted text-uppercase mb-1">Vueltas completadas</label>
+              <input type="number" name="vueltas_completadas" class="form-control form-control-sm"
+                     min="0" placeholder="—" value="{{ r.vueltas_completadas if r and r.vueltas_completadas else '' }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label text-xs text-muted text-uppercase mb-1">Puntos obtenidos</label>
+              <input type="number" name="puntos" class="form-control form-control-sm"
+                     step="0.5" min="0" placeholder="—" value="{{ r.puntos if r and r.puntos else '' }}">
+            </div>
+            <div class="col-md-6 d-flex align-items-end">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="abandono" value="1" id="chkAbandono"
+                       {% if r and r.abandono %}checked{% endif %}
+                       onchange="document.getElementById('motivoAbandono').style.display=this.checked?'block':'none'">
+                <label class="form-check-label text-sm" for="chkAbandono">Abandono / No clasificado</label>
+              </div>
+            </div>
+            <div class="col-12" id="motivoAbandono"
+                 style="display:{{ 'block' if r and r.abandono else 'none' }}">
+              <label class="form-label text-xs text-muted text-uppercase mb-1">Motivo del abandono</label>
+              <input type="text" name="motivo_abandono" class="form-control form-control-sm"
+                     placeholder="Ej: Problema mecánico en vuelta 3"
+                     value="{{ r.motivo_abandono if r and r.motivo_abandono else '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label text-xs text-muted text-uppercase mb-1">Observaciones</label>
+              <textarea name="observaciones" class="form-control form-control-sm" rows="2"
+                        placeholder="Notas sobre la actuación, incidentes, etc.">{{ r.observaciones if r and r.observaciones else '' }}</textarea>
+            </div>
+          </div>
+          <div class="mt-3">
+            <button type="submit" class="btn btn-primary btn-sm">
+              <i class="bi bi-check-lg me-1"></i>{{ 'Actualizar resultado' if r else 'Guardar resultado' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- GASTOS -->
+    <div class="card mb-3" id="gastos">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-receipt text-danger"></i>
+          <span class="fw-semibold">Gastos del evento</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          {% if gastos %}
+          <span class="fw-bold" style="color:var(--red)">{{ '%.2f'|format(total_gastos) }} €</span>
+          <a href="{{ url_for('autoclub.inscripciones_gastos_exportar', id=insc.id) }}"
+             class="btn btn-sm btn-outline-secondary"
+             title="Descargar en Excel / CSV">
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i>Exportar
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-body">
+        <!-- Formulario nuevo gasto -->
+        <form method="POST" action="{{ url_for('autoclub.inscripcion_gasto_nuevo', id=insc.id) }}"
+              enctype="multipart/form-data" class="mb-4">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+              <label class="form-label text-xs text-muted text-uppercase mb-1">Concepto</label>
+              <input type="text" name="concepto" class="form-control form-control-sm"
+                     placeholder="Ej: Inscripción oficial" required>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label text-xs text-muted text-uppercase mb-1">Importe (€)</label>
+              <input type="number" name="importe" class="form-control form-control-sm"
+                     step="0.01" min="0" placeholder="0.00" required>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label text-xs text-muted text-uppercase mb-1">Categoría</label>
+              <select name="categoria" class="form-select form-select-sm">
+                {% for cat in categorias_gasto %}
+                <option value="{{ cat }}">{{ cat }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label text-xs text-muted text-uppercase mb-1">Fecha</label>
+              <input type="date" name="fecha" class="form-control form-control-sm"
+                     value="{{ insc.fecha_prueba.strftime('%Y-%m-%d') if insc.fecha_prueba else '' }}">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label text-xs text-muted text-uppercase mb-1">Documento</label>
+              <input type="file" name="documento" class="form-control form-control-sm"
+                     accept=".pdf,.jpg,.jpeg,.png,.webp">
+            </div>
+            <div class="col-md-1">
+              <button type="submit" class="btn btn-primary btn-sm w-100" title="Añadir gasto">
+                <i class="bi bi-plus-lg"></i>
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Lista de gastos -->
+        {% if gastos %}
+        {% set cat_colors = {
+          'Inscripción': '#1d4ed8',
+          'Combustible': '#d97706',
+          'Alojamiento': '#7c3aed',
+          'Dietas': '#059669',
+          'Transporte': '#0891b2',
+          'Repuestos': '#9f1239',
+          'Neumáticos': '#374151',
+          'Equipación': '#c026d3',
+          'Otros': '#6b7280',
+        } %}
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead>
+              <tr style="font-size:.72rem;text-transform:uppercase;color:var(--gray-500)">
+                <th>Concepto</th>
+                <th>Categoría</th>
+                <th>Fecha</th>
+                <th>Documento</th>
+                <th class="text-end">Importe</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for g in gastos %}
+              <tr>
+                <td class="text-sm">{{ g.concepto }}</td>
+                <td>
+                  <span class="badge rounded-pill"
+                        style="background:{{ cat_colors.get(g.categoria, '#6b7280') }}18;
+                               color:{{ cat_colors.get(g.categoria, '#6b7280') }};
+                               font-size:.68rem">
+                    {{ g.categoria }}
+                  </span>
+                </td>
+                <td class="text-sm text-muted">{{ g.fecha.strftime('%d/%m/%Y') if g.fecha else '—' }}</td>
+                <td>
+                  {% if g.documento_filename %}
+                    <a href="{{ url_for('static', filename='uploads/autoclub/docs/' + g.documento_filename) }}"
+                       target="_blank" class="btn btn-xs btn-outline-secondary" title="Ver documento">
+                      <i class="bi bi-paperclip"></i>
+                    </a>
+                  {% else %}
+                    <form method="POST"
+                          action="{{ url_for('autoclub.inscripcion_gasto_documento', id=insc.id, gid=g.id) }}"
+                          enctype="multipart/form-data"
+                          class="d-inline-flex align-items-center gap-1">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <input type="file" name="documento"
+                             accept=".pdf,.jpg,.jpeg,.png,.webp"
+                             class="form-control form-control-sm"
+                             style="max-width:140px;font-size:.68rem"
+                             onchange="this.form.submit()">
+                    </form>
+                  {% endif %}
+                </td>
+                <td class="text-end fw-semibold text-sm">{{ '%.2f'|format(g.importe) }} €</td>
+                <td class="text-end">
+                  <form method="POST" action="{{ url_for('autoclub.inscripcion_gasto_eliminar', id=insc.id, gid=g.id) }}"
+                        onsubmit="return confirm('¿Eliminar este gasto?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-xs btn-ghost-danger" title="Eliminar">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot>
+              <tr style="border-top:2px solid var(--border)">
+                <td colspan="3" class="fw-bold text-sm">Total</td>
+                <td class="text-end fw-bold" style="color:var(--red)">{{ '%.2f'|format(total_gastos) }} €</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-sm text-muted mb-0">Sin gastos registrados todavía.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- STAFF -->
+    <div class="card mb-3" id="staff">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-people text-primary"></i>
+          <span class="fw-semibold">Staff asignado</span>
+        </div>
+        {% if staff_asignado %}
+        <span class="badge rounded-pill" style="background:var(--blue-50,#eff6ff);color:#1d4ed8">
+          {{ staff_asignado | length }}
+        </span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <!-- Añadir miembro -->
+        {% if staff_disponible %}
+        <form method="POST" action="{{ url_for('autoclub.inscripcion_staff_añadir', id=insc.id) }}" class="mb-4">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="d-flex gap-2 flex-wrap">
+            <select name="staff_id" class="form-select form-select-sm" style="max-width:320px;min-width:0;flex:1 1 200px" required>
+              <option value="">Seleccionar miembro de staff…</option>
+              {% for s in staff_disponible %}
+              <option value="{{ s.id }}">{{ s.nombre_completo }} — {{ s.tipo }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">
+              <i class="bi bi-plus-lg me-1"></i>Añadir
+            </button>
+          </div>
+        </form>
+        {% else %}
+        <p class="text-sm text-muted mb-3">
+          Todo el staff activo ya está asignado.
+          <a href="{{ url_for('autoclub.staff_nuevo') }}" class="text-decoration-none">Añadir nuevo miembro</a>
+        </p>
+        {% endif %}
+
+        <!-- Lista staff asignado -->
+        {% if staff_asignado %}
+        <div class="d-flex flex-wrap gap-2">
+          {% for s in staff_asignado %}
+          {% set es_mec = s.tipo == 'Mecánico' %}
+          <div class="d-flex align-items-center gap-2 px-3 py-2 rounded"
+               style="background:{% if es_mec %}#eff6ff{% else %}#f3e8ff{% endif %};border:1px solid {% if es_mec %}#bfdbfe{% else %}#ddd6fe{% endif %}">
+            <i class="bi {% if es_mec %}bi-wrench{% else %}bi-person-badge{% endif %}"
+               style="color:{% if es_mec %}#1d4ed8{% else %}#7c3aed{% endif %}"></i>
+            <div>
+              <div class="fw-semibold text-sm">
+                <a href="{{ url_for('autoclub.staff_detalle', id=s.id) }}" class="text-decoration-none"
+                   style="color:{% if es_mec %}#1d4ed8{% else %}#7c3aed{% endif %}">
+                  {{ s.nombre_completo }}
+                </a>
+              </div>
+              <div class="text-xs text-muted">{{ s.tipo }}</div>
+            </div>
+            <form method="POST" action="{{ url_for('autoclub.inscripcion_staff_quitar', id=insc.id, sid=s.id) }}"
+                  class="ms-2" onsubmit="return confirm('¿Quitar a {{ s.nombre_completo }} de esta inscripción?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-xs btn-ghost-danger" title="Quitar">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </form>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-muted mb-0">Sin staff asignado todavía.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- NOTAS -->
+    <div class="card" id="notas">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-journal-text text-warning"></i>
+        <span class="fw-semibold">Notas del evento</span>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('autoclub.inscripcion_nota_nueva', id=insc.id) }}" class="mb-4">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-2">
+            <textarea name="contenido" class="form-control" rows="3"
+                      placeholder="Ej: El piloto salió desde el fondo de la parrilla por penalización, mejor vuelta 1:42.3…"
+                      required></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-circle me-1"></i>Guardar nota
+          </button>
+        </form>
+
+        {% if notas %}
+        <div class="d-flex flex-column gap-3">
+          {% for nota in notas %}
+          <div class="d-flex gap-3 align-items-start">
+            <div class="avatar avatar-sm" style="background:var(--gray-100);color:var(--gray-500);flex-shrink:0">
+              <i class="bi bi-journal-text"></i>
+            </div>
+            <div class="flex-grow-1">
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="text-xs text-muted">{{ nota.creado_en.strftime('%d/%m/%Y %H:%M') }}</span>
+                {% if nota.usuario_nombre %}
+                  <span class="text-xs text-muted">· {{ nota.usuario_nombre }}</span>
+                {% endif %}
+              </div>
+              <div class="text-sm" style="white-space:pre-line">{{ nota.contenido }}</div>
+            </div>
+            <form method="POST" action="{{ url_for('autoclub.inscripcion_nota_eliminar', id=insc.id, nid=nota.id) }}"
+                  onsubmit="return confirm('¿Eliminar esta nota?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-xs btn-ghost-danger" title="Eliminar">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-muted mb-0">Sin notas todavía.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

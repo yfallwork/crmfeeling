@@ -4,7 +4,7 @@ import os
 import uuid
 from datetime import date
 from flask import (Blueprint, render_template, request, redirect,
-                   url_for, flash, Response, current_app, jsonify)
+                   url_for, flash, Response, current_app, jsonify, abort)
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app.extensions import db
@@ -23,7 +23,11 @@ autoclub_bp = Blueprint("autoclub", __name__)
 
 TIPOS_SOCIO = ["regular", "premium", "familiar", "vip"]
 LOGO_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp", "svg"}
-DOC_EXTENSIONS = {"pdf", "jpg", "jpeg", "png", "doc", "docx"}
+DOC_EXTENSIONS = {"pdf", "jpg", "jpeg", "png", "webp", "doc", "docx"}
+FOTO_PRENSA_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+FOTO_PRENSA_MIME = {
+    "png": "png", "jpg": "jpeg", "jpeg": "jpeg", "gif": "gif", "webp": "webp",
+}
 
 SECTORES_ESPAÑA = sorted([
     "Administración pública",
@@ -1209,15 +1213,27 @@ def inscripcion_gasto_nuevo(id):
         except ValueError:
             pass
     if concepto:
-        doc_file = request.files.get("documento")
-        doc_fn = _save_doc(doc_file) if doc_file and doc_file.filename else None
+        def _leer_doc(campo, etiqueta):
+            f = request.files.get(campo)
+            if not f or not f.filename:
+                return None
+            fn = _save_doc(f)
+            if not fn:
+                flash(f"El/la {etiqueta} «{f.filename}» no se pudo adjuntar: formato no admitido "
+                      f"(usa PDF, JPG, PNG, WEBP, DOC o DOCX). El gasto se ha guardado sin ese archivo.", "warning")
+            return fn
+
+        comprobante_fn = _leer_doc("comprobante", "comprobante")
+        factura_fn     = _leer_doc("factura", "factura")
+
         gasto = GastoInscripcion(
             inscripcion_id=insc.id,
             concepto=concepto,
             importe=importe,
             categoria=categoria,
             fecha=fecha,
-            documento_filename=doc_fn,
+            documento_filename=comprobante_fn,
+            factura_filename=factura_fn,
         )
         db.session.add(gasto)
         db.session.commit()
@@ -1225,17 +1241,26 @@ def inscripcion_gasto_nuevo(id):
     return redirect(url_for("autoclub.inscripciones_detalle", id=id) + "#gastos")
 
 
-@autoclub_bp.route("/inscripciones/<int:id>/gastos/<int:gid>/documento", methods=["POST"])
+@autoclub_bp.route("/inscripciones/<int:id>/gastos/<int:gid>/documento/<tipo>", methods=["POST"])
 @login_required
-def inscripcion_gasto_documento(id, gid):
+def inscripcion_gasto_documento(id, gid, tipo):
+    if tipo not in ("comprobante", "factura"):
+        abort(404)
     gasto = GastoInscripcion.query.get_or_404(gid)
-    doc_file = request.files.get("documento")
+    campo = "documento_filename" if tipo == "comprobante" else "factura_filename"
+    doc_file = request.files.get(tipo)
     if doc_file and doc_file.filename:
-        if gasto.documento_filename:
-            _delete_doc(gasto.documento_filename)
-        gasto.documento_filename = _save_doc(doc_file)
-        db.session.commit()
-        flash("Documento adjuntado.", "success")
+        doc_fn = _save_doc(doc_file)
+        if doc_fn:
+            anterior = getattr(gasto, campo)
+            if anterior:
+                _delete_doc(anterior)
+            setattr(gasto, campo, doc_fn)
+            db.session.commit()
+            flash(f"{tipo.capitalize()} adjuntado.", "success")
+        else:
+            flash(f"El/la {tipo} «{doc_file.filename}» no se pudo adjuntar: formato no admitido "
+                  f"(usa PDF, JPG, PNG, WEBP, DOC o DOCX).", "warning")
     return redirect(url_for("autoclub.inscripciones_detalle", id=id) + "#gastos")
 
 
@@ -1245,6 +1270,8 @@ def inscripcion_gasto_eliminar(id, gid):
     gasto = GastoInscripcion.query.get_or_404(gid)
     if gasto.documento_filename:
         _delete_doc(gasto.documento_filename)
+    if gasto.factura_filename:
+        _delete_doc(gasto.factura_filename)
     db.session.delete(gasto)
     db.session.commit()
     flash("Gasto eliminado.", "info")
@@ -1852,15 +1879,21 @@ def prensa_enviar():
     import random
     import smtplib
     import ssl
-    import uuid
     import base64 as _b64
-    from datetime import datetime
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
+    from email.mime.image import MIMEImage
     from email.utils import formatdate, make_msgid
-    from flask import current_app
+    from flask import current_app, Response, stream_with_context
+    from werkzeug.utils import secure_filename
     from app.models.medio_contacto import MedioContacto, CronicaEnviada
     from app.models.autoclub_info import AutoclubInfo
+
+    def _ndjson(obj):
+        return json.dumps(obj, ensure_ascii=False) + "\n"
+
+    def _error_response(mensaje):
+        return Response(_ndjson({"tipo": "error", "mensaje": mensaje}), mimetype="application/x-ndjson")
 
     asunto      = request.form.get("asunto", "").strip()
     cuerpo_html = request.form.get("cuerpo_html", "").strip()
@@ -1874,17 +1907,29 @@ def prensa_enviar():
         db.session.commit()
 
     if not asunto or not cuerpo_html:
-        flash("El asunto y el cuerpo son obligatorios.", "warning")
-        return redirect(url_for("autoclub.prensa"))
+        return _error_response("El asunto y el cuerpo son obligatorios.")
 
     if not ids_raw:
-        flash("Selecciona al menos un destinatario.", "warning")
-        return redirect(url_for("autoclub.prensa"))
+        return _error_response("Selecciona al menos un destinatario.")
 
     medios = MedioContacto.query.filter(MedioContacto.id.in_([int(i) for i in ids_raw])).all()
     if not medios:
-        flash("No se encontraron los destinatarios seleccionados.", "warning")
-        return redirect(url_for("autoclub.prensa"))
+        return _error_response("No se encontraron los destinatarios seleccionados.")
+
+    # Fotos adjuntas: se leen una sola vez en memoria (los streams de Flask
+    # solo se pueden consumir una vez) para reutilizarlas en cada email.
+    fotos_adjuntas = []
+    for f in request.files.getlist("fotos"):
+        if not f or not f.filename:
+            continue
+        ext = f.filename.rsplit(".", 1)[-1].lower() if "." in f.filename else ""
+        if ext not in FOTO_PRENSA_EXTENSIONS:
+            return _error_response(f"Formato de imagen no admitido: {f.filename}. Usa JPG, PNG, WEBP o GIF.")
+        fotos_adjuntas.append({
+            "filename": secure_filename(f.filename) or f"foto.{ext}",
+            "data": f.read(),
+            "subtype": FOTO_PRENSA_MIME[ext],
+        })
 
     prensa_user   = current_app.config.get("MAIL_PRENSA_USERNAME", "")
     prensa_pass   = current_app.config.get("MAIL_PRENSA_PASSWORD", "")
@@ -1894,12 +1939,12 @@ def prensa_enviar():
     sender_domain = prensa_user.split("@")[-1] if "@" in prensa_user else "mail.local"
 
     if not prensa_user or not prensa_pass:
-        flash("Configura MAIL_PRENSA_USERNAME y MAIL_PRENSA_PASSWORD en el archivo .env antes de enviar.", "danger")
-        return redirect(url_for("autoclub.prensa"))
+        return _error_response("Configura MAIL_PRENSA_USERNAME y MAIL_PRENSA_PASSWORD en el archivo .env antes de enviar.")
 
-    ok = 0
-    err = 0
-    dest_log = []
+    # Se capturan como valores planos antes del generador: current_user es un
+    # proxy ligado al contexto de la petición y app_context (necesario para
+    # current_app/db dentro del generador) se gestiona con stream_with_context.
+    enviado_por = current_user.username or current_user.nombre
 
     SEPARADOR_FIRMA = (
         '<hr style="border:none;border-top:1px solid #e5e7eb;margin:32px 0 16px">'
@@ -1925,9 +1970,22 @@ def prensa_enviar():
         if firma_html:
             cuerpo_final += SEPARADOR_FIRMA + _personalizar(firma_html, medio_obj)
 
-        # multipart/alternative: texto plano primero, HTML después
-        # Los filtros antispam valoran que exista la versión texto
-        outer = MIMEMultipart("alternative")
+        # Con fotos adjuntas necesitamos un contenedor "mixed" por fuera y el
+        # texto/html "alternative" anidado dentro; sin fotos, se mantiene el
+        # alternative simple de siempre (mensaje más ligero).
+        alt = MIMEMultipart("alternative")
+        # Los filtros antispam valoran que exista la versión texto además del HTML
+        alt.attach(MIMEText(_html_a_texto(cuerpo_final), "plain", "utf-8"))
+        alt.attach(MIMEText(cuerpo_final, "html", "utf-8"))
+
+        outer = MIMEMultipart("mixed") if fotos_adjuntas else alt
+        if fotos_adjuntas:
+            outer.attach(alt)
+            for foto in fotos_adjuntas:
+                img = MIMEImage(foto["data"], _subtype=foto["subtype"])
+                img.add_header("Content-Disposition", "attachment", filename=foto["filename"])
+                outer.attach(img)
+
         outer["Subject"]      = asunto
         outer["From"]         = prensa_sender
         outer["To"]           = medio_obj.email
@@ -1936,74 +1994,118 @@ def prensa_enviar():
         # List-Unsubscribe reduce la probabilidad de marcado como spam manual
         outer["List-Unsubscribe"] = f"<mailto:{prensa_user}?subject=Unsubscribe>"
         outer["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
-
-        outer.attach(MIMEText(_html_a_texto(cuerpo_final), "plain", "utf-8"))
-        outer.attach(MIMEText(cuerpo_final, "html", "utf-8"))
         return outer
 
-    try:
+    def _conectar_smtp():
         context = ssl.create_default_context()
         if smtp_port == 465:
-            smtp_ctx = smtplib.SMTP_SSL(smtp_server, smtp_port, context=context)
+            conn = smtplib.SMTP_SSL(smtp_server, smtp_port, context=context, timeout=20)
         else:
-            smtp_ctx = smtplib.SMTP(smtp_server, smtp_port, timeout=10)
+            conn = smtplib.SMTP(smtp_server, smtp_port, timeout=20)
+            conn.ehlo()
+            conn.starttls(context=context)
+        conn.ehlo()
+        credentials = _b64.b64encode(
+            f"\x00{prensa_user}\x00{prensa_pass}".encode("utf-8")
+        ).decode()
+        code, msg = conn.docmd("AUTH PLAIN", credentials)
+        if code != 235:
+            try:
+                conn.close()
+            except Exception:
+                pass
+            raise smtplib.SMTPAuthenticationError(code, msg)
+        return conn
 
-        with smtp_ctx as server:
-            server.ehlo()
-            if smtp_port != 465:
-                server.starttls(context=context)
-                server.ehlo()
-            credentials = _b64.b64encode(
-                f"\x00{prensa_user}\x00{prensa_pass}".encode("utf-8")
-            ).decode()
-            code, msg = server.docmd("AUTH PLAIN", credentials)
-            if code != 235:
-                raise smtplib.SMTPAuthenticationError(code, msg)
+    def _generar():
+        ok = 0
+        err = 0
+        dest_log = []
 
+        try:
+            server = _conectar_smtp()
+        except smtplib.SMTPAuthenticationError as e:
+            yield _ndjson({"tipo": "error", "mensaje":
+                f"Error de autenticación SMTP (código {e.smtp_code}): {e.smtp_error.decode(errors='replace')} "
+                f"— Revisa usuario y contraseña en el .env."})
+            return
+        except Exception as e:
+            yield _ndjson({"tipo": "error", "mensaje": f"Error de conexión SMTP: {type(e).__name__}: {e}"})
+            return
+
+        try:
             for i, m in enumerate(medios):
-                try:
-                    server.send_message(_build_mime(m))
-                    ok += 1
-                    dest_log.append({"nombre": m.nombre, "medio": m.medio, "email": m.email, "ok": True})
-                except Exception as e:
-                    err += 1
-                    dest_log.append({"nombre": m.nombre, "medio": m.medio, "email": m.email, "ok": False, "error": str(e)})
+                yield _ndjson({"tipo": "progreso", "actual": i + 1, "total": len(medios),
+                                "nombre": m.nombre, "email": m.email})
+                # El servidor de correo puede cortar la conexión a mitad de la
+                # tanda (límite de envíos, timeout de inactividad, etc.). Si eso
+                # ocurre, antes se seguía usando la misma conexión rota para el
+                # resto de destinatarios y un único corte se propagaba en cascada
+                # a todos los que quedaban. Ahora se reconecta y se reintenta una
+                # vez antes de dar por perdido a ese destinatario.
+                for intento in (1, 2):
+                    try:
+                        server.send_message(_build_mime(m))
+                        ok += 1
+                        dest_log.append({"nombre": m.nombre, "medio": m.medio, "email": m.email, "ok": True})
+                        break
+                    except (smtplib.SMTPServerDisconnected, smtplib.SMTPConnectError, OSError) as e:
+                        if intento == 2:
+                            err += 1
+                            dest_log.append({"nombre": m.nombre, "medio": m.medio, "email": m.email,
+                                              "ok": False, "error": f"Conexión perdida: {e}"})
+                            break
+                        try:
+                            server.close()
+                        except Exception:
+                            pass
+                        try:
+                            server = _conectar_smtp()
+                        except Exception as e2:
+                            err += 1
+                            dest_log.append({"nombre": m.nombre, "medio": m.medio, "email": m.email,
+                                              "ok": False, "error": f"No se pudo reconectar: {e2}"})
+                            break
+                    except Exception as e:
+                        err += 1
+                        dest_log.append({"nombre": m.nombre, "medio": m.medio, "email": m.email, "ok": False, "error": str(e)})
+                        break
+                yield _ndjson({"tipo": "resultado", **dest_log[-1]})
                 # Pausa aleatoria entre envíos: evita que el servidor saliente
                 # acumule ráfagas que los receptores interpreten como spam
                 if i < len(medios) - 1:
                     time.sleep(random.uniform(3, 7))
+        finally:
+            try:
+                server.quit()
+            except Exception:
+                pass
 
-    except smtplib.SMTPAuthenticationError as e:
-        flash(f"Error de autenticación SMTP (código {e.smtp_code}): {e.smtp_error.decode(errors='replace')} "
-              f"— Revisa usuario y contraseña en el .env.", "danger")
-        return redirect(url_for("autoclub.prensa"))
-    except Exception as e:
-        flash(f"Error de conexión SMTP: {type(e).__name__}: {e}", "danger")
-        return redirect(url_for("autoclub.prensa"))
-
-    cronica = CronicaEnviada(
-        asunto         = asunto,
-        cuerpo_html    = cuerpo_html,
-        destinatarios  = json.dumps(dest_log, ensure_ascii=False),
-        total_enviados = ok,
-        total_errores  = err,
-        enviado_por    = current_user.username or current_user.nombre,
-    )
-    db.session.add(cronica)
-    db.session.commit()
-    registrar_log("crear", "inscripcion", cronica.id,
-                  f"Crónica enviada: '{asunto}' → {ok} ok, {err} errores")
-
-    if err == 0:
-        flash(f"Crónica enviada correctamente a {ok} medio{'s' if ok != 1 else ''}.", "success")
-    else:
-        errores_detalle = "; ".join(
-            f"{d['email']}: {d.get('error','?')}"
-            for d in dest_log if not d.get('ok')
+        cronica = CronicaEnviada(
+            asunto         = asunto,
+            cuerpo_html    = cuerpo_html,
+            destinatarios  = json.dumps(dest_log, ensure_ascii=False),
+            total_enviados = ok,
+            total_errores  = err,
+            enviado_por    = enviado_por,
         )
-        flash(f"Enviada a {ok} medios. {err} error{'es' if err != 1 else ''}: {errores_detalle}", "warning")
+        db.session.add(cronica)
+        db.session.commit()
+        registrar_log("crear", "inscripcion", cronica.id,
+                      f"Crónica enviada: '{asunto}' → {ok} ok, {err} errores")
 
-    return redirect(url_for("autoclub.prensa"))
+        if err == 0:
+            mensaje = f"Crónica enviada correctamente a {ok} medio{'s' if ok != 1 else ''}."
+        else:
+            errores_detalle = "; ".join(
+                f"{d['email']}: {d.get('error','?')}"
+                for d in dest_log if not d.get('ok')
+            )
+            mensaje = f"Enviada a {ok} medios. {err} error{'es' if err != 1 else ''}: {errores_detalle}"
+
+        yield _ndjson({"tipo": "fin", "ok": ok, "err": err, "mensaje": mensaje})
+
+    return Response(stream_with_context(_generar()), mimetype="application/x-ndjson")
 
 
 # ══════════════════════════════════════════════════════════════════════════════

@@ -201,6 +201,7 @@ def _migrate_columns():
         ("marketing_logs",    "campana_id",       "INTEGER"),
         ("marketing_logs",    "campana_nombre",        "VARCHAR(200) DEFAULT ''"),
         ("gastos_inscripcion", "documento_filename",   "VARCHAR(255)"),
+        ("gastos_inscripcion", "factura_filename",     "VARCHAR(255)"),
         ("autoclub_info",      "firma_html",            "TEXT DEFAULT ''"),
         ("inscripciones",      "fecha_plazo",           "DATE"),
         ("competicion_eventos", "fecha_plazo",           "DATE"),

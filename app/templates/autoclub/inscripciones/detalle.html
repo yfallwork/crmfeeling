@@ -327,8 +327,8 @@
         <form method="POST" action="{{ url_for('autoclub.inscripcion_gasto_nuevo', id=insc.id) }}"
               enctype="multipart/form-data" class="mb-4">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <div class="row g-2 align-items-end">
-            <div class="col-md-3">
+          <div class="row g-2 align-items-end mb-2">
+            <div class="col-md-4">
               <label class="form-label text-xs text-muted text-uppercase mb-1">Concepto</label>
               <input type="text" name="concepto" class="form-control form-control-sm"
                      placeholder="Ej: Inscripción oficial" required>
@@ -338,7 +338,7 @@
               <input type="number" name="importe" class="form-control form-control-sm"
                      step="0.01" min="0" placeholder="0.00" required>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-3">
               <label class="form-label text-xs text-muted text-uppercase mb-1">Categoría</label>
               <select name="categoria" class="form-select form-select-sm">
                 {% for cat in categorias_gasto %}
@@ -346,19 +346,28 @@
                 {% endfor %}
               </select>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-3">
               <label class="form-label text-xs text-muted text-uppercase mb-1">Fecha</label>
               <input type="date" name="fecha" class="form-control form-control-sm"
                      value="{{ insc.fecha_prueba.strftime('%Y-%m-%d') if insc.fecha_prueba else '' }}">
             </div>
-            <div class="col-md-2">
-              <label class="form-label text-xs text-muted text-uppercase mb-1">Documento</label>
-              <input type="file" name="documento" class="form-control form-control-sm"
-                     accept=".pdf,.jpg,.jpeg,.png,.webp">
+          </div>
+          <div class="row g-2 align-items-end">
+            <div class="col-md-5">
+              <label class="form-label text-xs text-muted text-uppercase mb-1">Comprobante (recibo/ticket)</label>
+              <input type="file" name="comprobante" class="form-control form-control-sm"
+                     accept="image/*,.pdf" title="Foto del recibo o ticket">
             </div>
-            <div class="col-md-1">
+            <div class="col-md-5">
+              <label class="form-label text-xs text-muted text-uppercase mb-1">
+                Factura <span class="text-muted fw-normal normal-case">(opcional, cuando la tengas)</span>
+              </label>
+              <input type="file" name="factura" class="form-control form-control-sm"
+                     accept="image/*,.pdf" title="Foto o PDF de la factura, si ya la tienes">
+            </div>
+            <div class="col-md-2">
               <button type="submit" class="btn btn-primary btn-sm w-100" title="Añadir gasto">
-                <i class="bi bi-plus-lg"></i>
+                <i class="bi bi-plus-lg me-1"></i>Añadir
               </button>
             </div>
           </div>
@@ -377,6 +386,26 @@
           'Equipación': '#c026d3',
           'Otros': '#6b7280',
         } %}
+        {% macro doc_cell(gasto, filename, tipo, label) %}
+          {% if filename %}
+            <a href="{{ url_for('static', filename='uploads/autoclub/docs/' + filename) }}"
+               target="_blank" class="btn btn-xs btn-outline-secondary" title="Ver {{ label }}">
+              <i class="bi bi-paperclip"></i>
+            </a>
+          {% else %}
+            <form method="POST"
+                  action="{{ url_for('autoclub.inscripcion_gasto_documento', id=insc.id, gid=gasto.id, tipo=tipo) }}"
+                  enctype="multipart/form-data"
+                  class="d-inline-flex align-items-center gap-1">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="file" name="{{ tipo }}"
+                     accept="image/*,.pdf"
+                     class="form-control form-control-sm"
+                     style="max-width:120px;font-size:.68rem"
+                     onchange="this.form.submit()">
+            </form>
+          {% endif %}
+        {% endmacro %}
         <div class="table-responsive">
           <table class="table table-sm table-hover mb-0">
             <thead>
@@ -384,7 +413,8 @@
                 <th>Concepto</th>
                 <th>Categoría</th>
                 <th>Fecha</th>
-                <th>Documento</th>
+                <th>Comprobante</th>
+                <th>Factura</th>
                 <th class="text-end">Importe</th>
                 <th></th>
               </tr>
@@ -402,26 +432,8 @@
                   </span>
                 </td>
                 <td class="text-sm text-muted">{{ g.fecha.strftime('%d/%m/%Y') if g.fecha else '—' }}</td>
-                <td>
-                  {% if g.documento_filename %}
-                    <a href="{{ url_for('static', filename='uploads/autoclub/docs/' + g.documento_filename) }}"
-                       target="_blank" class="btn btn-xs btn-outline-secondary" title="Ver documento">
-                      <i class="bi bi-paperclip"></i>
-                    </a>
-                  {% else %}
-                    <form method="POST"
-                          action="{{ url_for('autoclub.inscripcion_gasto_documento', id=insc.id, gid=g.id) }}"
-                          enctype="multipart/form-data"
-                          class="d-inline-flex align-items-center gap-1">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                      <input type="file" name="documento"
-                             accept=".pdf,.jpg,.jpeg,.png,.webp"
-                             class="form-control form-control-sm"
-                             style="max-width:140px;font-size:.68rem"
-                             onchange="this.form.submit()">
-                    </form>
-                  {% endif %}
-                </td>
+                <td>{{ doc_cell(g, g.documento_filename, 'comprobante', 'comprobante') }}</td>
+                <td>{{ doc_cell(g, g.factura_filename, 'factura', 'factura') }}</td>
                 <td class="text-end fw-semibold text-sm">{{ '%.2f'|format(g.importe) }} €</td>
                 <td class="text-end">
                   <form method="POST" action="{{ url_for('autoclub.inscripcion_gasto_eliminar', id=insc.id, gid=g.id) }}"
@@ -437,7 +449,7 @@
             </tbody>
             <tfoot>
               <tr style="border-top:2px solid var(--border)">
-                <td colspan="3" class="fw-bold text-sm">Total</td>
+                <td colspan="5" class="fw-bold text-sm">Total</td>
                 <td class="text-end fw-bold" style="color:var(--red)">{{ '%.2f'|format(total_gastos) }} €</td>
                 <td></td>
               </tr>

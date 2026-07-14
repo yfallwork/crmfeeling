@@ -24,7 +24,8 @@ class GastoInscripcion(db.Model):
     importe         = db.Column(db.Float, nullable=False, default=0.0)
     categoria       = db.Column(db.String(50), default="Otros")
     fecha               = db.Column(db.Date)
-    documento_filename  = db.Column(db.String(255))
+    documento_filename  = db.Column(db.String(255))  # comprobante (recibo/ticket), se sube al crear el gasto
+    factura_filename    = db.Column(db.String(255))  # factura oficial, normalmente llega mas tarde
     creado_en           = db.Column(db.DateTime, default=datetime.utcnow)
 
     inscripcion = db.relationship(

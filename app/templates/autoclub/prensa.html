@@ -87,7 +87,7 @@
         <span class="fw-semibold">Redactar crónica</span>
       </div>
 
-      <form method="POST" action="{{ url_for('autoclub.prensa_enviar') }}" id="formCronica">
+      <form method="POST" action="{{ url_for('autoclub.prensa_enviar') }}" id="formCronica" enctype="multipart/form-data">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="card-body" style="padding-bottom:0">
 
@@ -196,6 +196,22 @@
             </div>
           </div>
 
+          <!-- Fotos adjuntas -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-sm d-flex align-items-center justify-content-between">
+              <span>Fotos adjuntas <span class="text-muted fw-normal">(opcional)</span></span>
+              <span class="text-xs text-muted" id="fotosContador"></span>
+            </label>
+            <div class="border rounded-3 p-3" style="border-color:var(--border) !important">
+              <input type="file" id="fotosInput" name="fotos" accept="image/png,image/jpeg,image/webp,image/gif"
+                     multiple class="form-control form-control-sm" />
+              <div class="text-xs text-muted mt-1">
+                JPG, PNG, WEBP o GIF. Se adjuntan tal cual al email de cada destinatario.
+              </div>
+              <div id="fotosPreview" class="d-flex flex-wrap gap-2 mt-2"></div>
+            </div>
+          </div>
+
           <!-- Selector de destinatarios -->
           <div class="mb-3">
             <label class="form-label fw-semibold text-sm d-flex align-items-center justify-content-between">
@@ -246,6 +262,25 @@
           </button>
         </div>
       </form>
+    </div>
+
+    <!-- ── Overlay de envío (bloquea la pantalla mientras se envía) ────── -->
+    <div id="envioOverlay" style="display:none;position:fixed;inset:0;z-index:2000;
+                                   background:rgba(17,24,39,.75);backdrop-filter:blur(2px);
+                                   align-items:center;justify-content:center">
+      <div style="background:#fff;border-radius:16px;padding:32px 36px;max-width:420px;width:92%;
+                  text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.35)">
+        <div class="spinner-border text-success mb-3" style="width:2.5rem;height:2.5rem" role="status"></div>
+        <div class="fw-bold mb-1" style="font-size:1rem" id="envioTitulo">Enviando crónica…</div>
+        <div class="text-muted mb-3" style="font-size:.85rem;min-height:1.2em" id="envioEstado">Conectando con el servidor de correo…</div>
+        <div class="alert alert-warning py-2 px-3 mb-0 text-start" style="font-size:.78rem" id="envioAviso">
+          <i class="bi bi-exclamation-triangle-fill me-1"></i>
+          No cierres ni recargues la página mientras se realiza el envío.
+        </div>
+        <div id="envioResumen" style="display:none;margin-top:14px;text-align:left"></div>
+        <button type="button" id="envioCerrarBtn" class="btn btn-sm btn-outline-secondary mt-3" style="display:none"
+                onclick="document.getElementById('envioOverlay').style.display='none'">Cerrar</button>
+      </div>
     </div>
 
     <!-- ── Historial de envíos ─────────────────────────────────────────── -->
@@ -508,6 +543,102 @@ function insertPlantilla() {
 </div>`;
 }
 
+/* ── Envío con progreso en tiempo real ──────────────────────────────────── */
+const formCronica    = document.getElementById('formCronica');
+const envioOverlay   = document.getElementById('envioOverlay');
+const envioTitulo    = document.getElementById('envioTitulo');
+const envioEstado    = document.getElementById('envioEstado');
+const envioAviso     = document.getElementById('envioAviso');
+const envioResumen   = document.getElementById('envioResumen');
+const envioCerrarBtn = document.getElementById('envioCerrarBtn');
+
+let envioEnCurso = false;
+
+function avisoAntesDeSalir(e) {
+  e.preventDefault();
+  e.returnValue = '';
+  return '';
+}
+
+function mostrarOverlayEnvio() {
+  envioEnCurso = true;
+  envioOverlay.style.display = 'flex';
+  envioTitulo.textContent = 'Enviando crónica…';
+  envioEstado.textContent = 'Conectando con el servidor de correo…';
+  envioAviso.style.display = '';
+  envioResumen.style.display = 'none';
+  envioResumen.innerHTML = '';
+  envioCerrarBtn.style.display = 'none';
+  window.addEventListener('beforeunload', avisoAntesDeSalir);
+}
+
+function finalizarEnvio() {
+  envioEnCurso = false;
+  window.removeEventListener('beforeunload', avisoAntesDeSalir);
+}
+
+function mostrarErrorEnvio(mensaje) {
+  finalizarEnvio();
+  envioEstado.textContent = '';
+  envioAviso.style.display = 'none';
+  envioResumen.style.display = 'block';
+  envioResumen.innerHTML = '<div class="alert alert-danger py-2 px-3 mb-0" style="font-size:.8rem">' +
+    '<i class="bi bi-x-circle-fill me-1"></i>' + mensaje + '</div>';
+  envioCerrarBtn.style.display = 'inline-block';
+}
+
+function manejarEventoEnvio(data) {
+  if (data.tipo === 'error') {
+    mostrarErrorEnvio(data.mensaje);
+  } else if (data.tipo === 'progreso') {
+    envioEstado.textContent = 'Enviando correo ' + data.actual + ' de ' + data.total + ' — ' + data.nombre;
+  } else if (data.tipo === 'fin') {
+    finalizarEnvio();
+    envioTitulo.textContent = data.err > 0 ? 'Envío completado con avisos' : 'Envío completado';
+    envioEstado.textContent = '';
+    envioAviso.style.display = 'none';
+    envioResumen.style.display = 'block';
+    envioResumen.innerHTML = '<div class="alert ' + (data.err > 0 ? 'alert-warning' : 'alert-success') +
+      ' py-2 px-3 mb-0" style="font-size:.8rem">' +
+      '<i class="bi bi-' + (data.err > 0 ? 'exclamation-triangle-fill' : 'check-circle-fill') + ' me-1"></i>' +
+      data.mensaje + '</div>';
+    setTimeout(function () { window.location.reload(); }, 2200);
+  }
+  // "resultado": ya reflejado en el siguiente evento "progreso" / "fin"; no requiere UI propia.
+}
+
+formCronica.addEventListener('submit', function (e) {
+  e.preventDefault();
+  if (envioEnCurso) return;
+
+  mostrarOverlayEnvio();
+  const formData = new FormData(formCronica);
+
+  fetch(formCronica.action, { method: 'POST', body: formData })
+    .then(async function (resp) {
+      if (!resp.ok || !resp.body) {
+        throw new Error('Respuesta inesperada del servidor (' + resp.status + ').');
+      }
+      const reader  = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lineas = buffer.split('\n');
+        buffer = lineas.pop();
+        for (const linea of lineas) {
+          if (linea.trim()) manejarEventoEnvio(JSON.parse(linea));
+        }
+      }
+      if (buffer.trim()) manejarEventoEnvio(JSON.parse(buffer));
+    })
+    .catch(function (err) {
+      mostrarErrorEnvio('Error de conexión: ' + err.message);
+    });
+});
+
 function setMode(mode) {
   if (mode === 'preview') {
     editorWrap.style.display  = 'none';
@@ -525,6 +656,42 @@ function setMode(mode) {
     document.getElementById('tabPreview').style.cssText = 'padding:4px 12px;border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer;background:#f3f4f6;color:#374151';
   }
 }
+
+/* ── Fotos adjuntas ─────────────────────────────────────────────────────── */
+const fotosInput    = document.getElementById('fotosInput');
+const fotosPreview  = document.getElementById('fotosPreview');
+const fotosContador = document.getElementById('fotosContador');
+
+function formatBytes(n) {
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(0) + ' KB';
+  return (n / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function quitarFoto(index) {
+  const dt = new DataTransfer();
+  [...fotosInput.files].forEach((f, i) => { if (i !== index) dt.items.add(f); });
+  fotosInput.files = dt.files;
+  renderFotosPreview();
+}
+
+function renderFotosPreview() {
+  const files = [...fotosInput.files];
+  fotosContador.textContent = files.length
+    ? files.length + ' foto' + (files.length !== 1 ? 's' : '') + ' · ' +
+      formatBytes(files.reduce((s, f) => s + f.size, 0))
+    : '';
+  fotosPreview.innerHTML = files.map((f, i) => `
+    <span class="badge d-inline-flex align-items-center gap-1"
+          style="background:#f3f4f6;color:#374151;font-weight:600;padding:5px 8px;border-radius:6px">
+      <i class="bi bi-image"></i>${f.name}
+      <span class="text-muted fw-normal">(${formatBytes(f.size)})</span>
+      <i class="bi bi-x-lg ms-1" style="cursor:pointer" onclick="quitarFoto(${i})" title="Quitar"></i>
+    </span>
+  `).join('');
+}
+
+fotosInput.addEventListener('change', renderFotosPreview);
 
 /* ── Destinatarios ──────────────────────────────────────────────────────── */
 const checks  = document.querySelectorAll('.dest-check');

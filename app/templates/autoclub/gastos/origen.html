@@ -1,0 +1,158 @@
+{% extends "autoclub/base.html" %}
+{% block title %}Gastos — {{ origen_obj.nombre_prueba if tipo == 'inscripcion' else origen_obj.titulo }}{% endblock %}
+{% block page_title %}Gastos{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.gastos_lista') }}" class="btn btn-outline-secondary btn-sm">
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Volver a Gastos</span>
+</a>
+{% if tipo == 'inscripcion' %}
+<a href="{{ url_for('autoclub.inscripciones_detalle', id=origen_obj.id) }}" class="btn btn-outline-secondary btn-sm">
+  <i class="bi bi-clipboard-check me-1"></i><span class="btn-label">Ver inscripción</span>
+</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+{% set cat_colors = {
+  'Inscripción': '#1d4ed8',
+  'Combustible': '#d97706',
+  'Alojamiento': '#7c3aed',
+  'Dietas': '#059669',
+  'Transporte': '#0891b2',
+  'Repuestos': '#9f1239',
+  'Neumáticos': '#374151',
+  'Equipación': '#c026d3',
+  'Otros': '#6b7280',
+} %}
+
+<!-- Cabecera del origen -->
+<div class="card mb-3">
+  <div class="card-body d-flex align-items-center gap-3">
+    <div style="width:44px;height:44px;border-radius:10px;flex-shrink:0;
+                background:{% if tipo == 'inscripcion' %}#eff6ff{% else %}#f0fdf4{% endif %};
+                display:flex;align-items:center;justify-content:center">
+      <i class="bi {% if tipo == 'inscripcion' %}bi-clipboard-check text-primary{% else %}bi-calendar-event text-success{% endif %}"
+         style="font-size:1.1rem"></i>
+    </div>
+    <div style="flex:1;min-width:0">
+      {% if tipo == 'inscripcion' %}
+        <div class="fw-bold" style="font-size:1rem">{{ origen_obj.nombre_prueba }}</div>
+        <div class="text-sm text-muted">
+          {% if origen_obj.piloto %}{{ origen_obj.piloto.nombre_completo }} · {% endif %}
+          {{ origen_obj.fecha_prueba.strftime('%d/%m/%Y') if origen_obj.fecha_prueba else 'Sin fecha' }}
+        </div>
+      {% else %}
+        <div class="fw-bold" style="font-size:1rem">{{ origen_obj.titulo }}</div>
+        <div class="text-sm text-muted">
+          {{ origen_obj.fecha.strftime('%d/%m/%Y') if origen_obj.fecha else 'Sin fecha' }}
+          {% if origen_obj.fecha_plazo %}
+            · Plazo: {{ origen_obj.fecha_plazo.strftime('%d/%m/%Y') }}
+          {% else %}
+            · <span style="color:#d97706"><i class="bi bi-exclamation-triangle-fill me-1"></i>Sin plazo de inscripción definido</span>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+    <div class="text-end flex-shrink-0">
+      <div class="fw-bold" style="color:var(--red);font-size:1.1rem">{{ '%.2f'|format(total) }} €</div>
+      <div class="text-xs text-muted">{{ gastos|length }} gasto{{ 's' if gastos|length != 1 }}</div>
+    </div>
+  </div>
+</div>
+
+{% macro doc_cell(gasto, filename, tipo_doc, label) %}
+  {% if filename %}
+    <a href="{{ url_for('static', filename='uploads/autoclub/docs/' + filename) }}"
+       target="_blank" class="btn btn-xs btn-outline-secondary" title="Ver {{ label }}">
+      <i class="bi bi-paperclip"></i>
+    </a>
+  {% else %}
+    <form method="POST"
+          action="{{ url_for('autoclub.gastos_documento', id=gasto.id, tipo=tipo_doc) }}"
+          enctype="multipart/form-data"
+          class="d-inline-flex align-items-center gap-1">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="file" name="{{ tipo_doc }}"
+             accept="image/*,.pdf"
+             class="form-control form-control-sm"
+             style="max-width:110px;font-size:.68rem"
+             onchange="this.form.submit()">
+    </form>
+  {% endif %}
+{% endmacro %}
+
+<div class="card">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <span class="fw-semibold"><i class="bi bi-cash-coin me-2 text-danger"></i>Gastos</span>
+    <a href="{{ url_for('autoclub.gastos_nuevo', tipo=tipo, id=origen_obj.id) }}" class="btn btn-sm btn-primary">
+      <i class="bi bi-plus-lg me-1"></i>Añadir gasto
+    </a>
+  </div>
+
+  {% if gastos %}
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0">
+      <thead>
+        <tr style="font-size:.72rem;text-transform:uppercase;color:var(--gray-500)">
+          <th>Concepto</th>
+          <th>Categoría</th>
+          <th>Fecha</th>
+          <th>Comprobante</th>
+          <th>Factura</th>
+          <th class="text-end">Importe</th>
+          <th style="width:70px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for g in gastos %}
+        <tr>
+          <td class="text-sm">{{ g.concepto }}</td>
+          <td>
+            <span class="badge rounded-pill"
+                  style="background:{{ cat_colors.get(g.categoria, '#6b7280') }}18;
+                         color:{{ cat_colors.get(g.categoria, '#6b7280') }};
+                         font-size:.68rem">
+              {{ g.categoria }}
+            </span>
+          </td>
+          <td class="text-sm text-muted">{{ g.fecha.strftime('%d/%m/%Y') if g.fecha else '—' }}</td>
+          <td>{{ doc_cell(g, g.documento_filename, 'comprobante', 'comprobante') }}</td>
+          <td>{{ doc_cell(g, g.factura_filename, 'factura', 'factura') }}</td>
+          <td class="text-end fw-semibold text-sm">{{ '%.2f'|format(g.importe) }} €</td>
+          <td class="text-end">
+            <div class="d-flex gap-1 justify-content-end">
+              <a href="{{ url_for('autoclub.gastos_editar', id=g.id) }}"
+                 class="btn btn-xs btn-outline-primary" title="Editar">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <form method="POST" action="{{ url_for('autoclub.gastos_eliminar', id=g.id) }}"
+                    onsubmit="return confirm('¿Eliminar este gasto?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-xs btn-ghost-danger" title="Eliminar">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr style="border-top:2px solid var(--border)">
+          <td colspan="5" class="fw-bold text-sm">Total</td>
+          <td class="text-end fw-bold" style="color:var(--red)">{{ '%.2f'|format(total) }} €</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-cash-coin"></i>
+    <p>Todavía no hay gastos registrados aquí.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

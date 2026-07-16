@@ -238,8 +238,11 @@ def _job_plazo_eventos(app):
                 if Notificacion.query.filter_by(referencia=ref, leida=False).first():
                     continue
                 # Comprobar si ya existe una inscripción para la misma prueba
+                # (la prueba puede durar varios días, así que se comprueba que
+                # la fecha del evento caiga dentro del rango fecha_prueba..fecha_fin)
                 ya_inscrito = Inscripcion.query.filter(
-                    Inscripcion.fecha_prueba == ev.fecha
+                    Inscripcion.fecha_prueba <= ev.fecha,
+                    db.func.coalesce(Inscripcion.fecha_fin, Inscripcion.fecha_prueba) >= ev.fecha,
                 ).first()
                 if ya_inscrito:
                     continue  # Ya tiene inscripción, no notificar
@@ -263,7 +266,10 @@ def _job_plazo_eventos(app):
 
 
 def _job_plazo_inscripciones(app):
-    """Crea notificaciones internas para inscripciones pendientes con plazo en <= 10 días."""
+    """Crea notificaciones internas por cada piloto (principal o adicional)
+    cuya inscripción individual siga pendiente con el plazo a <= 10 días.
+    Una inscripción puede tener varios pilotos: si a uno ya se le envió pero
+    a otro no, solo se avisa del que sigue pendiente."""
     with app.app_context():
         try:
             from datetime import date, timedelta
@@ -274,31 +280,49 @@ def _job_plazo_inscripciones(app):
             hoy    = date.today()
             limite = hoy + timedelta(days=10)
 
-            pendientes = Inscripcion.query.filter(
-                Inscripcion.estado == "pendiente",
+            en_plazo = Inscripcion.query.filter(
                 Inscripcion.fecha_plazo.isnot(None),
                 Inscripcion.fecha_plazo >= hoy,
                 Inscripcion.fecha_plazo <= limite,
             ).all()
 
             creadas = 0
-            for insc in pendientes:
-                ref = f"plazo_insc_{insc.id}"
-                # No duplicar si ya hay una notificación no leída para esta inscripción
-                if Notificacion.query.filter_by(referencia=ref, leida=False).first():
-                    continue
+            for insc in en_plazo:
                 dias = (insc.fecha_plazo - hoy).days
-                piloto_nombre = insc.piloto.nombre_completo if insc.piloto else "—"
                 tipo = "danger" if dias <= 3 else "warning"
-                db.session.add(Notificacion(
-                    tipo=tipo,
-                    titulo=f"Plazo próximo: {insc.nombre_prueba}",
-                    mensaje=(f"Quedan {dias} día{'s' if dias != 1 else ''} para presentar la inscripción. "
-                             f"Piloto: {piloto_nombre}."),
-                    url=f"/autoclub/inscripciones/{insc.id}",
-                    referencia=ref,
-                ))
-                creadas += 1
+
+                # Piloto principal
+                if insc.estado == "pendiente":
+                    ref = f"plazo_insc_{insc.id}_principal"
+                    if not Notificacion.query.filter_by(referencia=ref, leida=False).first():
+                        piloto_nombre = insc.piloto.nombre_completo if insc.piloto else "—"
+                        db.session.add(Notificacion(
+                            tipo=tipo,
+                            titulo=f"Plazo próximo: {insc.nombre_prueba}",
+                            mensaje=(f"Quedan {dias} día{'s' if dias != 1 else ''} para presentar la inscripción. "
+                                     f"Piloto: {piloto_nombre}."),
+                            url=f"/autoclub/inscripciones/{insc.id}",
+                            referencia=ref,
+                        ))
+                        creadas += 1
+
+                # Pilotos adicionales
+                for part in insc.participantes:
+                    if part.estado != "pendiente":
+                        continue
+                    ref = f"plazo_insc_{insc.id}_part_{part.id}"
+                    if Notificacion.query.filter_by(referencia=ref, leida=False).first():
+                        continue
+                    piloto_nombre = part.piloto.nombre_completo if part.piloto else "—"
+                    db.session.add(Notificacion(
+                        tipo=tipo,
+                        titulo=f"Plazo próximo: {insc.nombre_prueba}",
+                        mensaje=(f"Quedan {dias} día{'s' if dias != 1 else ''} para presentar la inscripción. "
+                                 f"Piloto: {piloto_nombre}."),
+                        url=f"/autoclub/inscripciones/{insc.id}",
+                        referencia=ref,
+                    ))
+                    creadas += 1
 
             db.session.commit()
             log.info(f"Job plazo_inscripciones: {creadas} notificación(es) creada(s)")

@@ -4,13 +4,13 @@
 
 {% block topbar_actions %}
 <a href="{{ url_for('clientes.lista') }}" class="btn btn-sm btn-outline-secondary">
-  <i class="bi bi-arrow-left me-1"></i>Volver
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Volver</span>
 </a>
 <a href="{{ url_for('clientes.editar', id=cliente.id) }}" class="btn btn-sm btn-outline-primary">
-  <i class="bi bi-pencil me-1"></i>Editar
+  <i class="bi bi-pencil me-1"></i><span class="btn-label">Editar</span>
 </a>
 <a href="{{ url_for('reservas.nueva') }}?cliente_id={{ cliente.id }}" class="btn btn-sm btn-primary">
-  <i class="bi bi-plus-lg me-1"></i>Nueva reserva
+  <i class="bi bi-plus-lg me-1"></i><span class="btn-label">Nueva reserva</span>
 </a>
 {% endblock %}
 

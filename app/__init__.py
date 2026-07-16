@@ -60,6 +60,7 @@ def create_app(env="default"):
         from app.models import piloto             # noqa: F401
         from app.models import vehiculo           # noqa: F401
         from app.models import inscripcion        # noqa: F401
+        from app.models import inscripcion_piloto # noqa: F401
         from app.models import gasto_inscripcion  # noqa: F401
         from app.models import staff_miembro          # noqa: F401
         from app.models import resultado_inscripcion  # noqa: F401
@@ -73,6 +74,7 @@ def create_app(env="default"):
         _migrate_columns()
         _migrate_indices()
         _migrate_reservas_for_teambuilding()
+        _migrate_gastos_evento()
         _seed_usuarios()
         _seed_autoclub()
         _seed_teambuilding()
@@ -202,6 +204,8 @@ def _migrate_columns():
         ("marketing_logs",    "campana_nombre",        "VARCHAR(200) DEFAULT ''"),
         ("gastos_inscripcion", "documento_filename",   "VARCHAR(255)"),
         ("gastos_inscripcion", "factura_filename",     "VARCHAR(255)"),
+        ("inscripciones",      "fecha_fin",             "DATE"),
+        ("inscripcion_pilotos", "estado",                "VARCHAR(20) DEFAULT 'pendiente'"),
         ("autoclub_info",      "firma_html",            "TEXT DEFAULT ''"),
         ("inscripciones",      "fecha_plazo",           "DATE"),
         ("competicion_eventos", "fecha_plazo",           "DATE"),
@@ -397,6 +401,48 @@ def _migrate_reservas_for_teambuilding():
         ))
         conn.execute(text("DROP TABLE reservas"))
         conn.execute(text("ALTER TABLE reservas_v2 RENAME TO reservas"))
+        conn.commit()
+
+
+def _migrate_gastos_evento():
+    """Permite que un gasto se vincule a un evento de competición además de
+    a una inscripción. SQLite no soporta ALTER COLUMN para quitar el
+    NOT NULL de inscripcion_id, así que se recrea la tabla igual que en
+    _migrate_reservas_for_teambuilding()."""
+    from sqlalchemy import text, inspect
+    inspector = inspect(db.engine)
+    if "gastos_inscripcion" not in inspector.get_table_names():
+        return  # db.create_all() ya la crea con el esquema nuevo
+    existing_cols = {c["name"] for c in inspector.get_columns("gastos_inscripcion")}
+    if "evento_id" in existing_cols:
+        return  # ya migrada
+
+    copy_cols = [c for c in [
+        "id", "inscripcion_id", "concepto", "importe", "categoria",
+        "fecha", "documento_filename", "factura_filename", "creado_en",
+    ] if c in existing_cols]
+
+    with db.engine.connect() as conn:
+        conn.execute(text("""
+            CREATE TABLE gastos_inscripcion_v2 (
+                id INTEGER PRIMARY KEY,
+                inscripcion_id INTEGER REFERENCES inscripciones(id),
+                evento_id INTEGER REFERENCES competicion_eventos(id),
+                concepto VARCHAR(200) NOT NULL,
+                importe FLOAT DEFAULT 0.0,
+                categoria VARCHAR(50) DEFAULT 'Otros',
+                fecha DATE,
+                documento_filename VARCHAR(255),
+                factura_filename VARCHAR(255),
+                creado_en DATETIME
+            )
+        """))
+        conn.execute(text(
+            f"INSERT INTO gastos_inscripcion_v2 ({', '.join(copy_cols)}, evento_id) "
+            f"SELECT {', '.join(copy_cols)}, NULL FROM gastos_inscripcion"
+        ))
+        conn.execute(text("DROP TABLE gastos_inscripcion"))
+        conn.execute(text("ALTER TABLE gastos_inscripcion_v2 RENAME TO gastos_inscripcion"))
         conn.commit()
 
 

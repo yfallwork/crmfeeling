@@ -4,11 +4,10 @@
 
 {% block topbar_actions %}
 <a href="{{ url_for('marketing.trazabilidad') }}" class="btn btn-sm btn-outline-secondary me-1">
-  <i class="bi bi-arrow-left me-1"></i>Volver
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Volver</span>
 </a>
 <a href="{{ url_ficha }}" class="btn btn-sm btn-outline-primary">
-  <i class="bi bi-{{ 'person' if entidad == 'cliente' else 'building' }} me-1"></i>
-  Ver ficha completa
+  <i class="bi bi-{{ 'person' if entidad == 'cliente' else 'building' }} me-1"></i><span class="btn-label">Ver ficha completa</span>
 </a>
 {% endblock %}
 

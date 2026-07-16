@@ -24,20 +24,28 @@
                      value="{{ insc.nombre_prueba if insc else '' }}" />
             </div>
 
-            <div class="col-md-4">
-              <label class="form-label fw-semibold">Fecha de la prueba</label>
-              <input type="date" name="fecha_prueba" class="form-control"
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Fecha de inicio</label>
+              <input type="date" name="fecha_prueba" id="fechaInicioInput" class="form-control"
                      value="{{ insc.fecha_prueba.strftime('%Y-%m-%d') if insc and insc.fecha_prueba else (fecha_pre or '') }}" />
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">
+                Fecha de fin <span class="text-muted fw-normal">(si dura varios días)</span>
+              </label>
+              <input type="date" name="fecha_fin" id="fechaFinInput" class="form-control"
+                     value="{{ insc.fecha_fin.strftime('%Y-%m-%d') if insc and insc.fecha_fin else '' }}" />
+            </div>
+
+            <div class="col-md-3">
               <label class="form-label fw-semibold">Plazo de presentación</label>
               <input type="date" name="fecha_plazo" class="form-control"
                      value="{{ insc.fecha_plazo.strftime('%Y-%m-%d') if insc and insc.fecha_plazo else '' }}" />
               <div class="form-text">Fecha límite para entregar la inscripción</div>
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-3">
               <label class="form-label fw-semibold">Campeonato</label>
               <select name="campeonato" class="form-select">
                 <option value="">— Seleccionar —</option>
@@ -158,6 +166,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (pilotoSel) pilotoSel.addEventListener('change', filtrarVehiculos);
   filtrarVehiculos();
+
+  var fechaInicio = document.getElementById('fechaInicioInput');
+  var fechaFin    = document.getElementById('fechaFinInput');
+  function sincronizarMinFin() {
+    if (fechaInicio.value) fechaFin.min = fechaInicio.value;
+  }
+  if (fechaInicio && fechaFin) {
+    fechaInicio.addEventListener('change', sincronizarMinFin);
+    sincronizarMinFin();
+  }
 });
 </script>
 {% endblock %}

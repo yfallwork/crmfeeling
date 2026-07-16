@@ -154,8 +154,8 @@
         <form method="POST" action="{{ url_for('woocommerce.sync') }}"
               onsubmit="this.querySelector('button').disabled=true;
                         this.querySelector('button').innerHTML=
-                        '<span class=\'spinner-border spinner-border-sm me-2\'>
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"></span>Sincronizando…'">
+                        '<span class=\'spinner-border spinner-border-sm me-2\'></span>Sincronizando…'">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="btn btn-primary">
             <i class="bi bi-cloud-download me-2"></i>Sincronizar ahora
           </button>

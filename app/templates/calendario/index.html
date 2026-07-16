@@ -598,10 +598,10 @@
 
 {% block topbar_actions %}
 <button class="btn btn-outline-success btn-sm" id="btnNuevaApertura">
-  <i class="bi bi-calendar-check me-1"></i>Fecha apertura
+  <i class="bi bi-calendar-check me-1"></i><span class="btn-label">Fecha apertura</span>
 </button>
 <a href="{{ url_for('reservas.nueva') }}" class="btn btn-primary btn-sm">
-  <i class="bi bi-plus-lg me-1"></i>Nueva reserva
+  <i class="bi bi-plus-lg me-1"></i><span class="btn-label">Nueva reserva</span>
 </a>
 {% endblock %}
 

@@ -4,10 +4,10 @@
 
 {% block topbar_actions %}
 <a href="{{ url_for('agenda.index') }}" class="btn btn-outline-secondary btn-sm me-1">
-  <i class="bi bi-arrow-left me-1"></i>Agenda
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Agenda</span>
 </a>
 <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalNueva">
-  <i class="bi bi-plus-lg me-1"></i>Nueva temática
+  <i class="bi bi-plus-lg me-1"></i><span class="btn-label">Nueva temática</span>
 </button>
 {% endblock %}
 

@@ -4,10 +4,10 @@
 
 {% block topbar_actions %}
 <a href="{{ url_for('marketing.index') }}" class="btn btn-sm btn-outline-secondary">
-  <i class="bi bi-arrow-left me-1"></i>Marketing
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Marketing</span>
 </a>
 <a href="{{ url_for('marketing.etiquetas_nueva') }}" class="btn btn-sm btn-primary">
-  <i class="bi bi-plus-lg me-1"></i>Nueva etiqueta
+  <i class="bi bi-plus-lg me-1"></i><span class="btn-label">Nueva etiqueta</span>
 </a>
 {% endblock %}
 

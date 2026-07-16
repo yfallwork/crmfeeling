@@ -4,10 +4,10 @@
 
 {% block topbar_actions %}
 <a href="{{ url_for('marketing.normas_nueva') }}" class="btn btn-sm btn-outline-secondary">
-  <i class="bi bi-diagram-3 me-1"></i>Nueva norma
+  <i class="bi bi-diagram-3 me-1"></i><span class="btn-label">Nueva norma</span>
 </a>
 <a href="{{ url_for('marketing.notificaciones_lista') }}" class="btn btn-sm btn-primary">
-  <i class="bi bi-bell me-1"></i>Notificaciones
+  <i class="bi bi-bell me-1"></i><span class="btn-label">Notificaciones</span>
   {% if stats.notificaciones > 0 %}
   <span class="badge rounded-pill ms-1" style="background:#fff;color:#EF4444;font-size:.65rem">
     {{ stats.notificaciones }}

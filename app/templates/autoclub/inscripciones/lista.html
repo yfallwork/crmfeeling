@@ -4,7 +4,7 @@
 
 {% block topbar_actions %}
 <a href="{{ url_for('autoclub.inscripciones_nueva') }}" class="btn btn-primary btn-sm">
-  <i class="bi bi-plus-lg me-1"></i>Nueva inscripción
+  <i class="bi bi-plus-lg me-1"></i><span class="btn-label">Nueva inscripción</span>
 </a>
 {% endblock %}
 
@@ -12,16 +12,16 @@
 
 {% macro estado_badge(e) %}
   {% set cfg = {
-    'pendiente': ('#6b7280', 'bi-clock'),
-    'enviada':   ('#1d4ed8', 'bi-send'),
-    'aceptada':  ('#16a34a', 'bi-check-circle'),
-    'rechazada': ('#dc2626', 'bi-x-circle'),
+    'pendiente': ('#6b7280', 'bi-clock', 'Pendiente'),
+    'enviada':   ('#1d4ed8', 'bi-send', 'Enviada'),
+    'aceptada':  ('#16a34a', 'bi-check-circle', 'Aceptada'),
+    'rechazada': ('#dc2626', 'bi-x-circle', 'Rechazada'),
+    'parcial':   ('#d97706', 'bi-exclamation-diamond', 'Parcial'),
   } %}
-  {% set color = cfg.get(e, ['#6b7280', 'bi-circle'])[0] %}
-  {% set icon  = cfg.get(e, ['#6b7280', 'bi-circle'])[1] %}
+  {% set c = cfg.get(e, ('#6b7280', 'bi-circle', e | capitalize)) %}
   <span class="badge rounded-pill text-xs"
-        style="background:{{ color }}20;color:{{ color }};font-weight:700">
-    <i class="bi {{ icon }} me-1"></i>{{ e | capitalize }}
+        style="background:{{ c[0] }}20;color:{{ c[0] }};font-weight:700">
+    <i class="bi {{ c[1] }} me-1"></i>{{ c[2] }}
   </span>
 {% endmacro %}
 
@@ -81,7 +81,7 @@
         {% for i in inscripciones.items %}
         <tr>
           <td class="text-muted text-sm text-nowrap">
-            {{ i.fecha_prueba.strftime('%d/%m/%Y') if i.fecha_prueba else '—' }}
+            {{ i.rango_fechas }}
           </td>
           <td>
             <a href="{{ url_for('autoclub.inscripciones_detalle', id=i.id) }}"
@@ -104,6 +104,12 @@
             {% else %}
               <span class="text-muted">—</span>
             {% endif %}
+            {% if i.num_pilotos > 1 %}
+              <span class="badge rounded-pill text-xs ms-1"
+                    style="background:#eff6ff;color:#1d4ed8" title="Pilotos inscritos en esta prueba">
+                +{{ i.num_pilotos - 1 }}
+              </span>
+            {% endif %}
           </td>
           <td class="text-sm">
             {% if i.vehiculo %}
@@ -113,7 +119,7 @@
               <span class="text-muted">—</span>
             {% endif %}
           </td>
-          <td>{{ estado_badge(i.estado) }}</td>
+          <td>{{ estado_badge(i.estado_grupo) }}</td>
           <td>
             <div class="d-flex gap-1">
               <a href="{{ url_for('autoclub.inscripciones_detalle', id=i.id) }}"

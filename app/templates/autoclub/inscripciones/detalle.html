@@ -4,10 +4,10 @@
 
 {% block topbar_actions %}
 <a href="{{ url_for('autoclub.inscripciones_lista') }}" class="btn btn-sm btn-outline-secondary">
-  <i class="bi bi-arrow-left me-1"></i>Inscripciones
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Inscripciones</span>
 </a>
 <a href="{{ url_for('autoclub.inscripciones_editar', id=insc.id) }}" class="btn btn-sm btn-outline-primary">
-  <i class="bi bi-pencil me-1"></i>Editar
+  <i class="bi bi-pencil me-1"></i><span class="btn-label">Editar</span>
 </a>
 {% endblock %}
 
@@ -18,8 +18,9 @@
   'enviada':   ('#1d4ed8', 'bi-send', 'Enviada'),
   'aceptada':  ('#16a34a', 'bi-check-circle', 'Aceptada'),
   'rechazada': ('#dc2626', 'bi-x-circle', 'Rechazada'),
+  'parcial':   ('#d97706', 'bi-exclamation-diamond', 'Parcialmente enviada'),
 } %}
-{% set sc = estado_cfg.get(insc.estado, ('#6b7280', 'bi-circle', insc.estado | capitalize)) %}
+{% set sc = estado_cfg.get(insc.estado_grupo, ('#6b7280', 'bi-circle', insc.estado_grupo | capitalize)) %}
 
 <div class="row g-3">
 
@@ -47,7 +48,12 @@
           {% if insc.fecha_prueba %}
           <li>
             <i class="bi bi-calendar3"></i>
-            <span class="text-sm">{{ insc.fecha_prueba.strftime('%d/%m/%Y') }}</span>
+            <span class="text-sm">{{ insc.rango_fechas }}</span>
+            {% if insc.duracion_dias > 1 %}
+              <span class="badge rounded-pill ms-1" style="background:var(--gray-100);color:var(--gray-700);font-size:.65rem">
+                {{ insc.duracion_dias }} días
+              </span>
+            {% endif %}
           </li>
           {% endif %}
           {% if insc.fecha_plazo %}
@@ -69,6 +75,17 @@
             <i class="bi bi-person"></i>
             <a href="{{ url_for('autoclub.pilotos_detalle', id=insc.piloto.id) }}"
                class="text-decoration-none text-sm">{{ insc.piloto.nombre_completo }}</a>
+            {% if participantes %}
+              <span class="text-xs text-muted">(principal)</span>
+            {% endif %}
+          </li>
+          {% endif %}
+          {% if participantes %}
+          <li>
+            <i class="bi bi-people"></i>
+            <a href="#participantes" class="text-decoration-none text-sm">
+              +{{ participantes|length }} piloto{{ 's' if participantes|length != 1 }} más
+            </a>
           </li>
           {% endif %}
           {% if insc.vehiculo %}
@@ -143,7 +160,8 @@
           {% if insc.fecha_prueba %}
           <div class="col-md-6">
             <span class="text-muted d-block" style="font-size:.72rem;text-transform:uppercase">Fecha de la prueba</span>
-            <strong>{{ insc.fecha_prueba.strftime('%d/%m/%Y') }}</strong>
+            <strong>{{ insc.rango_fechas }}</strong>
+            {% if insc.duracion_dias > 1 %}<span class="text-xs text-muted">({{ insc.duracion_dias }} días)</span>{% endif %}
           </div>
           {% endif %}
           {% if insc.fecha_plazo %}
@@ -208,6 +226,129 @@
           </div>
           {% endif %}
         </div>
+      </div>
+    </div>
+
+    <!-- PARTICIPANTES -->
+    <div class="card mb-3" id="participantes">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-people-fill text-primary"></i>
+          <span class="fw-semibold">Pilotos inscritos en esta prueba</span>
+        </div>
+        <span class="badge rounded-pill" style="background:#eff6ff;color:#1d4ed8">
+          {{ insc.num_pilotos }}
+        </span>
+      </div>
+      <div class="card-body">
+        <p class="text-xs text-muted mb-3">
+          Todos los pilotos inscritos aquí comparten la misma prueba y los mismos gastos.
+        </p>
+
+        {% macro estado_select(action, estado_actual) %}
+        <form method="POST" action="{{ action }}" class="d-inline-flex">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {% set ec = estado_cfg.get(estado_actual, ('#6b7280', 'bi-circle', estado_actual | capitalize)) %}
+          <select name="estado" class="form-select form-select-sm" style="width:auto;font-weight:700;
+                  background-color:{{ ec[0] }}18;color:{{ ec[0] }};border-color:{{ ec[0] }}40"
+                  onchange="this.form.submit()">
+            {% for e in estados_inscripcion %}
+            <option value="{{ e }}" {% if estado_actual == e %}selected{% endif %}>{{ e | capitalize }}</option>
+            {% endfor %}
+          </select>
+        </form>
+        {% endmacro %}
+
+        <!-- Piloto principal -->
+        <div class="d-flex align-items-center gap-2 px-3 py-2 rounded mb-2"
+             style="background:#eff6ff;border:1px solid #bfdbfe">
+          <i class="bi bi-star-fill" style="color:#1d4ed8"></i>
+          <div style="flex:1;min-width:0">
+            <div class="fw-semibold text-sm">
+              {% if insc.piloto %}
+                <a href="{{ url_for('autoclub.pilotos_detalle', id=insc.piloto.id) }}" class="text-decoration-none" style="color:#1d4ed8">
+                  {{ insc.piloto.nombre_completo }}
+                </a>
+              {% else %}
+                <span class="text-muted">Sin piloto principal</span>
+              {% endif %}
+              <span class="text-xs text-muted fw-normal">(principal)</span>
+            </div>
+            {% if insc.vehiculo %}
+              <div class="text-xs text-muted">{{ insc.vehiculo.nombre_display }}</div>
+            {% endif %}
+          </div>
+          {{ estado_select(url_for('autoclub.inscripcion_estado_principal', id=insc.id), insc.estado) }}
+        </div>
+
+        <!-- Pilotos adicionales -->
+        {% for p in participantes %}
+        <div class="d-flex align-items-center gap-2 px-3 py-2 rounded mb-2"
+             style="background:var(--gray-50);border:1px solid var(--border)">
+          <i class="bi bi-person" style="color:var(--gray-600)"></i>
+          <div style="flex:1;min-width:0">
+            <div class="fw-semibold text-sm">
+              {% if p.piloto %}
+                <a href="{{ url_for('autoclub.pilotos_detalle', id=p.piloto.id) }}" class="text-decoration-none" style="color:var(--black)">
+                  {{ p.piloto.nombre_completo }}
+                </a>
+              {% else %}
+                <span class="text-muted">Piloto eliminado</span>
+              {% endif %}
+            </div>
+            {% if p.vehiculo or p.concursante %}
+              <div class="text-xs text-muted">
+                {% if p.vehiculo %}{{ p.vehiculo.nombre_display }}{% endif %}
+                {% if p.vehiculo and p.concursante %} · {% endif %}
+                {% if p.concursante %}{{ p.concursante }}{% endif %}
+              </div>
+            {% endif %}
+          </div>
+          {{ estado_select(url_for('autoclub.inscripcion_participante_estado', id=insc.id, pid=p.id), p.estado) }}
+          <form method="POST" action="{{ url_for('autoclub.inscripcion_participante_eliminar', id=insc.id, pid=p.id) }}"
+                onsubmit="return confirm('¿Quitar a {{ p.piloto.nombre_completo if p.piloto else 'este piloto' }} de esta prueba?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-xs btn-ghost-danger" title="Quitar">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </form>
+        </div>
+        {% endfor %}
+
+        <!-- Añadir piloto -->
+        {% if pilotos_disponibles %}
+        <form method="POST" action="{{ url_for('autoclub.inscripcion_participante_nuevo', id=insc.id) }}" class="mt-3 pt-3"
+              style="border-top:1px solid var(--border-light)">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-5">
+              <label class="form-label text-xs text-muted text-uppercase mb-1">Piloto</label>
+              <select name="piloto_id" class="form-select form-select-sm" required>
+                <option value="">Seleccionar piloto…</option>
+                {% for p in pilotos_disponibles %}
+                <option value="{{ p.id }}">{{ p.nombre_completo }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label text-xs text-muted text-uppercase mb-1">Vehículo</label>
+              <select name="vehiculo_id" class="form-select form-select-sm">
+                <option value="">— Sin asignar —</option>
+                {% for v in vehiculos_todos %}
+                <option value="{{ v.id }}">{{ v.nombre_display }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <button type="submit" class="btn btn-primary btn-sm w-100">
+                <i class="bi bi-plus-lg me-1"></i>Añadir
+              </button>
+            </div>
+          </div>
+        </form>
+        {% else %}
+        <p class="text-sm text-muted mb-0 mt-2">No hay más pilotos activos disponibles para añadir.</p>
+        {% endif %}
       </div>
     </div>
 
@@ -349,7 +490,7 @@
             <div class="col-md-3">
               <label class="form-label text-xs text-muted text-uppercase mb-1">Fecha</label>
               <input type="date" name="fecha" class="form-control form-control-sm"
-                     value="{{ insc.fecha_prueba.strftime('%Y-%m-%d') if insc.fecha_prueba else '' }}">
+                     value="{{ today.strftime('%Y-%m-%d') }}">
             </div>
           </div>
           <div class="row g-2 align-items-end">

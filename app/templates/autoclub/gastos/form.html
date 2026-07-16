@@ -1,0 +1,178 @@
+{% extends "autoclub/base.html" %}
+{% block title %}{% if gasto %}Editar gasto{% else %}Nuevo gasto{% endif %} — AutoClub{% endblock %}
+{% block page_title %}{% if gasto %}Editar gasto{% else %}Nuevo gasto{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white border-bottom">
+        <h6 class="mb-0 fw-semibold">
+          <i class="bi bi-cash-coin me-2 text-primary"></i>
+          {% if gasto %}Editar gasto{% else %}Nuevo gasto{% endif %}
+        </h6>
+      </div>
+      <div class="card-body">
+        {% set es_evento = (gasto and gasto.evento_id) or (not gasto and tipo_pre == 'evento') %}
+        <form method="POST" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <!-- Origen del gasto -->
+          <div class="mb-4 pb-3" style="border-bottom:1px solid var(--border-light)">
+            <label class="form-label fw-semibold mb-2">Vincular a</label>
+            <div class="d-flex gap-4">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="tipo_origen"
+                       id="to_inscripcion" value="inscripcion" {% if not es_evento %}checked{% endif %}
+                       onchange="toggleOrigenGasto(this.value)">
+                <label class="form-check-label fw-semibold" for="to_inscripcion">
+                  <i class="bi bi-clipboard-check me-1"></i>Inscripción
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="tipo_origen"
+                       id="to_evento" value="evento" {% if es_evento %}checked{% endif %}
+                       onchange="toggleOrigenGasto(this.value)">
+                <label class="form-check-label fw-semibold" for="to_evento">
+                  <i class="bi bi-calendar-event me-1"></i>Evento de competición
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <!-- Inscripción -->
+            <div class="col-md-6" id="campo_inscripcion">
+              <label class="form-label fw-semibold">Inscripción <span class="text-danger">*</span></label>
+              <select name="inscripcion_id" class="form-select" id="inscripcionSelect">
+                <option value="">Seleccionar inscripción...</option>
+                {% for i in inscripciones %}
+                  <option value="{{ i.id }}"
+                    {% if (gasto and gasto.inscripcion_id == i.id) or (not gasto and tipo_pre == 'inscripcion' and id_pre == i.id) %}selected{% endif %}>
+                    {{ i.nombre_prueba }}{% if i.piloto %} — {{ i.piloto.nombre_completo }}{% endif %}
+                    {% if i.fecha_prueba %} ({{ i.fecha_prueba.strftime('%d/%m/%Y') }}){% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Evento -->
+            <div class="col-md-6" id="campo_evento" style="display:none">
+              <label class="form-label fw-semibold">Evento <span class="text-danger">*</span></label>
+              <select name="evento_id" class="form-select" id="eventoSelect">
+                <option value="">Seleccionar evento...</option>
+                {% for ev in eventos %}
+                  <option value="{{ ev.id }}"
+                    {% if (gasto and gasto.evento_id == ev.id) or (not gasto and tipo_pre == 'evento' and id_pre == ev.id) %}selected{% endif %}>
+                    {{ ev.titulo }}{% if ev.fecha %} ({{ ev.fecha.strftime('%d/%m/%Y') }}){% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Concepto -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Concepto <span class="text-danger">*</span></label>
+              <input type="text" name="concepto" class="form-control"
+                     placeholder="Ej: Inscripción oficial"
+                     value="{{ gasto.concepto if gasto else '' }}" required>
+            </div>
+
+            <!-- Importe -->
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Importe (€) <span class="text-danger">*</span></label>
+              <input type="number" name="importe" class="form-control" step="0.01" min="0"
+                     value="{{ gasto.importe if gasto else '' }}" placeholder="0.00" required>
+            </div>
+
+            <!-- Categoría -->
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Categoría</label>
+              <select name="categoria" class="form-select">
+                {% for cat in categorias_gasto %}
+                  <option value="{{ cat }}" {% if (gasto and gasto.categoria == cat) or (not gasto and cat == 'Otros') %}selected{% endif %}>
+                    {{ cat }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Fecha -->
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Fecha</label>
+              <input type="date" name="fecha" class="form-control"
+                     value="{{ gasto.fecha.strftime('%Y-%m-%d') if gasto and gasto.fecha else today.strftime('%Y-%m-%d') }}">
+            </div>
+
+            <!-- Comprobante -->
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Comprobante (recibo/ticket)</label>
+              {% if gasto and gasto.documento_filename %}
+                <div class="d-flex align-items-center gap-2">
+                  <a href="{{ url_for('static', filename='uploads/autoclub/docs/' + gasto.documento_filename) }}"
+                     target="_blank" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-paperclip me-1"></i>Ver actual
+                  </a>
+                  <span class="text-xs text-muted">Sube uno nuevo para reemplazarlo</span>
+                </div>
+              {% endif %}
+              <input type="file" name="comprobante" class="form-control mt-1" accept="image/*,.pdf">
+            </div>
+
+            <!-- Factura -->
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">
+                Factura <span class="text-muted fw-normal">(cuando la tengas)</span>
+              </label>
+              {% if gasto and gasto.factura_filename %}
+                <div class="d-flex align-items-center gap-2">
+                  <a href="{{ url_for('static', filename='uploads/autoclub/docs/' + gasto.factura_filename) }}"
+                     target="_blank" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-paperclip me-1"></i>Ver actual
+                  </a>
+                  <span class="text-xs text-muted">Sube una nueva para reemplazarla</span>
+                </div>
+              {% endif %}
+              <input type="file" name="factura" class="form-control mt-1" accept="image/*,.pdf">
+            </div>
+          </div>
+
+          <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-lg me-1"></i>
+              {% if gasto %}Guardar cambios{% else %}Crear gasto{% endif %}
+            </button>
+            <a href="{{ url_for('autoclub.gastos_lista') }}" class="btn btn-outline-secondary">Cancelar</a>
+            {% if gasto %}
+            <form method="POST" action="{{ url_for('autoclub.gastos_eliminar', id=gasto.id) }}" class="ms-auto"
+                  onsubmit="return confirm('¿Eliminar este gasto?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-outline-danger">
+                <i class="bi bi-trash me-1"></i>Eliminar
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleOrigenGasto(tipo) {
+  var esEvento = tipo === 'evento';
+  document.getElementById('campo_inscripcion').style.display = esEvento ? 'none' : '';
+  document.getElementById('campo_evento').style.display       = esEvento ? '' : 'none';
+  document.getElementById('inscripcionSelect').required = !esEvento;
+  document.getElementById('eventoSelect').required       = esEvento;
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  var checked = document.querySelector('input[name="tipo_origen"]:checked');
+  if (checked) toggleOrigenGasto(checked.value);
+});
+</script>
+{% endblock %}

@@ -4,10 +4,10 @@
 
 {% block topbar_actions %}
 <a href="{{ url_for('autoclub.nuevo') }}" class="btn btn-sm btn-outline-secondary">
-  <i class="bi bi-person-plus me-1"></i>Nuevo socio
+  <i class="bi bi-person-plus me-1"></i><span class="btn-label">Nuevo socio</span>
 </a>
 <a href="{{ url_for('autoclub.patrocinadores_nuevo') }}" class="btn btn-sm btn-primary">
-  <i class="bi bi-building-add me-1"></i>Nuevo patrocinador
+  <i class="bi bi-building-add me-1"></i><span class="btn-label">Nuevo patrocinador</span>
 </a>
 {% endblock %}
 

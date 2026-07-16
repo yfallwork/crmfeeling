@@ -2,7 +2,7 @@ import csv
 import io
 import os
 import uuid
-from datetime import date
+from datetime import date, timedelta
 from flask import (Blueprint, render_template, request, redirect,
                    url_for, flash, Response, current_app, jsonify, abort)
 from flask_login import login_required, current_user
@@ -14,6 +14,7 @@ from app.models.autoclub_nota import AutoclubNota
 from app.models.piloto import Piloto
 from app.models.vehiculo import Vehiculo
 from app.models.inscripcion import Inscripcion
+from app.models.inscripcion_piloto import InscripcionPiloto
 from app.models.gasto_inscripcion import GastoInscripcion, CATEGORIAS_GASTO
 from app.models.staff_miembro import StaffMiembro, TIPOS_STAFF
 from app.models.resultado_inscripcion import ResultadoInscripcion
@@ -28,6 +29,7 @@ FOTO_PRENSA_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 FOTO_PRENSA_MIME = {
     "png": "png", "jpg": "jpeg", "jpeg": "jpeg", "gif": "gif", "webp": "webp",
 }
+ESTADOS_INSCRIPCION = ["pendiente", "enviada", "aceptada", "rechazada"]
 
 SECTORES_ESPAÑA = sorted([
     "Administración pública",
@@ -553,6 +555,20 @@ def _delete_doc(filename):
         pass
 
 
+def _leer_doc_gasto(campo, etiqueta):
+    """Lee un fichero de formulario (comprobante/factura) para un gasto.
+    Si el usuario adjuntó algo con un formato no admitido, avisa con un
+    flash en vez de descartarlo en silencio."""
+    f = request.files.get(campo)
+    if not f or not f.filename:
+        return None
+    fn = _save_doc(f)
+    if not fn:
+        flash(f"El/la {etiqueta} «{f.filename}» no se pudo adjuntar: formato no admitido "
+              f"(usa PDF, JPG, PNG, WEBP, DOC o DOCX). El gasto se ha guardado sin ese archivo.", "warning")
+    return fn
+
+
 def _parse_date(raw):
     if not raw:
         return None
@@ -934,6 +950,7 @@ def inscripciones_nueva():
         insc = Inscripcion(
             nombre_prueba=request.form.get("nombre_prueba", "").strip(),
             fecha_prueba=_parse_date(request.form.get("fecha_prueba")),
+            fecha_fin=_parse_date(request.form.get("fecha_fin")),
             fecha_plazo=_parse_date(request.form.get("fecha_plazo")),
             campeonato=request.form.get("campeonato", "").strip(),
             piloto_id=_parse_int(request.form.get("piloto_id")),
@@ -966,6 +983,16 @@ def inscripciones_detalle(id):
     staff_asignado = insc.staff.all()
     staff_disponible = StaffMiembro.query.filter_by(activo=True).order_by(StaffMiembro.apellidos.asc()).all()
     staff_disponible = [s for s in staff_disponible if s not in staff_asignado]
+
+    participantes = insc.participantes.order_by(InscripcionPiloto.id.asc()).all()
+    ids_ya_inscritos = {insc.piloto_id} | {p.piloto_id for p in participantes}
+    pilotos_disponibles = (
+        Piloto.query.filter_by(activo=True)
+        .filter(Piloto.id.notin_(ids_ya_inscritos))
+        .order_by(Piloto.nombre.asc()).all()
+    )
+    vehiculos_todos = Vehiculo.query.order_by(Vehiculo.creado_en.desc()).all()
+
     return render_template(
         "autoclub/inscripciones/detalle.html",
         insc=insc,
@@ -975,8 +1002,87 @@ def inscripciones_detalle(id):
         categorias_gasto=CATEGORIAS_GASTO,
         staff_asignado=staff_asignado,
         staff_disponible=staff_disponible,
+        participantes=participantes,
+        pilotos_disponibles=pilotos_disponibles,
+        vehiculos_todos=vehiculos_todos,
+        estados_inscripcion=ESTADOS_INSCRIPCION,
         today=date.today(),
     )
+
+
+@autoclub_bp.route("/inscripciones/<int:id>/participantes/nuevo", methods=["POST"])
+@login_required
+def inscripcion_participante_nuevo(id):
+    insc = Inscripcion.query.get_or_404(id)
+    piloto_id = _parse_int(request.form.get("piloto_id"))
+    if not piloto_id:
+        flash("Selecciona un piloto para añadirlo a esta prueba.", "warning")
+        return redirect(url_for("autoclub.inscripciones_detalle", id=id) + "#participantes")
+
+    ya_inscrito = (piloto_id == insc.piloto_id) or insc.participantes.filter_by(piloto_id=piloto_id).first()
+    if ya_inscrito:
+        flash("Ese piloto ya está inscrito en esta prueba.", "warning")
+        return redirect(url_for("autoclub.inscripciones_detalle", id=id) + "#participantes")
+
+    participante = InscripcionPiloto(
+        inscripcion_id=insc.id,
+        piloto_id=piloto_id,
+        vehiculo_id=_parse_int(request.form.get("vehiculo_id")),
+        concursante=request.form.get("concursante", "").strip(),
+    )
+    db.session.add(participante)
+    db.session.commit()
+    registrar_log("editar", "inscripcion", insc.id,
+                  f"Piloto añadido a la inscripción: {insc.nombre_prueba} — {participante.piloto.nombre_completo}")
+    flash("Piloto añadido a la prueba.", "success")
+    return redirect(url_for("autoclub.inscripciones_detalle", id=id) + "#participantes")
+
+
+@autoclub_bp.route("/inscripciones/<int:id>/participantes/<int:pid>/eliminar", methods=["POST"])
+@login_required
+def inscripcion_participante_eliminar(id, pid):
+    participante = InscripcionPiloto.query.filter_by(id=pid, inscripcion_id=id).first_or_404()
+    nombre = participante.piloto.nombre_completo if participante.piloto else "piloto"
+    db.session.delete(participante)
+    db.session.commit()
+    registrar_log("editar", "inscripcion", id, f"Piloto quitado de la inscripción: {nombre}")
+    flash("Piloto quitado de la prueba.", "info")
+    return redirect(url_for("autoclub.inscripciones_detalle", id=id) + "#participantes")
+
+
+@autoclub_bp.route("/inscripciones/<int:id>/estado-principal", methods=["POST"])
+@login_required
+def inscripcion_estado_principal(id):
+    """Cambia el estado individual del piloto principal (Inscripcion.estado)
+    sin pasar por el formulario completo de edición."""
+    insc = Inscripcion.query.get_or_404(id)
+    nuevo_estado = request.form.get("estado", "")
+    if nuevo_estado not in ESTADOS_INSCRIPCION:
+        flash(f"Estado '{nuevo_estado}' no válido.", "warning")
+        return redirect(url_for("autoclub.inscripciones_detalle", id=id) + "#participantes")
+    insc.estado = nuevo_estado
+    db.session.commit()
+    registrar_log("editar", "inscripcion", id,
+                  f"Estado del piloto principal cambiado a {nuevo_estado}: {insc.nombre_prueba}")
+    flash(f"Estado de {insc.piloto.nombre_completo if insc.piloto else 'piloto principal'} actualizado a {nuevo_estado}.", "success")
+    return redirect(url_for("autoclub.inscripciones_detalle", id=id) + "#participantes")
+
+
+@autoclub_bp.route("/inscripciones/<int:id>/participantes/<int:pid>/estado", methods=["POST"])
+@login_required
+def inscripcion_participante_estado(id, pid):
+    """Cambia el estado individual de un piloto adicional."""
+    participante = InscripcionPiloto.query.filter_by(id=pid, inscripcion_id=id).first_or_404()
+    nuevo_estado = request.form.get("estado", "")
+    if nuevo_estado not in ESTADOS_INSCRIPCION:
+        flash(f"Estado '{nuevo_estado}' no válido.", "warning")
+        return redirect(url_for("autoclub.inscripciones_detalle", id=id) + "#participantes")
+    participante.estado = nuevo_estado
+    db.session.commit()
+    nombre = participante.piloto.nombre_completo if participante.piloto else "piloto"
+    registrar_log("editar", "inscripcion", id, f"Estado de {nombre} cambiado a {nuevo_estado}")
+    flash(f"Estado de {nombre} actualizado a {nuevo_estado}.", "success")
+    return redirect(url_for("autoclub.inscripciones_detalle", id=id) + "#participantes")
 
 
 @autoclub_bp.route("/inscripciones/<int:id>/editar", methods=["GET", "POST"])
@@ -989,6 +1095,7 @@ def inscripciones_editar(id):
     if request.method == "POST":
         insc.nombre_prueba = request.form.get("nombre_prueba", "").strip()
         insc.fecha_prueba = _parse_date(request.form.get("fecha_prueba"))
+        insc.fecha_fin = _parse_date(request.form.get("fecha_fin"))
         insc.fecha_plazo = _parse_date(request.form.get("fecha_plazo"))
         insc.campeonato = request.form.get("campeonato", "").strip()
         insc.piloto_id = _parse_int(request.form.get("piloto_id"))
@@ -1042,8 +1149,8 @@ def inscripciones_gastos_exportar(id):
     info = [
         ("Prueba",       insc.nombre_prueba),
         ("Piloto",       insc.piloto.nombre_completo if insc.piloto else ""),
-        ("Fecha prueba", insc.fecha_prueba.strftime("%d/%m/%Y") if insc.fecha_prueba else ""),
-        ("Estado",       insc.estado.capitalize()),
+        ("Fecha prueba", insc.rango_fechas),
+        ("Estado",       insc.estado_grupo.capitalize()),
         ("Exportado",    __import__("datetime").date.today().strftime("%d/%m/%Y")),
     ]
     for r, (etiqueta, valor) in enumerate(info, start=1):
@@ -1208,23 +1315,12 @@ def inscripcion_gasto_nuevo(id):
     fecha = None
     if fecha_raw:
         try:
-            from datetime import date as _date
-            fecha = _date.fromisoformat(fecha_raw)
+            fecha = date.fromisoformat(fecha_raw)
         except ValueError:
             pass
     if concepto:
-        def _leer_doc(campo, etiqueta):
-            f = request.files.get(campo)
-            if not f or not f.filename:
-                return None
-            fn = _save_doc(f)
-            if not fn:
-                flash(f"El/la {etiqueta} «{f.filename}» no se pudo adjuntar: formato no admitido "
-                      f"(usa PDF, JPG, PNG, WEBP, DOC o DOCX). El gasto se ha guardado sin ese archivo.", "warning")
-            return fn
-
-        comprobante_fn = _leer_doc("comprobante", "comprobante")
-        factura_fn     = _leer_doc("factura", "factura")
+        comprobante_fn = _leer_doc_gasto("comprobante", "comprobante")
+        factura_fn     = _leer_doc_gasto("factura", "factura")
 
         gasto = GastoInscripcion(
             inscripcion_id=insc.id,
@@ -1276,6 +1372,306 @@ def inscripcion_gasto_eliminar(id, gid):
     db.session.commit()
     flash("Gasto eliminado.", "info")
     return redirect(url_for("autoclub.inscripciones_detalle", id=id) + "#gastos")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  GASTOS (sección global — CRUD, vinculables a una inscripción o a un evento)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _gasto_origen_url(gasto):
+    """Endpoint al que volver tras crear/editar/eliminar un gasto: la ficha
+    de su inscripción o evento de origen."""
+    if gasto.inscripcion_id:
+        return url_for("autoclub.gastos_origen", tipo="inscripcion", id=gasto.inscripcion_id)
+    if gasto.evento_id:
+        return url_for("autoclub.gastos_origen", tipo="evento", id=gasto.evento_id)
+    return url_for("autoclub.gastos_lista")
+
+
+@autoclub_bp.route("/gastos")
+@login_required
+def gastos_lista():
+    """Página principal de Gastos: inscripciones y eventos con su nº de
+    gastos y total acumulado, para entrar y ver/añadir/editar/borrar los
+    gastos de cada uno. Incluye también las que todavía no tienen gastos."""
+    from sqlalchemy import func
+    from sqlalchemy.orm import joinedload
+    from app.models.competicion_evento import CompeticionEvento
+
+    conteo_insc = dict(
+        db.session.query(GastoInscripcion.inscripcion_id, func.count(GastoInscripcion.id))
+        .filter(GastoInscripcion.inscripcion_id.isnot(None))
+        .group_by(GastoInscripcion.inscripcion_id).all()
+    )
+    total_insc = dict(
+        db.session.query(GastoInscripcion.inscripcion_id, func.coalesce(func.sum(GastoInscripcion.importe), 0.0))
+        .filter(GastoInscripcion.inscripcion_id.isnot(None))
+        .group_by(GastoInscripcion.inscripcion_id).all()
+    )
+    conteo_ev = dict(
+        db.session.query(GastoInscripcion.evento_id, func.count(GastoInscripcion.id))
+        .filter(GastoInscripcion.evento_id.isnot(None))
+        .group_by(GastoInscripcion.evento_id).all()
+    )
+    total_ev = dict(
+        db.session.query(GastoInscripcion.evento_id, func.coalesce(func.sum(GastoInscripcion.importe), 0.0))
+        .filter(GastoInscripcion.evento_id.isnot(None))
+        .group_by(GastoInscripcion.evento_id).all()
+    )
+
+    inscripciones = (
+        Inscripcion.query.options(joinedload(Inscripcion.piloto))
+        .order_by(Inscripcion.fecha_prueba.desc().nullslast()).all()
+    )
+    eventos = CompeticionEvento.query.order_by(CompeticionEvento.fecha.desc()).all()
+
+    filas_insc = [
+        {"obj": i, "n": conteo_insc.get(i.id, 0), "total": total_insc.get(i.id, 0.0)}
+        for i in inscripciones
+    ]
+    filas_ev = [
+        {"obj": e, "n": conteo_ev.get(e.id, 0), "total": total_ev.get(e.id, 0.0)}
+        for e in eventos
+    ]
+
+    total_general = sum(total_insc.values()) + sum(total_ev.values())
+
+    return render_template(
+        "autoclub/gastos/lista.html",
+        filas_insc=filas_insc, filas_ev=filas_ev, total_general=total_general,
+    )
+
+
+@autoclub_bp.route("/gastos/todos")
+@login_required
+def gastos_todos():
+    """Vista plana con todos los gastos juntos, con filtros — la opción
+    "ver todo" para quien prefiera una tabla en vez de navegar por origen."""
+    from sqlalchemy.orm import joinedload
+    from app.models.competicion_evento import CompeticionEvento
+
+    origen    = request.args.get("origen", "")       # "" | "inscripcion" | "evento"
+    categoria = request.args.get("categoria", "")
+    q         = request.args.get("q", "").strip()
+
+    query = GastoInscripcion.query.options(
+        joinedload(GastoInscripcion.inscripcion).joinedload(Inscripcion.piloto),
+        joinedload(GastoInscripcion.evento),
+    )
+    if origen == "inscripcion":
+        query = query.filter(GastoInscripcion.inscripcion_id.isnot(None))
+    elif origen == "evento":
+        query = query.filter(GastoInscripcion.evento_id.isnot(None))
+    if categoria:
+        query = query.filter(GastoInscripcion.categoria == categoria)
+    if q:
+        query = query.filter(GastoInscripcion.concepto.ilike(f"%{q}%"))
+
+    gastos = query.order_by(
+        GastoInscripcion.fecha.desc().nullslast(), GastoInscripcion.creado_en.desc()
+    ).all()
+    total = sum(g.importe for g in gastos)
+
+    return render_template(
+        "autoclub/gastos/todos.html",
+        gastos=gastos, total=total, categorias_gasto=CATEGORIAS_GASTO,
+        origen=origen, categoria=categoria, q=q,
+    )
+
+
+@autoclub_bp.route("/gastos/<tipo>/<int:id>")
+@login_required
+def gastos_origen(tipo, id):
+    """Todos los gastos de UNA inscripción o UN evento en concreto, con
+    alta/edición/borrado propios (sin tener que volver a elegir el origen)."""
+    from sqlalchemy.orm import joinedload
+    from app.models.competicion_evento import CompeticionEvento
+    if tipo not in ("inscripcion", "evento"):
+        abort(404)
+
+    if tipo == "inscripcion":
+        origen_obj = Inscripcion.query.options(joinedload(Inscripcion.piloto)).get_or_404(id)
+        gastos = (
+            GastoInscripcion.query.filter_by(inscripcion_id=id)
+            .order_by(GastoInscripcion.fecha.desc().nullslast(), GastoInscripcion.creado_en.desc())
+            .all()
+        )
+    else:
+        origen_obj = CompeticionEvento.query.get_or_404(id)
+        gastos = (
+            GastoInscripcion.query.filter_by(evento_id=id)
+            .order_by(GastoInscripcion.fecha.desc().nullslast(), GastoInscripcion.creado_en.desc())
+            .all()
+        )
+
+    total = sum(g.importe for g in gastos)
+    return render_template(
+        "autoclub/gastos/origen.html",
+        tipo=tipo, origen_obj=origen_obj, gastos=gastos, total=total,
+        categorias_gasto=CATEGORIAS_GASTO,
+    )
+
+
+@autoclub_bp.route("/gastos/nuevo", methods=["GET", "POST"])
+@login_required
+def gastos_nuevo():
+    from app.models.competicion_evento import CompeticionEvento
+    inscripciones = Inscripcion.query.order_by(Inscripcion.fecha_prueba.desc()).all()
+    eventos       = CompeticionEvento.query.order_by(CompeticionEvento.fecha.desc()).all()
+
+    # Permite pre-seleccionar el origen al llegar desde la ficha de una
+    # inscripción/evento concretos (?tipo=evento&id=3).
+    tipo_pre = request.args.get("tipo", "")
+    id_pre   = request.args.get("id", type=int)
+
+    if request.method == "POST":
+        tipo_origen    = request.form.get("tipo_origen", "inscripcion")
+        inscripcion_id = request.form.get("inscripcion_id", type=int) if tipo_origen == "inscripcion" else None
+        evento_id      = request.form.get("evento_id", type=int) if tipo_origen == "evento" else None
+
+        concepto = request.form.get("concepto", "").strip()
+        importe_raw = request.form.get("importe", "0").replace(",", ".").strip()
+        try:
+            importe = float(importe_raw)
+        except ValueError:
+            importe = 0.0
+        categoria = request.form.get("categoria", "Otros")
+        fecha_raw = request.form.get("fecha", "").strip()
+        fecha = None
+        if fecha_raw:
+            try:
+                fecha = date.fromisoformat(fecha_raw)
+            except ValueError:
+                pass
+
+        if not concepto:
+            flash("El concepto es obligatorio.", "warning")
+        elif not inscripcion_id and not evento_id:
+            flash("Selecciona una inscripción o un evento al que vincular el gasto.", "warning")
+        else:
+            comprobante_fn = _leer_doc_gasto("comprobante", "comprobante")
+            factura_fn     = _leer_doc_gasto("factura", "factura")
+            gasto = GastoInscripcion(
+                inscripcion_id=inscripcion_id,
+                evento_id=evento_id,
+                concepto=concepto,
+                importe=importe,
+                categoria=categoria,
+                fecha=fecha,
+                documento_filename=comprobante_fn,
+                factura_filename=factura_fn,
+            )
+            db.session.add(gasto)
+            db.session.commit()
+            flash("Gasto añadido.", "success")
+            return redirect(_gasto_origen_url(gasto))
+
+    return render_template(
+        "autoclub/gastos/form.html", gasto=None,
+        inscripciones=inscripciones, eventos=eventos, categorias_gasto=CATEGORIAS_GASTO,
+        tipo_pre=tipo_pre, id_pre=id_pre, today=date.today(),
+    )
+
+
+@autoclub_bp.route("/gastos/<int:id>/editar", methods=["GET", "POST"])
+@login_required
+def gastos_editar(id):
+    from app.models.competicion_evento import CompeticionEvento
+    gasto = GastoInscripcion.query.get_or_404(id)
+    inscripciones = Inscripcion.query.order_by(Inscripcion.fecha_prueba.desc()).all()
+    eventos       = CompeticionEvento.query.order_by(CompeticionEvento.fecha.desc()).all()
+
+    if request.method == "POST":
+        concepto = request.form.get("concepto", "").strip()
+        if not concepto:
+            flash("El concepto es obligatorio.", "warning")
+            return render_template(
+                "autoclub/gastos/form.html", gasto=gasto,
+                inscripciones=inscripciones, eventos=eventos, categorias_gasto=CATEGORIAS_GASTO,
+                tipo_pre="", id_pre=None, today=date.today(),
+            )
+
+        tipo_origen = request.form.get("tipo_origen", "inscripcion")
+        if tipo_origen == "inscripcion":
+            gasto.inscripcion_id = request.form.get("inscripcion_id", type=int)
+            gasto.evento_id = None
+        else:
+            gasto.evento_id = request.form.get("evento_id", type=int)
+            gasto.inscripcion_id = None
+
+        gasto.concepto = concepto
+        importe_raw = request.form.get("importe", "0").replace(",", ".").strip()
+        try:
+            gasto.importe = float(importe_raw)
+        except ValueError:
+            gasto.importe = 0.0
+        gasto.categoria = request.form.get("categoria", "Otros")
+        fecha_raw = request.form.get("fecha", "").strip()
+        gasto.fecha = None
+        if fecha_raw:
+            try:
+                gasto.fecha = date.fromisoformat(fecha_raw)
+            except ValueError:
+                pass
+
+        comprobante_fn = _leer_doc_gasto("comprobante", "comprobante")
+        if comprobante_fn:
+            if gasto.documento_filename:
+                _delete_doc(gasto.documento_filename)
+            gasto.documento_filename = comprobante_fn
+        factura_fn = _leer_doc_gasto("factura", "factura")
+        if factura_fn:
+            if gasto.factura_filename:
+                _delete_doc(gasto.factura_filename)
+            gasto.factura_filename = factura_fn
+
+        db.session.commit()
+        flash("Gasto actualizado.", "success")
+        return redirect(_gasto_origen_url(gasto))
+
+    return render_template(
+        "autoclub/gastos/form.html", gasto=gasto,
+        inscripciones=inscripciones, eventos=eventos, categorias_gasto=CATEGORIAS_GASTO,
+        tipo_pre="", id_pre=None, today=date.today(),
+    )
+
+
+@autoclub_bp.route("/gastos/<int:id>/eliminar", methods=["POST"])
+@login_required
+def gastos_eliminar(id):
+    gasto = GastoInscripcion.query.get_or_404(id)
+    volver_a = _gasto_origen_url(gasto)
+    if gasto.documento_filename:
+        _delete_doc(gasto.documento_filename)
+    if gasto.factura_filename:
+        _delete_doc(gasto.factura_filename)
+    db.session.delete(gasto)
+    db.session.commit()
+    flash("Gasto eliminado.", "info")
+    return redirect(volver_a)
+
+
+@autoclub_bp.route("/gastos/<int:id>/documento/<tipo>", methods=["POST"])
+@login_required
+def gastos_documento(id, tipo):
+    if tipo not in ("comprobante", "factura"):
+        abort(404)
+    gasto = GastoInscripcion.query.get_or_404(id)
+    campo = "documento_filename" if tipo == "comprobante" else "factura_filename"
+    doc_file = request.files.get(tipo)
+    if doc_file and doc_file.filename:
+        doc_fn = _save_doc(doc_file)
+        if doc_fn:
+            anterior = getattr(gasto, campo)
+            if anterior:
+                _delete_doc(anterior)
+            setattr(gasto, campo, doc_fn)
+            db.session.commit()
+            flash(f"{tipo.capitalize()} adjuntado.", "success")
+        else:
+            flash(f"El/la {tipo} «{doc_file.filename}» no se pudo adjuntar: formato no admitido "
+                  f"(usa PDF, JPG, PNG, WEBP, DOC o DOCX).", "warning")
+    return redirect(_gasto_origen_url(gasto))
 
 
 @autoclub_bp.route("/inscripciones/<int:id>/resultado/guardar", methods=["POST"])
@@ -2164,25 +2560,33 @@ def calendario_eventos():
         "enviada":   "#1d4ed8",
         "aceptada":  "#16a34a",
         "rechazada": "#dc2626",
+        "parcial":   "#d97706",
     }
     eventos = []
 
     for insc in Inscripcion.query.filter(Inscripcion.fecha_prueba.isnot(None)).all():
-        color = COLORES.get(insc.estado, "#6b7280")
-        eventos.append({
+        color = COLORES.get(insc.estado_grupo, "#6b7280")
+        evento_json = {
             "id":    f"insc-{insc.id}",
             "title": insc.nombre_prueba,
             "start": insc.fecha_prueba.isoformat(),
+            "allDay": True,
             "color": color,
             "extendedProps": {
                 "tipo":       "inscripcion",
                 "campeonato": insc.campeonato or "",
-                "estado":     insc.estado,
+                "estado":     insc.estado_grupo,
                 "piloto":     insc.piloto.nombre_completo if insc.piloto else "",
                 "vehiculo":   insc.vehiculo.nombre_display if insc.vehiculo else "",
+                "num_pilotos": insc.num_pilotos,
             },
             "url": url_for("autoclub.inscripciones_detalle", id=insc.id),
-        })
+        }
+        # FullCalendar trata "end" como exclusivo, así que para que el último
+        # día de la prueba se pinte también hay que sumarle un día.
+        if insc.fecha_fin and insc.fecha_fin > insc.fecha_prueba:
+            evento_json["end"] = (insc.fecha_fin + timedelta(days=1)).isoformat()
+        eventos.append(evento_json)
 
     for ev in CompeticionEvento.query.all():
         props = {

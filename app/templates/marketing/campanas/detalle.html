@@ -4,11 +4,11 @@
 
 {% block topbar_actions %}
 <a href="{{ url_for('marketing.campanas_lista') }}" class="btn btn-sm btn-outline-secondary">
-  <i class="bi bi-arrow-left me-1"></i>Campañas
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Campañas</span>
 </a>
 {% if campana.estado not in ('enviando','enviada') %}
 <a href="{{ url_for('marketing.campanas_editar', id=campana.id) }}" class="btn btn-sm btn-outline-primary">
-  <i class="bi bi-pencil me-1"></i>Editar
+  <i class="bi bi-pencil me-1"></i><span class="btn-label">Editar</span>
 </a>
 {% endif %}
 {% if campana.estado not in ('enviando',) %}
@@ -16,7 +16,7 @@
       onsubmit="return confirm('¿Enviar la campaña «{{ campana.nombre }}» ahora mismo?')">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <button type="submit" class="btn btn-sm btn-success">
-    <i class="bi bi-send-fill me-1"></i>Enviar ahora
+    <i class="bi bi-send-fill me-1"></i><span class="btn-label">Enviar ahora</span>
   </button>
 </form>
 {% endif %}

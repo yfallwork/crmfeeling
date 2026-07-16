@@ -1,0 +1,112 @@
+{% extends "autoclub/base.html" %}
+{% block title %}Gastos — AutoClub{% endblock %}
+{% block page_title %}Gastos{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.gastos_todos') }}" class="btn btn-outline-secondary btn-sm">
+  <i class="bi bi-list-ul me-1"></i><span class="btn-label">Ver todos</span>
+</a>
+<a href="{{ url_for('autoclub.gastos_nuevo') }}" class="btn btn-primary btn-sm">
+  <i class="bi bi-plus-lg me-1"></i><span class="btn-label">Nuevo gasto</span>
+</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <span class="text-sm text-muted">
+    Elige una inscripción o un evento para ver, añadir, editar o borrar sus gastos.
+  </span>
+  <span class="fw-bold" style="color:var(--red);font-size:1.05rem">{{ '%.2f'|format(total_general) }} €</span>
+</div>
+
+<div class="row g-3">
+
+  <!-- INSCRIPCIONES -->
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-clipboard-check-fill text-primary"></i>
+        <span class="fw-semibold">Inscripciones</span>
+        <span class="badge" style="background:var(--gray-100);color:var(--gray-700)">{{ filas_insc|length }}</span>
+      </div>
+      {% if filas_insc %}
+      <div style="max-height:560px;overflow-y:auto">
+        {% for fila in filas_insc %}
+        <a href="{{ url_for('autoclub.gastos_origen', tipo='inscripcion', id=fila.obj.id) }}"
+           class="d-flex align-items-center gap-2 px-3 py-2 text-decoration-none
+                  {% if not loop.last %}border-bottom{% endif %}"
+           style="color:inherit">
+          <div style="width:34px;height:34px;background:#eff6ff;border-radius:8px;flex-shrink:0;
+                      display:flex;align-items:center;justify-content:center">
+            <i class="bi bi-clipboard-check text-primary" style="font-size:.8rem"></i>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div class="fw-semibold text-sm text-truncate">{{ fila.obj.nombre_prueba }}</div>
+            <div class="text-xs text-muted text-truncate">
+              {% if fila.obj.piloto %}{{ fila.obj.piloto.nombre_completo }} · {% endif %}
+              {{ fila.obj.fecha_prueba.strftime('%d/%m/%Y') if fila.obj.fecha_prueba else 'sin fecha' }}
+            </div>
+          </div>
+          <div class="text-end flex-shrink-0">
+            <div class="fw-bold text-sm" style="color:var(--red)">{{ '%.2f'|format(fila.total) }} €</div>
+            <div class="text-xs text-muted">{{ fila.n }} gasto{{ 's' if fila.n != 1 }}</div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <i class="bi bi-clipboard-check"></i>
+        <p>No hay inscripciones todavía.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- EVENTOS -->
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-calendar-event-fill text-success"></i>
+        <span class="fw-semibold">Eventos de competición</span>
+        <span class="badge" style="background:var(--gray-100);color:var(--gray-700)">{{ filas_ev|length }}</span>
+      </div>
+      {% if filas_ev %}
+      <div style="max-height:560px;overflow-y:auto">
+        {% for fila in filas_ev %}
+        <a href="{{ url_for('autoclub.gastos_origen', tipo='evento', id=fila.obj.id) }}"
+           class="d-flex align-items-center gap-2 px-3 py-2 text-decoration-none
+                  {% if not loop.last %}border-bottom{% endif %}"
+           style="color:inherit">
+          <div style="width:34px;height:34px;background:#f0fdf4;border-radius:8px;flex-shrink:0;
+                      display:flex;align-items:center;justify-content:center">
+            <i class="bi bi-calendar-event text-success" style="font-size:.8rem"></i>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div class="fw-semibold text-sm text-truncate">{{ fila.obj.titulo }}</div>
+            <div class="text-xs text-muted text-truncate">
+              {{ fila.obj.fecha.strftime('%d/%m/%Y') if fila.obj.fecha else 'sin fecha' }}
+              {% if not fila.obj.fecha_plazo %}
+                <span class="ms-1" style="color:#d97706"><i class="bi bi-exclamation-triangle-fill"></i> sin plazo</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="text-end flex-shrink-0">
+            <div class="fw-bold text-sm" style="color:var(--red)">{{ '%.2f'|format(fila.total) }} €</div>
+            <div class="text-xs text-muted">{{ fila.n }} gasto{{ 's' if fila.n != 1 }}</div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <i class="bi bi-calendar-event"></i>
+        <p>No hay eventos todavía.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

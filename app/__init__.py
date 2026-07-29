@@ -126,6 +126,28 @@ def create_app(env="default"):
                 return
         return _redir("/vista/")
 
+    # Blueprints siempre accesibles para cualquier usuario autenticado,
+    # independientemente de sus permisos por módulo.
+    _SIN_RESTRICCION = ("auth", "dashboard", "static", "api", "vista")
+
+    @app.before_request
+    def _restrict_modulos():
+        if not current_user.is_authenticated:
+            return
+        if current_user.rol in ("admin", "vista"):
+            return
+        bp = _req.blueprint
+        if not bp or bp in _SIN_RESTRICCION:
+            return
+        from app.models.usuario import MODULOS_KEYS, AUTOCLUB_SECCIONES_KEYS
+        from flask import abort as _abort
+        if bp in MODULOS_KEYS and not current_user.puede_acceder(bp):
+            _abort(403)
+        if bp == "autoclub":
+            for seccion in AUTOCLUB_SECCIONES_KEYS:
+                if _req.path.startswith(f"/autoclub/{seccion}") and not current_user.puede_acceder_autoclub(seccion):
+                    _abort(403)
+
     # Cache en memoria del badge de notificaciones: evita una query de BD en
     # cada request autenticado. TTL corto porque es solo un contador visual.
     _NOTIF_CACHE = {}
@@ -159,6 +181,13 @@ def create_app(env="default"):
             _req.path.startswith("/api/")
             or _req.accept_mimetypes["application/json"] >= _req.accept_mimetypes["text/html"]
         )
+
+    @app.errorhandler(403)
+    def _handle_403(err):
+        if _wants_json():
+            from flask import jsonify
+            return jsonify({"ok": False, "error": "No tienes permiso para acceder a este recurso"}), 403
+        return render_template("errors/403.html"), 403
 
     @app.errorhandler(404)
     def _handle_404(err):
@@ -210,6 +239,7 @@ def _migrate_columns():
         ("inscripciones",      "fecha_plazo",           "DATE"),
         ("competicion_eventos", "fecha_plazo",           "DATE"),
         ("fechas_apertura",    "capacidad_ideal",       "INTEGER"),
+        ("usuarios",           "permisos_json",         "TEXT"),
     ]
     with db.engine.connect() as conn:
         for tabla, columna, tipo in nuevas:

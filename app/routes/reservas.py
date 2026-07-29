@@ -42,13 +42,13 @@ def lista():
     origen  = request.args.get("origen", "")   # "" | "individual" | "teambuilding"
     q       = request.args.get("q", "").strip()
     page    = request.args.get("page", 1, type=int)
-    sort    = request.args.get("sort", "fecha_disfrute")
-    dir_    = request.args.get("dir", "asc")
+    sort    = request.args.get("sort", "fecha_compra")
+    dir_    = request.args.get("dir", "desc")
 
     if sort not in SORT_COLUMNS:
-        sort = "fecha_disfrute"
+        sort = "fecha_compra"
     if dir_ not in ("asc", "desc"):
-        dir_ = "asc"
+        dir_ = "desc"
 
     query = _base_query()
 

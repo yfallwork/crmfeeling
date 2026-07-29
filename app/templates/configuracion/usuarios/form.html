@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar usuario' if usuario else 'Nuevo usuario' }} — Configuración{% endblock %}
+{% block page_title %}{{ 'Editar usuario' if usuario else 'Nuevo usuario' }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('configuracion.usuarios_lista') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Usuarios</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-body">
+        <form method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Nombre <span class="text-danger">*</span></label>
+              <input type="text" name="nombre" class="form-control" required
+                     value="{{ datos.get('nombre','') if datos else (usuario.nombre if usuario else '') }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Rol <span class="text-danger">*</span></label>
+              <select name="rol" id="selectRol" class="form-select" onchange="toggleModulos()">
+                {% set rol_actual = (datos.get('rol') if datos else (usuario.rol if usuario else 'gestor')) %}
+                <option value="gestor" {% if rol_actual == 'gestor' %}selected{% endif %}>Gestor</option>
+                <option value="admin" {% if rol_actual == 'admin' %}selected{% endif %}>Administrador</option>
+                <option value="vista" {% if rol_actual == 'vista' %}selected{% endif %}>Vista (solo panel externo)</option>
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Usuario</label>
+              <input type="text" name="username" class="form-control"
+                     value="{{ datos.get('username','') if datos else (usuario.username or '' if usuario else '') }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Email</label>
+              <input type="email" name="email" class="form-control"
+                     value="{{ datos.get('email','') if datos else (usuario.email or '' if usuario else '') }}">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">
+                Contraseña {% if not usuario %}<span class="text-danger">*</span>{% endif %}
+              </label>
+              <input type="password" name="password" class="form-control"
+                     {% if not usuario %}required{% endif %}
+                     placeholder="{{ 'Dejar en blanco para no cambiarla' if usuario else '' }}"
+                     autocomplete="new-password">
+            </div>
+            <div class="col-md-6 d-flex align-items-end">
+              <div class="form-check form-switch fs-4 mb-2">
+                <input class="form-check-input" type="checkbox" role="switch" name="activo" id="checkActivo"
+                       {% set activo_actual = (datos.get('activo') if datos else (usuario.activo if usuario else True)) %}
+                       {% if activo_actual %}checked{% endif %}>
+                <label class="form-check-label text-sm" for="checkActivo">Cuenta activa</label>
+              </div>
+            </div>
+
+            <div class="col-12" id="bloqueModulos">
+              <hr>
+              <label class="form-label mb-2">Módulos a los que puede acceder</label>
+              <p class="text-muted text-xs mb-3">
+                Si no marcas ningún módulo, el usuario no podrá acceder a ninguna sección salvo el panel principal.
+              </p>
+              <div class="row g-2">
+                {% set modulos_actuales = (datos.getlist('modulos') if datos else (usuario.modulos_permitidos if usuario else modulos_disponibles | map(attribute=0) | list)) %}
+                {% for key, label, icon in modulos_disponibles %}
+                <div class="col-md-4 col-sm-6">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="modulos" value="{{ key }}"
+                           id="mod_{{ key }}" {% if key in modulos_actuales %}checked{% endif %}
+                           {% if key == 'autoclub' %}onchange="toggleAutoclubSecciones()"{% endif %}>
+                    <label class="form-check-label text-sm" for="mod_{{ key }}">
+                      <i class="bi {{ icon }} me-1 text-muted"></i>{{ label }}
+                    </label>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+
+              <div id="bloqueAutoclubSecciones" class="mt-3" style="display:none">
+                <label class="form-label mb-2 text-sm">Secciones de AutoClub a las que puede acceder</label>
+                <p class="text-muted text-xs mb-3">
+                  Si no marcas ninguna sección, el usuario entrará a AutoClub pero no verá ninguna de sus secciones internas.
+                </p>
+                <div class="row g-2">
+                  {% set secciones_actuales = (datos.getlist('autoclub_secciones') if datos else (usuario.autoclub_secciones_permitidas if usuario else autoclub_secciones_disponibles | map(attribute=0) | list)) %}
+                  {% for key, label, icon in autoclub_secciones_disponibles %}
+                  <div class="col-md-4 col-sm-6">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="autoclub_secciones" value="{{ key }}"
+                             id="ac_{{ key }}" {% if key in secciones_actuales %}checked{% endif %}>
+                      <label class="form-check-label text-sm" for="ac_{{ key }}">
+                        <i class="bi {{ icon }} me-1 text-muted"></i>{{ label }}
+                      </label>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+            <div class="col-12" id="avisoAdmin" style="display:none">
+              <hr>
+              <p class="text-muted text-sm mb-0">
+                <i class="bi bi-shield-lock-fill me-1"></i>
+                Los administradores tienen acceso a todos los módulos automáticamente.
+              </p>
+            </div>
+          </div>
+
+          <div class="d-flex align-items-center gap-2 mt-4">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-lg me-1"></i>{{ 'Guardar cambios' if usuario else 'Crear usuario' }}
+            </button>
+            <a href="{{ url_for('configuracion.usuarios_lista') }}" class="btn btn-outline-secondary">Cancelar</a>
+
+            {% if usuario and usuario.id != current_user.id %}
+            <form method="POST" action="{{ url_for('configuracion.usuarios_eliminar', id=usuario.id) }}"
+                  class="ms-auto"
+                  onsubmit="return confirm('¿Eliminar al usuario «{{ usuario.nombre }}»? Esta acción no se puede deshacer.')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-outline-danger">
+                <i class="bi bi-trash me-1"></i>Eliminar usuario
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleModulos() {
+  const esAdmin = document.getElementById('selectRol').value === 'admin';
+  document.getElementById('bloqueModulos').style.display = esAdmin ? 'none' : '';
+  document.getElementById('avisoAdmin').style.display = esAdmin ? '' : 'none';
+}
+function toggleAutoclubSecciones() {
+  const modAutoclub = document.getElementById('mod_autoclub');
+  document.getElementById('bloqueAutoclubSecciones').style.display =
+    (modAutoclub && modAutoclub.checked) ? '' : 'none';
+}
+document.addEventListener('DOMContentLoaded', function () {
+  toggleModulos();
+  toggleAutoclubSecciones();
+});
+</script>
+{% endblock %}

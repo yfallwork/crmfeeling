@@ -35,81 +35,112 @@
       <i class="bi bi-speedometer2"></i><span>Dashboard</span>
     </a>
 
+    {% if current_user.puede_acceder_autoclub('socios') %}
     <a href="{{ url_for('autoclub.lista') }}"
        class="nav-item {% if request.endpoint in ('autoclub.lista', 'autoclub.detalle', 'autoclub.editar', 'autoclub.nuevo') %}active{% endif %}"
        data-tooltip="Socios">
       <i class="bi bi-person-badge"></i><span>Socios</span>
     </a>
+    {% endif %}
 
+    {% if current_user.puede_acceder_autoclub('patrocinadores') %}
     <a href="{{ url_for('autoclub.patrocinadores_lista') }}"
        class="nav-item {% if 'patrocinadores' in (request.endpoint or '') %}active{% endif %}"
        data-tooltip="Patrocinadores">
       <i class="bi bi-building"></i><span>Patrocinadores</span>
     </a>
+    {% endif %}
 
+    {% if current_user.puede_acceder_autoclub('notas') %}
     <a href="{{ url_for('autoclub.notas_lista') }}"
        class="nav-item {% if request.endpoint == 'autoclub.notas_lista' %}active{% endif %}"
        data-tooltip="Notas">
       <i class="bi bi-journal-text"></i><span>Notas</span>
     </a>
+    {% endif %}
 
+    {% if current_user.puede_acceder_autoclub('pilotos') or current_user.puede_acceder_autoclub('vehiculos')
+          or current_user.puede_acceder_autoclub('inscripciones') or current_user.puede_acceder_autoclub('gastos')
+          or current_user.puede_acceder_autoclub('staff') or current_user.puede_acceder_autoclub('calendario')
+          or current_user.puede_acceder_autoclub('prensa') %}
     <div class="nav-section-label">Competición</div>
+    {% endif %}
 
+    {% if current_user.puede_acceder_autoclub('pilotos') %}
     <a href="{{ url_for('autoclub.pilotos_lista') }}"
        class="nav-item {% if request.endpoint and request.endpoint.startswith('autoclub.pilotos') %}active{% endif %}"
        data-tooltip="Pilotos">
       <i class="bi bi-person-badge-fill"></i><span>Pilotos</span>
     </a>
+    {% endif %}
 
+    {% if current_user.puede_acceder_autoclub('vehiculos') %}
     <a href="{{ url_for('autoclub.vehiculos_lista') }}"
        class="nav-item {% if request.endpoint and request.endpoint.startswith('autoclub.vehiculos') %}active{% endif %}"
        data-tooltip="Vehículos">
       <i class="bi bi-car-front-fill"></i><span>Vehículos</span>
     </a>
+    {% endif %}
 
+    {% if current_user.puede_acceder_autoclub('inscripciones') %}
     <a href="{{ url_for('autoclub.inscripciones_lista') }}"
        class="nav-item {% if request.endpoint and request.endpoint.startswith('autoclub.inscripciones') %}active{% endif %}"
        data-tooltip="Inscripciones">
       <i class="bi bi-clipboard-check-fill"></i><span>Inscripciones</span>
     </a>
+    {% endif %}
 
+    {% if current_user.puede_acceder_autoclub('gastos') %}
     <a href="{{ url_for('autoclub.gastos_lista') }}"
        class="nav-item {% if request.endpoint and request.endpoint.startswith('autoclub.gastos') %}active{% endif %}"
        data-tooltip="Gastos">
       <i class="bi bi-cash-coin"></i><span>Gastos</span>
     </a>
+    {% endif %}
 
+    {% if current_user.puede_acceder_autoclub('staff') %}
     <a href="{{ url_for('autoclub.staff_lista') }}"
        class="nav-item {% if request.endpoint and request.endpoint.startswith('autoclub.staff') %}active{% endif %}"
        data-tooltip="Staff">
       <i class="bi bi-people-fill"></i><span>Staff</span>
     </a>
+    {% endif %}
 
+    {% if current_user.puede_acceder_autoclub('calendario') %}
     <a href="{{ url_for('autoclub.calendario') }}"
        class="nav-item {% if request.endpoint in ('autoclub.calendario', 'autoclub.calendario_eventos') %}active{% endif %}"
        data-tooltip="Calendario">
       <i class="bi bi-calendar3-event-fill"></i><span>Calendario</span>
     </a>
+    {% endif %}
 
+    {% if current_user.puede_acceder_autoclub('prensa') %}
     <a href="{{ url_for('autoclub.prensa') }}"
        class="nav-item {% if request.endpoint and 'prensa' in request.endpoint %}active{% endif %}"
        data-tooltip="Prensa">
       <i class="bi bi-newspaper"></i><span>Prensa</span>
     </a>
+    {% endif %}
 
+    {% if current_user.puede_acceder_autoclub('informacion') or current_user.puede_acceder_autoclub('seguimiento') %}
     <div class="nav-section-label">Sistema</div>
+    {% endif %}
 
+    {% if current_user.puede_acceder_autoclub('informacion') %}
     <a href="{{ url_for('autoclub.informacion') }}"
        class="nav-item {% if request.endpoint and ('informacion' in request.endpoint or 'credencial' in request.endpoint) %}active{% endif %}"
        data-tooltip="Información">
       <i class="bi bi-info-circle-fill"></i><span>Información</span>
     </a>
+    {% endif %}
 
+    {% if current_user.puede_acceder_autoclub('seguimiento') %}
     <a href="{{ url_for('autoclub.seguimiento') }}"
        class="nav-item {% if request.endpoint == 'autoclub.seguimiento' %}active{% endif %}"
        data-tooltip="Seguimiento">
       <i class="bi bi-activity"></i><span>Seguimiento</span>
     </a>
+    {% endif %}
 
     <div class="nav-divider"></div>
 

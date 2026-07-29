@@ -6,6 +6,28 @@
 <div class="row justify-content-center">
   <div class="col-lg-8">
 
+    {% if current_user.es_admin %}
+    <div class="card mb-3">
+      <div class="card-header bg-white border-bottom">
+        <h6 class="mb-0 fw-semibold">
+          <i class="bi bi-people-fill me-2 text-primary"></i>Usuarios
+        </h6>
+      </div>
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+          <div class="fw-semibold">Gestión de usuarios y accesos</div>
+          <div class="text-muted small">
+            Añade, edita o elimina cuentas de usuario y controla a qué módulos
+            de la aplicación puede acceder cada uno.
+          </div>
+        </div>
+        <a href="{{ url_for('configuracion.usuarios_lista') }}" class="btn btn-primary btn-sm ms-3">
+          <i class="bi bi-people me-1"></i>Gestionar
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
     <div class="card mb-3">
       <div class="card-header bg-white border-bottom">
         <h6 class="mb-0 fw-semibold">

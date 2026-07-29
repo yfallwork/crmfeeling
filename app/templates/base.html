@@ -33,36 +33,47 @@
       <i class="bi bi-speedometer2"></i><span>Dashboard</span>
     </a>
 
+    {% if current_user.puede_acceder('clientes') %}
     <a href="{{ url_for('clientes.lista') }}"
        class="nav-item {% if 'clientes' in (request.endpoint or '') %}active{% endif %}"
        data-tooltip="Clientes">
       <i class="bi bi-people"></i><span>Clientes</span>
     </a>
+    {% endif %}
 
+    {% if current_user.puede_acceder('reservas') %}
     <a href="{{ url_for('reservas.lista') }}"
        class="nav-item {% if 'reservas' in (request.endpoint or '') %}active{% endif %}"
        data-tooltip="Reservas">
       <i class="bi bi-calendar-check"></i><span>Reservas</span>
     </a>
+    {% endif %}
 
+    {% if current_user.puede_acceder('calendario') %}
     <a href="{{ url_for('calendario.index') }}"
        class="nav-item {% if 'calendario' in (request.endpoint or '') %}active{% endif %}"
        data-tooltip="Calendario">
       <i class="bi bi-calendar3"></i><span>Calendario</span>
     </a>
+    {% endif %}
 
+    {% if current_user.puede_acceder('estadisticas') %}
     <a href="{{ url_for('estadisticas.index') }}"
        class="nav-item {% if 'estadisticas' in (request.endpoint or '') %}active{% endif %}"
        data-tooltip="Estadísticas">
       <i class="bi bi-bar-chart-line"></i><span>Estadísticas</span>
     </a>
+    {% endif %}
 
+    {% if current_user.puede_acceder('agenda') %}
     <a href="{{ url_for('agenda.index') }}"
        class="nav-item {% if 'agenda' in (request.endpoint or '') %}active{% endif %}"
        data-tooltip="Agenda social">
       <i class="bi bi-megaphone"></i><span>Agenda social</span>
     </a>
+    {% endif %}
 
+    {% if current_user.puede_acceder('teambuilding') %}
     <div class="nav-section-label">Team Building</div>
 
     <a href="{{ url_for('teambuilding.empresas_lista') }}"
@@ -76,7 +87,9 @@
        data-tooltip="Notas de empresas">
       <i class="bi bi-journal-text"></i><span>Notas</span>
     </a>
+    {% endif %}
 
+    {% if current_user.puede_acceder('marketing') %}
     <div class="nav-section-label">Marketing</div>
 
     <a href="{{ url_for('marketing.index') }}"
@@ -96,27 +109,37 @@
        data-tooltip="Logs">
       <i class="bi bi-journal-text"></i><span>Logs</span>
     </a>
+    {% endif %}
 
+    {% if current_user.puede_acceder('autoclub') or current_user.puede_acceder('woocommerce') or current_user.puede_acceder('logs') %}
     <div class="nav-section-label">Integración</div>
 
+    {% if current_user.puede_acceder('autoclub') %}
     <a href="{{ url_for('autoclub.dashboard') }}"
        class="nav-item {% if 'autoclub' in (request.endpoint or '') %}active{% endif %}"
        data-tooltip="AutoClub">
       <i class="bi bi-shield-check"></i><span>AutoClub</span>
     </a>
+    {% endif %}
 
+    {% if current_user.puede_acceder('woocommerce') %}
     <a href="{{ url_for('woocommerce.index') }}"
        class="nav-item {% if 'woocommerce' in (request.endpoint or '') %}active{% endif %}"
        data-tooltip="WooCommerce">
       <i class="bi bi-shop"></i><span>WooCommerce</span>
     </a>
+    {% endif %}
 
+    {% if current_user.puede_acceder('logs') %}
     <a href="{{ url_for('logs.index') }}"
        class="nav-item {% if request.endpoint == 'logs.index' %}active{% endif %}"
        data-tooltip="Actividad">
       <i class="bi bi-journal-text"></i><span>Actividad</span>
     </a>
+    {% endif %}
+    {% endif %}
 
+    {% if current_user.puede_acceder('configuracion') %}
     <div class="nav-section-label">Configuración</div>
 
     <a href="{{ url_for('configuracion.index') }}"
@@ -124,6 +147,7 @@
        data-tooltip="Configuración general">
       <i class="bi bi-gear"></i><span>Configuración general</span>
     </a>
+    {% endif %}
 
     <div class="nav-divider"></div>
 

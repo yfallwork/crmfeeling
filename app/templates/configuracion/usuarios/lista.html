@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Usuarios — Configuración{% endblock %}
+{% block page_title %}Usuarios{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('configuracion.index') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Configuración</span>
+</a>
+<a href="{{ url_for('configuracion.usuarios_nuevo') }}" class="btn btn-primary btn-sm">
+  <i class="bi bi-person-plus me-1"></i><span class="btn-label">Nuevo usuario</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr style="font-size:.72rem;text-transform:uppercase;color:var(--gray-500)">
+            <th style="padding-left:20px">Nombre</th>
+            <th>Usuario / Email</th>
+            <th>Rol</th>
+            <th>Módulos</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in usuarios %}
+          <tr>
+            <td style="padding-left:20px">
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar avatar-sm" style="background:var(--red-soft);color:var(--red)">
+                  {{ u.nombre[0] | upper }}
+                </div>
+                <div class="fw-semibold text-sm">{{ u.nombre }}</div>
+              </div>
+            </td>
+            <td class="text-sm text-muted">
+              {{ u.username or '—' }}{% if u.email %}<div class="text-xs">{{ u.email }}</div>{% endif %}
+            </td>
+            <td>
+              {% if u.rol == 'admin' %}
+                <span class="badge rounded-pill" style="background:#fee2e2;color:#dc2626"><i class="bi bi-shield-lock-fill me-1"></i>Admin</span>
+              {% elif u.rol == 'vista' %}
+                <span class="badge rounded-pill" style="background:#f3e8ff;color:#7c3aed"><i class="bi bi-eye me-1"></i>Vista</span>
+              {% else %}
+                <span class="badge rounded-pill" style="background:#eff6ff;color:#1d4ed8"><i class="bi bi-person-badge me-1"></i>Gestor</span>
+              {% endif %}
+            </td>
+            <td class="text-sm">
+              {% if u.rol == 'admin' %}
+                <span class="text-muted">Todos</span>
+              {% else %}
+                {{ u.modulos_permitidos | length }} de {{ modulos_disponibles | length }}
+              {% endif %}
+            </td>
+            <td>
+              {% if u.activo %}
+                <span class="badge badge-activo rounded-pill"><i class="bi bi-check-circle me-1"></i>Activo</span>
+              {% else %}
+                <span class="badge badge-inactivo rounded-pill"><i class="bi bi-pause-circle me-1"></i>Inactivo</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-1 justify-content-end pe-2">
+                <a href="{{ url_for('configuracion.usuarios_editar', id=u.id) }}"
+                   class="btn btn-xs btn-outline-primary" title="Editar">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                {% if u.id != current_user.id %}
+                <form method="POST" action="{{ url_for('configuracion.usuarios_eliminar', id=u.id) }}"
+                      onsubmit="return confirm('¿Eliminar al usuario «{{ u.nombre }}»? Esta acción no se puede deshacer.')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-xs btn-ghost-danger" title="Eliminar">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6">
+              <div class="empty-state">
+                <i class="bi bi-people"></i>
+                <p>No hay usuarios todavía.</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

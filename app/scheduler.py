@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 
 log = logging.getLogger(__name__)
 
@@ -90,6 +91,14 @@ def init_scheduler(app):
         misfire_grace_time=3600,
     )
 
+    _scheduler.add_job(
+        func=lambda: _job_woo_sync(app),
+        trigger=IntervalTrigger(minutes=10),
+        id="woo_sync_periodico",
+        replace_existing=True,
+        misfire_grace_time=300,
+    )
+
     _scheduler.start()
     atexit.register(_scheduler.shutdown)
 
@@ -98,7 +107,7 @@ def init_scheduler(app):
     threading.Thread(target=lambda: _job_plazo_inscripciones(app), daemon=True).start()
     threading.Thread(target=lambda: _job_plazo_eventos(app), daemon=True).start()
 
-    log.info("Scheduler iniciado — recordatorios 09:00, etiquetas temporales 07:00, plazos inscripciones 08:00")
+    log.info("Scheduler iniciado — recordatorios 09:00, etiquetas temporales 07:00, plazos inscripciones 08:00, woo_sync cada 10 min")
 
 
 def _job_recordatorios(app):
@@ -187,6 +196,24 @@ def _job_aniversario(app):
                      f"-{stats['quitadas']} retiradas, {stats['errores']} errores")
         except Exception as e:
             log.error(f"Error en job aniversario: {e}")
+
+
+def _job_woo_sync(app):
+    """Red de seguridad para el webhook de WooCommerce: re-sincroniza los
+    pedidos recientes cada pocos minutos por si algún webhook puntual no
+    llegó (servidor caído, WooCommerce sin reintento, etc.). max_pages bajo
+    porque solo necesita cubrir lo reciente, no un histórico completo."""
+    with app.app_context():
+        try:
+            if not app.config.get("WOO_CONSUMER_KEY") or not app.config.get("WOO_CONSUMER_SECRET"):
+                return  # integración WooCommerce no configurada en este entorno
+            from app.services.woo_sync import sync_orders
+            stats = sync_orders(max_pages=3)
+            if stats["nuevas"] or stats["actualizadas"] or stats["errores"]:
+                log.info(f"Job woo_sync: {stats['nuevas']} nuevas, "
+                         f"{stats['actualizadas']} actualizadas, {stats['errores']} errores")
+        except Exception as e:
+            log.error(f"Error en job woo_sync: {e}")
 
 
 def _job_campanas(app):

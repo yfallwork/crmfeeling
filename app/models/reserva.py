@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime
 from app.extensions import db
 
@@ -35,6 +36,17 @@ class Reserva(db.Model):
     num_participantes = db.Column(db.Integer,    default=1)
     nombre_grupo      = db.Column(db.String(150), default="")
 
+    # Datos del seguro: quien realiza físicamente la experiencia (puede no
+    # coincidir con el cliente que la reservó/compró).
+    piloto_nombre            = db.Column(db.String(100), default="")
+    piloto_primer_apellido   = db.Column(db.String(100), default="")
+    piloto_segundo_apellido  = db.Column(db.String(100), default="")
+    piloto_fecha_nacimiento  = db.Column(db.Date, nullable=True)
+    piloto_dni               = db.Column(db.String(20), default="")
+    # Token público (URL-safe, sin login) para que el cliente rellene sus
+    # propios datos de seguro desde un enlace único por reserva.
+    token_seguro             = db.Column(db.String(64), unique=True, nullable=True, index=True)
+
     # WooCommerce
     woo_order_id     = db.Column(db.Integer, nullable=True, unique=True)
     woo_order_status = db.Column(db.String(30), default="")
@@ -63,6 +75,25 @@ class Reserva(db.Model):
     @property
     def color(self):
         return ESTADO_COLORES.get(self.estado, "#6B7280")
+
+    @property
+    def piloto_nombre_completo(self):
+        partes = [self.piloto_nombre, self.piloto_primer_apellido, self.piloto_segundo_apellido]
+        return " ".join(p for p in partes if p).strip()
+
+    @property
+    def tiene_datos_seguro(self):
+        return bool(
+            self.piloto_nombre or self.piloto_primer_apellido or self.piloto_segundo_apellido
+            or self.piloto_dni or self.piloto_fecha_nacimiento
+        )
+
+    def asegurar_token_seguro(self):
+        """Genera el token público si todavía no lo tiene (reservas creadas
+        antes de esta función, o la primera vez que se necesita el enlace)."""
+        if not self.token_seguro:
+            self.token_seguro = secrets.token_urlsafe(24)
+        return self.token_seguro
 
     @property
     def dias_hasta_disfrute(self):

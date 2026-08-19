@@ -1,6 +1,17 @@
-from flask import current_app
+from flask import current_app, has_request_context, url_for
 from flask_mail import Message
 from app.extensions import mail
+
+
+def _url_seguro(reserva):
+    """Enlace absoluto al formulario público de seguro. Usa url_for()
+    normal si hay una petición activa (botón manual desde el panel), y cae
+    a APP_BASE_URL + ruta si se llama desde una tarea en segundo plano
+    (el job programado), donde url_for(_external=True) no puede resolverse."""
+    if has_request_context():
+        return url_for("seguro.formulario", token=reserva.token_seguro, _external=True)
+    base = current_app.config.get("APP_BASE_URL", "").rstrip("/")
+    return f"{base}/seguro/{reserva.token_seguro}"
 
 
 # ── PLANTILLA BASE HTML ───────────────────────────────────────────────────────
@@ -233,10 +244,70 @@ def _build_recordatorio(reserva):
     return asunto, _base_email(contenido, f"Tu experiencia es {cuando}")
 
 
+def _build_datos_seguro(reserva):
+    nombre = reserva.cliente.nombre if reserva.cliente else "cliente"
+    if not reserva.token_seguro:
+        reserva.asegurar_token_seguro()
+        from app.extensions import db
+        db.session.commit()
+    enlace = _url_seguro(reserva)
+    contenido = f"""
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
+      <tr>
+        <td style="padding-bottom:24px">
+          <h1 style="margin:0;font-size:26px;font-weight:800;color:#0D0D0D;line-height:1.2">
+            Nos faltan tus datos para el seguro
+          </h1>
+          <p style="margin:8px 0 0;font-size:15px;color:#555">
+            Hola <strong>{nombre}</strong>, para poder tramitar el seguro de tu experiencia
+            necesitamos algunos datos de la persona que va a realizarla.
+          </p>
+        </td>
+      </tr>
+      {_bloque_experiencia(reserva)}
+      {_bloque_fecha(reserva)}
+      <tr><td style="height:20px"></td></tr>
+      <tr>
+        <td align="center" style="padding:10px 0 6px">
+          <table cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="background:#AD1726;border-radius:10px">
+                <a href="{enlace}"
+                   style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:700;
+                          color:#ffffff;text-decoration:none">
+                  Rellenar mis datos
+                </a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding-top:18px">
+          <p style="margin:0;font-size:12px;color:#999;text-align:center">
+            Si el botón no funciona, copia y pega este enlace en tu navegador:<br>
+            <a href="{enlace}" style="color:#AD1726">{enlace}</a>
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding-top:24px">
+          <p style="margin:0;font-size:14px;color:#555;line-height:1.6">
+            Solo te llevará un minuto. Son datos obligatorios para poder disfrutar de la experiencia.
+          </p>
+        </td>
+      </tr>
+    </table>"""
+    asunto = f"Faltan tus datos para el seguro — {reserva.tipo_experiencia.nombre}"
+    return asunto, _base_email(contenido, "Datos para el seguro")
+
+
 def build_preview_email(reserva, tipo):
     """Devuelve (asunto, html) sin enviar nada."""
     if tipo == "confirmacion":
         return _build_confirmacion(reserva)
+    if tipo == "seguro":
+        return _build_datos_seguro(reserva)
     return _build_recordatorio(reserva)
 
 
@@ -254,6 +325,14 @@ def enviar_recordatorio(reserva):
         return False
     asunto, html = _build_recordatorio(reserva)
     return _enviar(reserva.cliente.email, asunto, html, reserva.id, "recordatorio")
+
+
+# ── EMAIL: DATOS DE SEGURO ────────────────────────────────────────────────────
+def enviar_datos_seguro(reserva):
+    if not reserva.cliente or not reserva.cliente.email:
+        return False
+    asunto, html = _build_datos_seguro(reserva)
+    return _enviar(reserva.cliente.email, asunto, html, reserva.id, "seguro")
 
 
 # ── ENVIO CON CONTENIDO PERSONALIZADO ────────────────────────────────────────

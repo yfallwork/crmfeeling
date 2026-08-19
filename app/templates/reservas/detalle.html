@@ -122,6 +122,9 @@
         <button class="btn btn-outline-secondary btn-sm" onclick="abrirPreview('recordatorio','whatsapp')">
           <i class="bi bi-bell me-2"></i>Recordatorio por WhatsApp
         </button>
+        <button class="btn btn-outline-primary btn-sm" onclick="abrirPreview('seguro','email')">
+          <i class="bi bi-shield-check me-2"></i>Datos para el seguro (email)
+        </button>
       </div>
     </div>
 
@@ -244,6 +247,75 @@
       </div>
     </div>
     {% endif %}
+
+    <!-- Datos para el seguro -->
+    <div class="card mb-3">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h6 class="mb-0"><i class="bi bi-shield-check me-2 text-primary"></i>Datos para el seguro</h6>
+        {% if reserva.tiene_datos_seguro %}
+        <span class="badge bg-success-soft text-success"><i class="bi bi-check-circle me-1"></i>Completos</span>
+        {% else %}
+        <span class="badge bg-dark-soft" style="color:var(--gray-600)"><i class="bi bi-exclamation-circle me-1"></i>Faltan datos</span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <p class="text-xs text-muted mb-3">Persona que realiza físicamente la experiencia (puede no ser quien reservó).</p>
+
+        <div class="mb-3 pb-3" style="border-bottom:1px solid var(--border-light)">
+          <label class="form-label text-xs fw-semibold text-uppercase mb-1">
+            <i class="bi bi-link-45deg me-1"></i>Enlace para que lo rellene el cliente
+          </label>
+          <div class="input-group input-group-sm">
+            <input type="text" id="enlaceSeguroInput" class="form-control" value="{{ enlace_seguro }}" readonly>
+            <button type="button" class="btn btn-outline-secondary" onclick="copiarEnlaceSeguro()">
+              <i class="bi bi-clipboard me-1"></i>Copiar
+            </button>
+          </div>
+          <div class="d-flex align-items-center justify-content-between mt-2">
+            <span id="enlaceSeguroCopiado" class="text-xs text-success" style="display:none">
+              <i class="bi bi-check-circle me-1"></i>Enlace copiado
+            </span>
+            <form method="POST" action="{{ url_for('reservas.regenerar_enlace_seguro', id=reserva.id) }}"
+                  onsubmit="return confirm('El enlace anterior dejará de funcionar. ¿Generar uno nuevo?')" class="ms-auto">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-link btn-sm text-muted p-0 text-xs">
+                <i class="bi bi-arrow-repeat me-1"></i>Regenerar enlace
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('reservas.actualizar_seguro', id=reserva.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label text-xs fw-semibold text-uppercase mb-1">Nombre</label>
+              <input type="text" name="piloto_nombre" class="form-control form-control-sm" value="{{ reserva.piloto_nombre or '' }}">
+            </div>
+            <div class="col-6">
+              <label class="form-label text-xs fw-semibold text-uppercase mb-1">DNI</label>
+              <input type="text" name="piloto_dni" class="form-control form-control-sm" value="{{ reserva.piloto_dni or '' }}">
+            </div>
+            <div class="col-6">
+              <label class="form-label text-xs fw-semibold text-uppercase mb-1">Primer apellido</label>
+              <input type="text" name="piloto_primer_apellido" class="form-control form-control-sm" value="{{ reserva.piloto_primer_apellido or '' }}">
+            </div>
+            <div class="col-6">
+              <label class="form-label text-xs fw-semibold text-uppercase mb-1">Segundo apellido</label>
+              <input type="text" name="piloto_segundo_apellido" class="form-control form-control-sm" value="{{ reserva.piloto_segundo_apellido or '' }}">
+            </div>
+            <div class="col-6">
+              <label class="form-label text-xs fw-semibold text-uppercase mb-1">Fecha de nacimiento</label>
+              <input type="date" name="piloto_fecha_nacimiento" class="form-control form-control-sm"
+                     value="{{ reserva.piloto_fecha_nacimiento.strftime('%Y-%m-%d') if reserva.piloto_fecha_nacimiento else '' }}">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm mt-3">
+            <i class="bi bi-check-lg me-1"></i>Guardar datos del seguro
+          </button>
+        </form>
+      </div>
+    </div>
 
     <!-- Notas -->
     {% if reserva.notas %}
@@ -439,6 +511,16 @@ const RESERVA_ID = {{ reserva.id }};
 let _pvTipo  = '';
 let _pvCanal = '';
 
+function copiarEnlaceSeguro() {
+  const input = document.getElementById('enlaceSeguroInput');
+  input.select();
+  navigator.clipboard.writeText(input.value).then(function () {
+    const msg = document.getElementById('enlaceSeguroCopiado');
+    msg.style.display = '';
+    setTimeout(function () { msg.style.display = 'none'; }, 2500);
+  });
+}
+
 function abrirPreview(tipo, canal) {
   _pvTipo  = tipo;
   _pvCanal = canal;
@@ -454,8 +536,8 @@ function abrirPreview(tipo, canal) {
   const titleEl = document.getElementById('pvModalTitle');
   const subEl = document.getElementById('pvModalSub');
 
-  const tipoLabel = tipo === 'confirmacion' ? 'Confirmación' : 'Recordatorio';
-  titleEl.textContent = tipoLabel;
+  const tipoLabels = { confirmacion: 'Confirmación', recordatorio: 'Recordatorio', seguro: 'Datos para el seguro' };
+  titleEl.textContent = tipoLabels[tipo] || 'Notificación';
 
   if (canal === 'email') {
     iconEl.style.background = '#EFF6FF';

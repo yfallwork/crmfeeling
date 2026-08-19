@@ -62,6 +62,24 @@ def toggle_campanas():
     return redirect(url_for("configuracion.index"))
 
 
+@configuracion_bp.route("/seguro-recordatorio", methods=["POST"])
+@login_required
+def actualizar_seguro_recordatorio():
+    config = Configuracion.get()
+    config.seguro_recordatorio_activo = bool(request.form.get("activo"))
+    dias = request.form.get("dias", type=int)
+    if dias and 1 <= dias <= 60:
+        config.seguro_recordatorio_dias = dias
+    db.session.commit()
+    estado = "activado" if config.seguro_recordatorio_activo else "desactivado"
+    flash(f"Recordatorio de datos de seguro {estado} ({config.seguro_recordatorio_dias} días antes).", "success")
+    registrar_log(
+        "cambiar_estado", "configuracion", config.id,
+        f"Recordatorio de seguro {estado}, {config.seguro_recordatorio_dias} días antes",
+    )
+    return redirect(url_for("configuracion.index"))
+
+
 @configuracion_bp.route("/usuarios")
 @admin_required
 def usuarios_lista():

@@ -4,7 +4,7 @@ from app.extensions import db
 from app.models.cliente import Cliente
 from app.models.reserva import Reserva, ESTADOS
 from app.models.experiencia import TipoExperiencia
-from app.services.email_service import enviar_confirmacion, enviar_recordatorio
+from app.services.email_service import enviar_confirmacion, enviar_recordatorio, enviar_datos_seguro
 from app.services.whatsapp_service import enviar_confirmacion_whatsapp, enviar_recordatorio_whatsapp
 
 api_bp = Blueprint("api", __name__)
@@ -98,8 +98,12 @@ def api_notificar(id):
         html_custom   = data.get("html")
         if asunto_custom and html_custom:
             ok = enviar_email_personalizado(reserva, tipo, asunto_custom, html_custom)
+        elif tipo == "confirmacion":
+            ok = enviar_confirmacion(reserva)
+        elif tipo == "seguro":
+            ok = enviar_datos_seguro(reserva)
         else:
-            ok = enviar_confirmacion(reserva) if tipo == "confirmacion" else enviar_recordatorio(reserva)
+            ok = enviar_recordatorio(reserva)
         return jsonify({"ok": ok, "canal": "email"})
 
     elif canal == "whatsapp":

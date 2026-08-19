@@ -122,8 +122,16 @@
     </a>
     {% endif %}
 
-    {% if current_user.puede_acceder_autoclub('informacion') or current_user.puede_acceder_autoclub('seguimiento') %}
+    {% if current_user.puede_acceder_autoclub('informacion') or current_user.puede_acceder_autoclub('seguimiento') or current_user.puede_acceder_autoclub('seleccion-femenina') %}
     <div class="nav-section-label">Sistema</div>
+    {% endif %}
+
+    {% if current_user.puede_acceder_autoclub('seleccion-femenina') %}
+    <a href="{{ url_for('autoclub.seleccion_femenina_lista') }}"
+       class="nav-item {% if request.endpoint and 'seleccion_femenina' in request.endpoint %}active{% endif %}"
+       data-tooltip="Selección Femenina">
+      <i class="bi bi-flag-fill"></i><span>Selección Femenina</span>
+    </a>
     {% endif %}
 
     {% if current_user.puede_acceder_autoclub('informacion') %}

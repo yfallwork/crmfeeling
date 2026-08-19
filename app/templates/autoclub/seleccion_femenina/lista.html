@@ -1,0 +1,111 @@
+{% extends "autoclub/base.html" %}
+{% block title %}Selección Femenina — AutoClub{% endblock %}
+{% block page_title %}Selección Femenina de Pilotos{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('seleccion_femenina.landing') }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-box-arrow-up-right me-1"></i><span class="btn-label">Ver landing pública</span>
+</a>
+<a href="{{ url_for('autoclub.seleccion_femenina_exportar') }}" class="btn btn-sm btn-outline-primary">
+  <i class="bi bi-download me-1"></i><span class="btn-label">Exportar CSV</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+
+  <div class="filter-bar">
+    <form method="GET" class="d-flex align-items-center gap-2 flex-wrap w-100">
+      <div class="input-group input-group-sm" style="max-width:280px">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" class="form-control" placeholder="Nombre, email, localidad…" value="{{ q }}" />
+      </div>
+      <select name="estado" class="form-select form-select-sm" style="max-width:170px" onchange="this.form.submit()">
+        <option value="" {% if not estado %}selected{% endif %}>Todos estados</option>
+        {% for e in estados %}
+        <option value="{{ e }}" {% if estado == e %}selected{% endif %}>{{ e | capitalize }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
+      {% if q or estado %}
+      <a href="{{ url_for('autoclub.seleccion_femenina_lista') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-x me-1"></i>Limpiar
+      </a>
+      {% endif %}
+      <div class="ms-auto"><span class="text-xs text-muted">{{ preinscripciones | length }} preinscripción/es</span></div>
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Edad</th>
+          <th>Localidad</th>
+          <th>Contacto</th>
+          <th>Experiencia</th>
+          <th>Estado</th>
+          <th>Recibida</th>
+          <th style="width:60px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in preinscripciones %}
+        <tr>
+          <td class="fw-semibold text-sm">{{ p.nombre_completo }}</td>
+          <td class="text-sm">{{ p.edad }} años</td>
+          <td class="text-sm text-muted">{{ p.localidad or '—' }}</td>
+          <td class="text-sm">
+            <div>{{ p.email }}</div>
+            <div class="text-xs text-muted">{{ p.telefono }}</div>
+          </td>
+          <td class="text-sm text-muted">{{ p.experiencia_previa_label }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('autoclub.seleccion_femenina_estado', id=p.id) }}" class="d-inline-flex">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              {% set ec = {'pendiente': ('#6b7280','bi-clock'), 'contactada': ('#1d4ed8','bi-telephone'), 'descartada': ('#dc2626','bi-x-circle'), 'seleccionada': ('#16a34a','bi-star-fill')} %}
+              {% set c = ec.get(p.estado, ('#6b7280','bi-circle')) %}
+              <select name="estado" class="form-select form-select-sm" style="width:auto;font-weight:700;
+                      background-color:{{ c[0] }}18;color:{{ c[0] }};border-color:{{ c[0] }}40"
+                      onchange="this.form.submit()">
+                {% for e in estados %}
+                <option value="{{ e }}" {% if p.estado == e %}selected{% endif %}>{{ e | capitalize }}</option>
+                {% endfor %}
+              </select>
+            </form>
+          </td>
+          <td class="text-sm text-muted text-nowrap">{{ p.creado_en.strftime('%d/%m/%Y %H:%M') if p.creado_en else '—' }}</td>
+          <td>
+            <button type="button" class="btn btn-xs btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#notas-{{ p.id }}" title="Notas internas">
+              <i class="bi bi-pencil-square"></i>
+            </button>
+          </td>
+        </tr>
+        <tr class="collapse" id="notas-{{ p.id }}">
+          <td colspan="8" style="background:var(--gray-50)">
+            {% if p.motivacion %}
+            <div class="mb-2 text-sm"><strong>Motivación:</strong> {{ p.motivacion }}</div>
+            {% endif %}
+            <form method="POST" action="{{ url_for('autoclub.seleccion_femenina_notas', id=p.id) }}" class="d-flex gap-2 align-items-start">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <textarea name="notas_internas" class="form-control form-control-sm" rows="2" placeholder="Notas internas del equipo…">{{ p.notas_internas }}</textarea>
+              <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap"><i class="bi bi-check-lg me-1"></i>Guardar</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8">
+            <div class="empty-state">
+              <i class="bi bi-flag"></i>
+              <p>No hay preinscripciones{% if q %} para "{{ q }}"{% endif %} todavía.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

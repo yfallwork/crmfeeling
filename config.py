@@ -28,6 +28,11 @@ class Config:
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    # URL pública base del propio CRM (para construir enlaces absolutos —
+    # ej. el formulario público de seguro — desde tareas en segundo plano
+    # sin contexto de petición, donde url_for(_external=True) no funciona).
+    APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://127.0.0.1:5000")
+
     # WooCommerce
     WOO_BASE_URL = os.environ.get("WOO_BASE_URL", "https://www.regaloexperiencias.com")
     WOO_CONSUMER_KEY = os.environ.get("WOO_CONSUMER_KEY", "")

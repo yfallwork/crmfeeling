@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#AD1726" />
+  <title>Datos para el seguro · Feeling Experience</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red: #AD1726; --red-dk: #8b1220; --black: #111111;
+      --gray: #6b7280; --border: #e5e7eb; --bg: #f9fafb;
+    }
+    html, body { height: 100%; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); }
+    .wrap {
+      min-height: 100dvh; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 24px 20px; padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    }
+    .card { width: 100%; max-width: 460px; background: #fff; border-radius: 20px; box-shadow: 0 8px 40px rgba(0,0,0,.10); overflow: hidden; }
+    .hero { background: linear-gradient(135deg, var(--black) 0%, #2d2d2d 100%); padding: 32px 28px 24px; text-align: center; }
+    .hero-icon {
+      width: 60px; height: 60px; border-radius: 16px; background: var(--red); display: inline-flex;
+      align-items: center; justify-content: center; font-size: 1.6rem; color: #fff; margin-bottom: 12px;
+      box-shadow: 0 8px 24px rgba(173,23,38,.4);
+    }
+    .hero-title { color: #fff; font-size: 1.1rem; font-weight: 800; letter-spacing: -.2px; }
+    .hero-sub { color: rgba(255,255,255,.55); font-size: .8rem; margin-top: 4px; }
+    .body { padding: 26px 28px 28px; }
+    .info-exp {
+      background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 12px 14px;
+      font-size: .85rem; color: #7f1d1d; margin-bottom: 20px;
+    }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: .75rem; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px; }
+    .field input {
+      width: 100%; border: 1.5px solid var(--border); border-radius: 10px; padding: 12px 14px;
+      font-size: 1rem; color: var(--black); outline: none; transition: border-color .15s;
+      -webkit-appearance: none; appearance: none;
+    }
+    .field input:focus { border-color: var(--red); }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .msg { border-radius: 10px; padding: 12px 14px; font-size: .85rem; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+    .msg-error { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; }
+    .msg-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
+    .btn-guardar {
+      width: 100%; background: var(--red); color: #fff; border: none; border-radius: 12px;
+      padding: 14px; font-size: 1rem; font-weight: 700; cursor: pointer;
+      transition: background .15s, transform .1s; -webkit-tap-highlight-color: transparent;
+    }
+    .btn-guardar:active { transform: scale(.97); background: var(--red-dk); }
+    .footer-note { text-align: center; padding-top: 16px; font-size: .72rem; color: var(--gray); }
+    .datos-guardados { border: 1.5px solid var(--border); border-radius: 12px; padding: 4px 16px; margin-bottom: 6px; }
+    .dato-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: .88rem; }
+    .dato-row:last-child { border-bottom: none; }
+    .dato-row span { color: var(--gray); font-size: .78rem; text-transform: uppercase; letter-spacing: .3px; }
+    .dato-row strong { color: var(--black); text-align: right; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="hero">
+      <div class="hero-icon"><i class="bi bi-shield-check"></i></div>
+      <div class="hero-title">Datos para el seguro</div>
+      <div class="hero-sub">Feeling Experience</div>
+    </div>
+    <div class="body">
+      <div class="info-exp">
+        <i class="bi bi-info-circle-fill me-1"></i>
+        Reserva de <strong>{{ reserva.tipo_experiencia.nombre }}</strong>
+        {% if reserva.fecha_disfrute %} — {{ reserva.fecha_disfrute.strftime('%d/%m/%Y') }}{% endif %}
+      </div>
+
+      {% if guardado %}
+      <div class="msg msg-success">
+        <i class="bi bi-check-circle-fill"></i>
+        ¡Datos guardados correctamente! Ya puedes cerrar esta página.
+      </div>
+      {% endif %}
+      {% if error %}
+      <div class="msg msg-error">
+        <i class="bi bi-exclamation-circle-fill"></i>{{ error }}
+      </div>
+      {% endif %}
+
+      {% if bloqueado %}
+        {% if not guardado %}
+        <div class="msg msg-success">
+          <i class="bi bi-check-circle-fill"></i>
+          Estos datos ya se registraron y no se pueden modificar desde aquí.
+        </div>
+        {% endif %}
+        <div class="datos-guardados">
+          <div class="dato-row"><span>Nombre completo</span><strong>{{ reserva.piloto_nombre_completo }}</strong></div>
+          <div class="dato-row"><span>Fecha de nacimiento</span><strong>{{ reserva.piloto_fecha_nacimiento.strftime('%d/%m/%Y') if reserva.piloto_fecha_nacimiento else '—' }}</strong></div>
+          <div class="dato-row"><span>DNI</span><strong>{{ reserva.piloto_dni }}</strong></div>
+        </div>
+        <div class="footer-note">
+          ¿Necesitas corregir algo? Contacta con nosotros respondiendo al email de la reserva.
+        </div>
+      {% else %}
+        <p style="font-size:.85rem;color:var(--gray);margin-bottom:18px">
+          Rellena los datos de la persona que va a realizar la experiencia (necesarios para tramitar el seguro).
+        </p>
+
+        <form method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="field">
+            <label>Nombre</label>
+            <input type="text" name="piloto_nombre" required value="{{ reserva.piloto_nombre or '' }}" autofocus>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label>Primer apellido</label>
+              <input type="text" name="piloto_primer_apellido" required value="{{ reserva.piloto_primer_apellido or '' }}">
+            </div>
+            <div class="field">
+              <label>Segundo apellido</label>
+              <input type="text" name="piloto_segundo_apellido" value="{{ reserva.piloto_segundo_apellido or '' }}">
+            </div>
+          </div>
+          <div class="field">
+            <label>Fecha de nacimiento</label>
+            <input type="date" name="piloto_fecha_nacimiento" required
+                   value="{{ reserva.piloto_fecha_nacimiento.strftime('%Y-%m-%d') if reserva.piloto_fecha_nacimiento else '' }}">
+          </div>
+          <div class="field">
+            <label>DNI</label>
+            <input type="text" name="piloto_dni" required value="{{ reserva.piloto_dni or '' }}">
+          </div>
+          <button type="submit" class="btn-guardar"><i class="bi bi-check-lg me-2"></i>Guardar datos</button>
+        </form>
+
+        <div class="footer-note">Tus datos se usan únicamente para tramitar el seguro de la experiencia.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+</body>
+</html>

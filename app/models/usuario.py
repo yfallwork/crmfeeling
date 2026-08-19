@@ -38,6 +38,7 @@ AUTOCLUB_SECCIONES = [
     ("prensa",         "Prensa",          "bi-newspaper"),
     ("informacion",    "Información",     "bi-info-circle-fill"),
     ("seguimiento",    "Seguimiento",     "bi-activity"),
+    ("seleccion-femenina", "Selección Femenina", "bi-flag-fill"),
 ]
 AUTOCLUB_SECCIONES_KEYS = [s[0] for s in AUTOCLUB_SECCIONES]
 

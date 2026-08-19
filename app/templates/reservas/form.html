@@ -162,6 +162,43 @@
             </div>
           </div>
 
+          <!-- Datos para el seguro -->
+          <div class="mt-4 pt-3" style="border-top:1px solid var(--border-light)">
+            <label class="form-label fw-semibold mb-1">
+              <i class="bi bi-shield-check me-1 text-primary"></i>Datos para el seguro
+            </label>
+            <p class="text-muted text-xs mb-3">
+              Datos de la persona que va a realizar físicamente la experiencia (puede no ser quien reservó).
+            </p>
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label">Nombre</label>
+                <input type="text" name="piloto_nombre" class="form-control"
+                       value="{{ reserva.piloto_nombre if reserva else '' }}">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Primer apellido</label>
+                <input type="text" name="piloto_primer_apellido" class="form-control"
+                       value="{{ reserva.piloto_primer_apellido if reserva else '' }}">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Segundo apellido</label>
+                <input type="text" name="piloto_segundo_apellido" class="form-control"
+                       value="{{ reserva.piloto_segundo_apellido if reserva else '' }}">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Fecha de nacimiento</label>
+                <input type="date" name="piloto_fecha_nacimiento" class="form-control"
+                       value="{{ reserva.piloto_fecha_nacimiento.strftime('%Y-%m-%d') if reserva and reserva.piloto_fecha_nacimiento else '' }}">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">DNI</label>
+                <input type="text" name="piloto_dni" class="form-control"
+                       value="{{ reserva.piloto_dni if reserva else '' }}">
+              </div>
+            </div>
+          </div>
+
           <div class="mt-4 d-flex gap-2">
             <button type="submit" class="btn btn-primary">
               <i class="bi bi-check-lg me-1"></i>

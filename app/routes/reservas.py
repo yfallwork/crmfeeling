@@ -1,4 +1,4 @@
-﻿import csv
+import csv
 import io
 from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, Response, stream_with_context
@@ -215,6 +215,14 @@ def nueva():
             except ValueError:
                 pass
 
+        piloto_fecha_nacimiento = None
+        piloto_fnac_str = request.form.get("piloto_fecha_nacimiento", "").strip()
+        if piloto_fnac_str:
+            try:
+                piloto_fecha_nacimiento = datetime.strptime(piloto_fnac_str, "%Y-%m-%d").date()
+            except ValueError:
+                pass
+
         reserva = Reserva(
             cliente_id=cliente_id,
             empresa_id=empresa_id,
@@ -226,6 +234,11 @@ def nueva():
             notas=request.form.get("notas", "").strip(),
             num_participantes=int(request.form.get("num_participantes") or 1),
             nombre_grupo=request.form.get("nombre_grupo", "").strip(),
+            piloto_nombre=request.form.get("piloto_nombre", "").strip(),
+            piloto_primer_apellido=request.form.get("piloto_primer_apellido", "").strip(),
+            piloto_segundo_apellido=request.form.get("piloto_segundo_apellido", "").strip(),
+            piloto_fecha_nacimiento=piloto_fecha_nacimiento,
+            piloto_dni=request.form.get("piloto_dni", "").strip(),
         )
         db.session.add(reserva)
         db.session.commit()
@@ -275,7 +288,48 @@ def nueva():
 @login_required
 def detalle(id):
     reserva = Reserva.query.get_or_404(id)
-    return render_template("reservas/detalle.html", reserva=reserva, estados=ESTADOS)
+    if not reserva.token_seguro:
+        reserva.asegurar_token_seguro()
+        db.session.commit()
+    enlace_seguro = url_for("seguro.formulario", token=reserva.token_seguro, _external=True)
+    return render_template("reservas/detalle.html", reserva=reserva, estados=ESTADOS, enlace_seguro=enlace_seguro)
+
+
+@reservas_bp.route("/<int:id>/regenerar-enlace-seguro", methods=["POST"])
+@login_required
+def regenerar_enlace_seguro(id):
+    reserva = Reserva.query.get_or_404(id)
+    reserva.token_seguro = None
+    reserva.asegurar_token_seguro()
+    db.session.commit()
+    registrar_log("editar", "reserva", reserva.id, "Enlace del formulario de seguro regenerado")
+    flash("Se ha generado un enlace nuevo. El anterior ya no funcionará.", "success")
+    return redirect(url_for("reservas.detalle", id=id))
+
+
+@reservas_bp.route("/<int:id>/seguro", methods=["POST"])
+@login_required
+def actualizar_seguro(id):
+    reserva = Reserva.query.get_or_404(id)
+
+    reserva.piloto_nombre = request.form.get("piloto_nombre", "").strip()
+    reserva.piloto_primer_apellido = request.form.get("piloto_primer_apellido", "").strip()
+    reserva.piloto_segundo_apellido = request.form.get("piloto_segundo_apellido", "").strip()
+    reserva.piloto_dni = request.form.get("piloto_dni", "").strip()
+    reserva.piloto_fecha_nacimiento = None
+    piloto_fnac_str = request.form.get("piloto_fecha_nacimiento", "").strip()
+    if piloto_fnac_str:
+        try:
+            reserva.piloto_fecha_nacimiento = datetime.strptime(piloto_fnac_str, "%Y-%m-%d").date()
+        except ValueError:
+            flash("Fecha de nacimiento no válida.", "danger")
+            return redirect(url_for("reservas.detalle", id=id))
+
+    db.session.commit()
+    registrar_log("editar", "reserva", reserva.id,
+                  f"Datos de seguro actualizados: {reserva.piloto_nombre_completo or reserva.nombre_reservante}")
+    flash("Datos del seguro guardados.", "success")
+    return redirect(url_for("reservas.detalle", id=id))
 
 
 @reservas_bp.route("/<int:id>/editar", methods=["GET", "POST"])
@@ -312,6 +366,19 @@ def editar(id):
         reserva.estado = request.form.get("estado", reserva.estado)
         reserva.precio = float(request.form.get("precio", reserva.precio) or 0)
         reserva.notas  = request.form.get("notas", "").strip()
+
+        reserva.piloto_nombre = request.form.get("piloto_nombre", "").strip()
+        reserva.piloto_primer_apellido = request.form.get("piloto_primer_apellido", "").strip()
+        reserva.piloto_segundo_apellido = request.form.get("piloto_segundo_apellido", "").strip()
+        reserva.piloto_dni = request.form.get("piloto_dni", "").strip()
+        reserva.piloto_fecha_nacimiento = None
+        piloto_fnac_str = request.form.get("piloto_fecha_nacimiento", "").strip()
+        if piloto_fnac_str:
+            try:
+                reserva.piloto_fecha_nacimiento = datetime.strptime(piloto_fnac_str, "%Y-%m-%d").date()
+            except ValueError:
+                pass
+
         db.session.commit()
         registrar_log("editar", "reserva", reserva.id,
                       f"Reserva editada: {reserva.nombre_reservante} - {reserva.estado}")

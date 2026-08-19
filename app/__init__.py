@@ -28,6 +28,8 @@ def create_app(env="default"):
     from app.routes.marketing import marketing_bp
     from app.routes.vista import vista_bp
     from app.routes.configuracion import configuracion_bp
+    from app.routes.seguro_publico import seguro_bp
+    from app.routes.seleccion_femenina import seleccion_femenina_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -44,6 +46,8 @@ def create_app(env="default"):
     app.register_blueprint(marketing_bp, url_prefix="/marketing")
     app.register_blueprint(vista_bp, url_prefix="/vista")
     app.register_blueprint(configuracion_bp, url_prefix="/configuracion")
+    app.register_blueprint(seguro_bp, url_prefix="/seguro")
+    app.register_blueprint(seleccion_femenina_bp, url_prefix="/seleccion-femenina")
 
     with app.app_context():
         from app.models import comunicacion, log  # noqa: F401
@@ -70,6 +74,7 @@ def create_app(env="default"):
         from app.models import notificacion         # noqa: F401
         from app.models import fecha_apertura       # noqa: F401
         from app.models import configuracion        # noqa: F401
+        from app.models import preinscripcion_carcross  # noqa: F401
         db.create_all()
         _migrate_columns()
         _migrate_indices()
@@ -240,6 +245,14 @@ def _migrate_columns():
         ("competicion_eventos", "fecha_plazo",           "DATE"),
         ("fechas_apertura",    "capacidad_ideal",       "INTEGER"),
         ("usuarios",           "permisos_json",         "TEXT"),
+        ("reservas",           "piloto_nombre",           "VARCHAR(100) DEFAULT ''"),
+        ("reservas",           "piloto_primer_apellido",  "VARCHAR(100) DEFAULT ''"),
+        ("reservas",           "piloto_segundo_apellido", "VARCHAR(100) DEFAULT ''"),
+        ("reservas",           "piloto_fecha_nacimiento", "DATE"),
+        ("reservas",           "piloto_dni",              "VARCHAR(20) DEFAULT ''"),
+        ("reservas",           "token_seguro",            "VARCHAR(64)"),
+        ("configuracion",      "seguro_recordatorio_activo", "BOOLEAN DEFAULT 1"),
+        ("configuracion",      "seguro_recordatorio_dias",   "INTEGER DEFAULT 7"),
     ]
     with db.engine.connect() as conn:
         for tabla, columna, tipo in nuevas:
@@ -263,6 +276,7 @@ def _migrate_indices():
         ("ix_tags_tipo",                "tags",      "tipo"),
         ("ix_tags_segmento",            "tags",      "segmento"),
         ("ix_tags_activo",              "tags",      "activo"),
+        ("ix_reservas_token_seguro",    "reservas",  "token_seguro"),
     ]
     with db.engine.connect() as conn:
         for nombre, tabla, columna in indices:

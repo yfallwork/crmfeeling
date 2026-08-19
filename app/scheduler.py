@@ -36,6 +36,14 @@ def init_scheduler(app):
     )
 
     _scheduler.add_job(
+        func=lambda: _job_seguro_recordatorio(app),
+        trigger=CronTrigger(hour=9, minute=10),  # 09:10 — tras el job de recordatorios
+        id="seguro_recordatorio",
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
+
+    _scheduler.add_job(
         func=lambda: _job_temporal_tags(app),
         trigger=CronTrigger(hour=7, minute=0),
         id="temporal_tags_scan",
@@ -160,6 +168,65 @@ def _job_recordatorios(app):
                 log.error(f"Error en recordatorio auto reserva #{reserva.id}: {e}")
 
         log.info(f"Job recordatorios: {enviados}/{len(proximas)} enviados")
+
+
+def _job_seguro_recordatorio(app):
+    """Envía por email el enlace para rellenar los datos de seguro a las
+    reservas que, teniendo ya fecha de disfrute, siguen sin esos datos y
+    están a X días vista (configurable en Configuración general)."""
+    with app.app_context():
+        try:
+            from datetime import date
+            from app.extensions import db
+            from app.models.reserva import Reserva
+            from app.models.comunicacion import ComunicacionLog
+            from app.models.configuracion import Configuracion
+            from app.services.email_service import enviar_datos_seguro
+
+            config = Configuracion.get()
+            if not config.seguro_recordatorio_activo:
+                return
+
+            objetivo = date.today() + timedelta(days=config.seguro_recordatorio_dias)
+
+            candidatas = Reserva.query.filter(
+                Reserva.fecha_disfrute.isnot(None),
+                db.func.date(Reserva.fecha_disfrute) == objetivo.isoformat(),
+                Reserva.estado.in_(["reservado", "pendiente"]),
+                Reserva.cliente_id.isnot(None),
+            ).all()
+
+            enviados = 0
+            for reserva in candidatas:
+                if reserva.tiene_datos_seguro:
+                    continue
+
+                ya_enviado = ComunicacionLog.query.filter_by(
+                    reserva_id=reserva.id, tipo="seguro_recordatorio", ok=True,
+                ).first()
+                if ya_enviado:
+                    continue
+
+                try:
+                    ok = enviar_datos_seguro(reserva)
+                    db.session.add(ComunicacionLog(
+                        reserva_id=reserva.id,
+                        tipo="seguro_recordatorio",
+                        canal="email",
+                        ok=ok,
+                        error="" if ok else "Error al enviar",
+                    ))
+                    db.session.commit()
+                    if ok:
+                        enviados += 1
+                        log.info(f"Recordatorio de seguro enviado → reserva #{reserva.id}")
+                except Exception as e:
+                    db.session.rollback()
+                    log.error(f"Error en recordatorio de seguro reserva #{reserva.id}: {e}")
+
+            log.info(f"Job seguro_recordatorio: {enviados}/{len(candidatas)} enviados")
+        except Exception as e:
+            log.error(f"Error en job seguro_recordatorio: {e}")
 
 
 def _job_vip_criterio(app):

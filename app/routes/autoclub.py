@@ -18,6 +18,7 @@ from app.models.inscripcion_piloto import InscripcionPiloto
 from app.models.gasto_inscripcion import GastoInscripcion, CATEGORIAS_GASTO
 from app.models.staff_miembro import StaffMiembro, TIPOS_STAFF
 from app.models.resultado_inscripcion import ResultadoInscripcion
+from app.models.preinscripcion_carcross import PreinscripcionCarcross, ESTADOS_PREINSCRIPCION
 from app.services.log_service import registrar_log
 
 autoclub_bp = Blueprint("autoclub", __name__)
@@ -2754,3 +2755,76 @@ def seguimiento():
         filtro_fecha_ini=fecha_ini,
         filtro_fecha_fin=fecha_fin,
     )
+
+
+# ══════════════════════════════════════════════════════
+# SELECCIÓN FEMENINA — panel admin de preinscripciones
+# (la landing pública + el alta viven en app/routes/seleccion_femenina.py,
+# sin login; esto es solo la vista de gestión para el staff)
+# ══════════════════════════════════════════════════════
+
+@autoclub_bp.route("/seleccion-femenina")
+@login_required
+def seleccion_femenina_lista():
+    estado = request.args.get("estado", "")
+    q = request.args.get("q", "").strip()
+    query = PreinscripcionCarcross.query
+    if estado:
+        query = query.filter_by(estado=estado)
+    if q:
+        like = f"%{q}%"
+        query = query.filter(db.or_(
+            PreinscripcionCarcross.nombre_completo.ilike(like),
+            PreinscripcionCarcross.email.ilike(like),
+            PreinscripcionCarcross.localidad.ilike(like),
+        ))
+    preinscripciones = query.order_by(PreinscripcionCarcross.creado_en.desc()).all()
+    return render_template(
+        "autoclub/seleccion_femenina/lista.html",
+        preinscripciones=preinscripciones, estado=estado, q=q,
+        estados=ESTADOS_PREINSCRIPCION,
+    )
+
+
+@autoclub_bp.route("/seleccion-femenina/<int:id>/estado", methods=["POST"])
+@login_required
+def seleccion_femenina_estado(id):
+    preinscripcion = PreinscripcionCarcross.query.get_or_404(id)
+    nuevo_estado = request.form.get("estado")
+    if nuevo_estado in ESTADOS_PREINSCRIPCION:
+        preinscripcion.estado = nuevo_estado
+        db.session.commit()
+        registrar_log("cambiar_estado", "preinscripcion_carcross", id,
+                      f"Estado -> {nuevo_estado}: {preinscripcion.nombre_completo}")
+        flash("Estado actualizado.", "success")
+    return redirect(request.referrer or url_for("autoclub.seleccion_femenina_lista"))
+
+
+@autoclub_bp.route("/seleccion-femenina/<int:id>/notas", methods=["POST"])
+@login_required
+def seleccion_femenina_notas(id):
+    preinscripcion = PreinscripcionCarcross.query.get_or_404(id)
+    preinscripcion.notas_internas = request.form.get("notas_internas", "").strip()
+    db.session.commit()
+    flash("Notas guardadas.", "success")
+    return redirect(request.referrer or url_for("autoclub.seleccion_femenina_lista"))
+
+
+@autoclub_bp.route("/seleccion-femenina/exportar")
+@login_required
+def seleccion_femenina_exportar():
+    preinscripciones = PreinscripcionCarcross.query.order_by(PreinscripcionCarcross.creado_en.desc()).all()
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=";")
+    writer.writerow(["ID", "Nombre", "Edad", "Fecha_nacimiento", "Localidad", "Email",
+                     "Telefono", "Experiencia_previa", "Motivacion", "Estado", "Recibida"])
+    for p in preinscripciones:
+        writer.writerow([
+            p.id, p.nombre_completo, p.edad,
+            p.fecha_nacimiento.strftime("%d/%m/%Y") if p.fecha_nacimiento else "",
+            p.localidad, p.email, p.telefono, p.experiencia_previa_label,
+            p.motivacion, p.estado, p.creado_en.strftime("%d/%m/%Y %H:%M") if p.creado_en else "",
+        ])
+    resp = Response(output.getvalue(), mimetype="text/csv; charset=utf-8")
+    resp.headers["Content-Disposition"] = "attachment; filename=preinscripciones_seleccion_femenina.csv"
+    return resp

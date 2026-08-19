@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0D0D0D" />
+<meta name="description" content="Selección Femenina de Pilotos de Carcross, a nivel nacional. Si tienes entre 14 y 18 años, esta es tu oportunidad de convertirte en piloto de Rallycross." />
+<title>Selección Femenina de Pilotos de Carcross</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+<style>
+/* ── RESET & BASE ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+img, svg, video { max-width: 100%; height: auto; display: block; }
+html { scroll-behavior: smooth; }
+
+:root {
+  --pink:       #AD1726;
+  --pink-dark:  #8B1020;
+  --pink-soft:  #FBEAEA;
+  --black:      #0D0D0D;
+  --black-2:    #1A1A1A;
+  --gray-900:   #1F2937;
+  --gray-600:   #4B5563;
+  --gray-400:   #9CA3AF;
+  --gray-100:   #F3F4F6;
+  --border:     #E5E7EB;
+  --white:      #FFFFFF;
+
+  /* Fluid type scale */
+  --text-xs:   clamp(.78rem, .75rem + .15vw, .85rem);
+  --text-sm:   clamp(.88rem, .84rem + .18vw, .95rem);
+  --text-base: clamp(1rem, .95rem + .22vw, 1.08rem);
+  --text-lg:   clamp(1.15rem, 1.05rem + .45vw, 1.4rem);
+  --text-xl:   clamp(1.5rem, 1.3rem + .85vw, 2rem);
+  --text-2xl:  clamp(1.9rem, 1.55rem + 1.5vw, 2.9rem);
+
+  --space-s:   clamp(.75rem, .7rem + .2vw, 1rem);
+  --space-m:   clamp(1.25rem, 1.1rem + .6vw, 1.75rem);
+  --space-l:   clamp(2rem, 1.7rem + 1.2vw, 3rem);
+  --space-xl:  clamp(3rem, 2.4rem + 2.4vw, 5rem);
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: var(--gray-900);
+  background: var(--white);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip; /* safety net: never allow horizontal scroll from any section */
+}
+
+.wrap { max-width: min(1100px, calc(100% - 2.5rem)); margin-inline: auto; }
+.wrap-narrow { max-width: min(760px, calc(100% - 2.5rem)); margin-inline: auto; }
+
+section { padding-block: var(--space-xl); }
+h1, h2, h3 { line-height: 1.15; font-weight: 800; letter-spacing: -.02em; }
+h2 { font-size: var(--text-xl); color: var(--black); margin-bottom: var(--space-s); }
+h2 .accent { color: var(--pink); }
+.eyebrow {
+  display: inline-block; font-size: var(--text-xs); font-weight: 800; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--pink); margin-bottom: .6em;
+}
+.lead { font-size: var(--text-lg); color: var(--gray-600); max-width: 62ch; }
+p { font-size: var(--text-base); color: var(--gray-600); }
+
+a { color: var(--pink); }
+
+/* Touch targets: min 44px per guidance, generous tap padding everywhere */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .55em;
+  min-height: 52px; padding: .9em 1.6em; border-radius: 100px;
+  font-size: var(--text-base); font-weight: 800; text-decoration: none;
+  border: none; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:active { transform: scale(.97); transition-duration: .08s; }
+.btn-primary { background: var(--pink); color: #fff; box-shadow: 0 10px 30px -8px rgba(173,23,38,.55); }
+.btn-primary:hover { background: var(--pink-dark); box-shadow: 0 14px 34px -8px rgba(173,23,38,.65); }
+.btn-outline { background: transparent; color: var(--white); border: 2px solid rgba(255,255,255,.5); }
+.btn-block { width: 100%; }
+
+/* ── HERO ─────────────────────────────────────────────── */
+/* Behavior: full-bleed dark hero, checkered strip top, stacked content on
+   mobile; on wide screens content stays centered with a wider max-width. */
+.hero {
+  position: relative;
+  min-height: 100vh; max-height: 100vh;
+  min-height: 100svh; max-height: 100svh;
+  display: flex; align-items: center;
+  background:
+    linear-gradient(180deg, rgba(13,13,13,.6) 0%, rgba(13,13,13,.92) 70%, var(--black) 100%),
+    url('{{ url_for("static", filename="img/seleccion_femenina/hero_bg.jpg") }}') center/cover no-repeat;
+  color: #fff;
+  padding-top: calc(var(--space-l) + env(safe-area-inset-top));
+  padding-bottom: calc(var(--space-xl) + env(safe-area-inset-bottom));
+  overflow: clip;
+}
+.hero::before {
+  content: "";
+  position: absolute; inset: 0 0 auto 0; height: 10px;
+  background: repeating-linear-gradient(90deg, #fff 0 20px, #000 20px 40px);
+}
+.hero-inner { position: relative; z-index: 1; text-align: center; width: 100%; }
+.hero-main-logo { height: clamp(64px, 9vw, 88px); width: auto; margin: 0 auto var(--space-m); display: block; }
+.hero h1 {
+  font-size: var(--text-2xl);
+  line-height: 1.05;
+  letter-spacing: -.03em;
+  margin-bottom: var(--space-s);
+}
+.hero h1 .accent { color: var(--pink); }
+.hero-sub {
+  font-size: var(--text-lg); color: rgba(255,255,255,.78);
+  max-width: 60ch; margin-inline: auto; margin-bottom: var(--space-m);
+}
+.hero-cta-note {
+  margin-top: var(--space-s); font-size: var(--text-sm); color: rgba(255,255,255,.65);
+  max-width: 46ch; margin-inline: auto;
+}
+.hero-countdown {
+  margin-top: var(--space-m); display: inline-flex; align-items: center; gap: .6em;
+  background: rgba(255,255,255,.08); backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(255,255,255,.18);
+  padding: .7em 1.2em; border-radius: 14px; font-size: var(--text-sm); color: #fff;
+}
+.hero-countdown strong { color: #ff5468; font-size: 1.1em; }
+
+/* Logos strip — intrinsic wrap, no query needed. No boxes: logos sit
+   directly on the dark surface behind them. */
+.logos-strip {
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
+  gap: var(--space-l); margin-top: var(--space-l);
+}
+.logo-chip {
+  display: flex; align-items: center; justify-content: center;
+  height: 32px; opacity: .92;
+}
+.logo-chip img { height: 30px; width: auto; opacity: .92; }
+.logo-chip img.needs-invert { filter: brightness(0) invert(1); opacity: .9; }
+.logo-chip.lg img { height: 52px; }
+.logo-chip.text { font-weight: 800; font-size: .8rem; letter-spacing: .03em; white-space: nowrap; color: rgba(255,255,255,.85); text-transform: uppercase; }
+
+/* ── REQUISITOS ───────────────────────────────────────── */
+.requisitos-section { background: var(--pink-soft); }
+.req-list { list-style: none; display: grid; gap: var(--space-s); margin: var(--space-m) 0; }
+.req-item {
+  display: flex; align-items: flex-start; gap: .8em;
+  background: #fff; border-radius: 14px; padding: 1em 1.2em;
+  box-shadow: 0 2px 10px rgba(0,0,0,.05);
+  transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s cubic-bezier(.22,1,.36,1);
+}
+.req-item:hover { transform: translateY(-2px); box-shadow: 0 10px 22px -10px rgba(0,0,0,.18); }
+.req-item .check {
+  flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
+  background: var(--pink); color: #fff; display: flex; align-items: center; justify-content: center;
+  font-size: .9rem; margin-top: .1em;
+}
+.req-item span { font-size: var(--text-base); font-weight: 600; color: var(--gray-900); }
+.callout {
+  background: var(--black); color: #fff; border-radius: 16px;
+  padding: var(--space-m); font-weight: 700; font-size: var(--text-base);
+  display: flex; align-items: flex-start; gap: .8em; margin-top: var(--space-m);
+}
+.callout i { color: var(--pink); font-size: 1.4em; flex-shrink: 0; }
+.legal-note {
+  margin-top: var(--space-s); font-size: var(--text-xs); color: var(--gray-600);
+  background: #fff; border: 1px dashed var(--gray-400); border-radius: 12px; padding: 1em 1.2em;
+}
+
+/* ── PHOTO STRIP (self-scrolling marquee carousel, CSS-only) ──── */
+.photo-strip-outer {
+  overflow: hidden; margin-top: var(--space-l);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+.photo-strip {
+  display: flex; gap: var(--space-s); width: max-content;
+  animation: photo-strip-scroll 32s linear infinite;
+}
+.photo-strip-outer:hover .photo-strip { animation-play-state: paused; }
+.photo-strip img {
+  flex: 0 0 auto; width: min(70vw, 300px); aspect-ratio: 4/3; object-fit: cover;
+  border-radius: 18px;
+}
+@keyframes photo-strip-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* ── SCROLL REVEAL ────────────────────────────────────── */
+/* JS adds .reveal-init before observing, so content is visible by
+   default with no JS / if the script fails to load. */
+.reveal.reveal-init {
+  opacity: 0; transform: translateY(18px);
+  transition: opacity .6s cubic-bezier(.22,1,.36,1), transform .6s cubic-bezier(.22,1,.36,1);
+}
+.reveal.reveal-init.is-visible { opacity: 1; transform: none; }
+
+/* ── PREMIO ───────────────────────────────────────────── */
+.premio-grid {
+  display: grid; grid-template-columns: 1fr; gap: var(--space-s); margin-top: var(--space-m);
+}
+@media (min-width: 640px) {
+  .premio-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.premio-card {
+  position: relative; overflow: hidden; border-radius: 16px; padding: var(--space-m);
+  display: flex; gap: 1em; align-items: flex-start; background: var(--black);
+  box-shadow: 0 2px 10px rgba(0,0,0,.15);
+  transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s cubic-bezier(.22,1,.36,1);
+}
+.premio-card:hover, .premio-card:focus-within {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px -14px rgba(0,0,0,.5);
+}
+.premio-card .ico {
+  position: relative; flex-shrink: 0; width: 48px; height: 48px; border-radius: 12px;
+  background: transparent; color: var(--pink);
+  display: flex; align-items: center; justify-content: center; font-size: 1.4em;
+  transition: transform .25s cubic-bezier(.22,1,.36,1);
+}
+.premio-card:hover .ico { transform: scale(1.1) rotate(-4deg); }
+.premio-card strong { position: relative; display: block; color: #fff; font-size: var(--text-base); margin-bottom: .2em; }
+.premio-card span { position: relative; font-size: var(--text-sm); color: rgba(255,255,255,.7); }
+
+/* ── TIMELINE ─────────────────────────────────────────── */
+.timeline { margin-top: var(--space-l); display: grid; gap: var(--space-m); position: relative; }
+.tl-step { display: flex; gap: 1.1em; position: relative; }
+.tl-marker {
+  flex-shrink: 0; width: 44px; height: 44px; border-radius: 50%;
+  background: var(--black); color: #fff; font-weight: 800; font-size: 1.05rem;
+  display: flex; align-items: center; justify-content: center; position: relative; z-index: 1;
+}
+.tl-step:not(:last-child) .tl-marker::after {
+  content: ""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  width: 2px; height: calc(var(--space-m) + 1.4rem); background: var(--border);
+}
+.tl-content { padding-top: .3em; min-width: 0; }
+.tl-content .tl-date { font-size: var(--text-xs); font-weight: 800; color: var(--pink); text-transform: uppercase; letter-spacing: .06em; }
+.tl-content h3 { font-size: var(--text-base); color: var(--black); margin: .25em 0 .3em; }
+.tl-content p { font-size: var(--text-sm); }
+.timeline-close {
+  margin-top: var(--space-m); background: var(--gray-100); border-radius: 14px;
+  padding: var(--space-m); font-size: var(--text-sm); font-weight: 700; color: var(--gray-900);
+}
+
+/* ── UBICACIÓN ────────────────────────────────────────── */
+.loc-grid { display: grid; grid-template-columns: 1fr; gap: var(--space-m); margin-top: var(--space-m); }
+@media (min-width: 700px) {
+  .loc-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.loc-card {
+  background: #fff; border-radius: 18px; overflow: hidden;
+  box-shadow: 0 12px 30px -16px rgba(0,0,0,.25);
+  transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s cubic-bezier(.22,1,.36,1);
+}
+.loc-card:hover { transform: translateY(-3px); box-shadow: 0 18px 38px -16px rgba(0,0,0,.32); }
+.loc-card-map { position: relative; aspect-ratio: 16/9; background: var(--gray-100); }
+.loc-card-map iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.loc-card-body { padding: var(--space-m); }
+.loc-tag {
+  display: inline-block; font-size: var(--text-xs); font-weight: 800; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--pink); margin-bottom: .4em;
+}
+.loc-card-body h3 { font-size: var(--text-lg); color: var(--black); margin-bottom: .2em; }
+.loc-card-body p { font-size: var(--text-sm); margin-bottom: var(--space-s); }
+.loc-actions { display: flex; flex-wrap: wrap; gap: .6em; }
+.loc-btn {
+  display: inline-flex; align-items: center; gap: .5em; min-height: 40px;
+  padding: .5em 1em; border-radius: 100px; background: var(--gray-100); color: var(--gray-900);
+  font-size: var(--text-xs); font-weight: 700; text-decoration: none;
+  transition: background .2s ease, transform .2s ease;
+}
+.loc-btn:hover { background: var(--pink-soft); color: var(--pink-dark); transform: translateY(-2px); }
+.loc-btn:active { transform: scale(.96); }
+
+/* ── REFERENTES ───────────────────────────────────────── */
+.referentes-box {
+  background: linear-gradient(135deg, var(--black) 0%, #2b0f1e 100%); color: #fff;
+  border-radius: 18px; padding: var(--space-l); margin-top: var(--space-m); text-align: center;
+}
+.referentes-grid {
+  display: flex; justify-content: center; flex-wrap: wrap; gap: var(--space-l);
+  margin-bottom: var(--space-m);
+}
+.referente { display: flex; flex-direction: column; align-items: center; gap: .7em; }
+.referente-photo {
+  width: 96px; height: 96px; border-radius: 50%; object-fit: cover;
+  border: 3px solid rgba(255,255,255,.2); box-shadow: 0 10px 24px -8px rgba(0,0,0,.5);
+  transition: transform .25s cubic-bezier(.22,1,.36,1);
+}
+.referente:hover .referente-photo { transform: scale(1.06); }
+.referente-name { font-weight: 800; font-size: var(--text-sm); color: #fff; letter-spacing: .01em; }
+.referentes-box p { color: rgba(255,255,255,.85); font-size: var(--text-base); max-width: 55ch; margin-inline: auto; }
+
+/* ── FAQ ──────────────────────────────────────────────── */
+.faq-list { display: grid; gap: .7em; margin-top: var(--space-m); }
+.faq-item {
+  border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: #fff;
+  transition: box-shadow .25s cubic-bezier(.22,1,.36,1), border-color .25s ease;
+}
+.faq-item:hover { box-shadow: 0 8px 20px -12px rgba(0,0,0,.2); border-color: transparent; }
+.faq-item summary {
+  list-style: none; cursor: pointer; padding: 1.1em 1.2em; font-weight: 700;
+  font-size: var(--text-base); color: var(--black); display: flex; align-items: center;
+  justify-content: space-between; gap: 1em; min-height: 44px;
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after {
+  content: "\f282"; font-family: 'bootstrap-icons'; color: var(--pink); flex-shrink: 0;
+  transition: transform .2s ease;
+}
+.faq-item[open] summary::after { transform: rotate(180deg); }
+.faq-item .faq-body { padding: 0 1.2em 1.2em; font-size: var(--text-sm); color: var(--gray-600); }
+
+/* ── FORMULARIO ───────────────────────────────────────── */
+.form-section { background: var(--black); color: #fff; }
+.form-card {
+  background: #fff; color: var(--gray-900); border-radius: 20px;
+  padding: var(--space-l) var(--space-m); margin-top: var(--space-m);
+}
+.field { margin-bottom: var(--space-s); }
+.field label {
+  display: block; font-size: var(--text-xs); font-weight: 800; text-transform: uppercase;
+  letter-spacing: .04em; color: var(--gray-600); margin-bottom: .5em;
+}
+.field input, .field select, .field textarea {
+  width: 100%; min-height: 50px; border: 1.5px solid var(--border); border-radius: 10px;
+  padding: .8em .9em; font-size: max(16px, 1rem); color: var(--gray-900);
+  font-family: inherit; background: #fff;
+}
+.field textarea { min-height: 90px; resize: vertical; }
+.field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--pink); }
+.field .err { color: var(--pink-dark); font-size: var(--text-xs); font-weight: 700; margin-top: .4em; }
+.field.has-err input, .field.has-err select { border-color: var(--pink-dark); }
+.field-row { display: grid; grid-template-columns: 1fr; gap: var(--space-s); }
+@media (min-width: 640px) {
+  .field-row.two { grid-template-columns: 1fr 1fr; }
+}
+.check-field { display: flex; align-items: flex-start; gap: .7em; margin: var(--space-s) 0; }
+.check-field input { width: 22px; height: 22px; flex-shrink: 0; margin-top: .15em; accent-color: var(--pink); }
+.check-field label { font-size: var(--text-sm); color: var(--gray-600); font-weight: 500; text-transform: none; letter-spacing: normal; }
+.form-alert {
+  background: var(--pink-soft); color: var(--pink-dark); border-radius: 12px;
+  padding: 1em 1.2em; font-size: var(--text-sm); font-weight: 700; margin-bottom: var(--space-m);
+  display: flex; gap: .7em; align-items: flex-start;
+}
+.privacy-link { color: var(--pink); font-weight: 700; }
+
+/* ── FOOTER ───────────────────────────────────────────── */
+footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block: var(--space-l); }
+.footer-logos { display: flex; flex-wrap: wrap; gap: var(--space-m); justify-content: center; align-items: center; margin-bottom: var(--space-m); }
+.footer-logos .logo-chip { height: auto; opacity: .75; }
+.footer-logos .logo-chip img { height: 24px; }
+.footer-logos .logo-chip.lg img { height: 38px; }
+.footer-links { display: flex; flex-wrap: wrap; gap: 1.2em; justify-content: center; font-size: var(--text-sm); margin-bottom: var(--space-m); }
+.footer-links a { color: rgba(255,255,255,.75); text-decoration: none; }
+.footer-legal { text-align: center; font-size: var(--text-xs); color: rgba(255,255,255,.4); max-width: 60ch; margin-inline: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  .photo-strip { animation: none !important; overflow-x: auto; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ HERO ══════════════ -->
+<header class="hero">
+  <div class="wrap hero-inner">
+    <img class="hero-main-logo" src="{{ url_for('static', filename='img/autoclub/logo_autoclub_blanco.png') }}" alt="Autoclub La Dehesa">
+    <h1>¿Tienes entre 14 y 18 años? Conviértete en <span class="accent">piloto de Rallycross</span></h1>
+    <p class="hero-sub">
+      Selección Femenina de Pilotos de Carcross, a nivel nacional. Tu oportunidad de subirte a un coche de
+      carreras y conseguir una plaza en una carrera oficial del Campeonato de España de Rallycross.
+    </p>
+    <a href="#preinscripcion" class="btn btn-primary"><i class="bi bi-flag-fill"></i>Quiero inscribirme</a>
+    <p class="hero-cta-note">Sin experiencia en competición ni licencia federativa. Solo motivación y ganas de subirte a un coche de carreras.</p>
+
+    {% if dias_ponencia is not none %}
+    <div class="hero-countdown">
+      <i class="bi bi-hourglass-split"></i>
+      {% if dias_ponencia > 0 %}
+        Quedan <strong>{{ dias_ponencia }} día{{ 's' if dias_ponencia != 1 }}</strong> para la ponencia inaugural
+      {% else %}
+        <strong>¡Ya está aquí!</strong> Hoy es la ponencia inaugural
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="logos-strip">
+      <div class="logo-chip lg"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_jccm.png') }}" alt="JCCM · Delegación de Igualdad"></div>
+      <div class="logo-chip lg"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_instituto_mujer.png') }}" alt="Instituto de la Mujer CLM"></div>
+      <div class="logo-chip"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_motorsport_iberica.png') }}" alt="Motorsport Ibérica"></div>
+      <div class="logo-chip"><img class="needs-invert" src="{{ url_for('static', filename='img/feeling_experience/logo_completo.png') }}" alt="Feeling Experience"></div>
+      <div class="logo-chip lg"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_rfeda.png') }}" alt="RFEDA · Comisión Mujer y Motor"></div>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════ REQUISITOS ══════════════ -->
+<section class="requisitos-section" id="requisitos">
+  <div class="wrap-narrow reveal">
+    <span class="eyebrow">Antes de nada</span>
+    <h2>¿Puedo <span class="accent">apuntarme</span>?</h2>
+    <p class="lead">Buscamos chicas de toda España con ganas de vivir una experiencia única en el motorsport.</p>
+
+    <ul class="req-list">
+      <li class="req-item"><span class="check"><i class="bi bi-check-lg"></i></span><span>Tienes entre 14 y 18 años</span></li>
+      <li class="req-item"><span class="check"><i class="bi bi-check-lg"></i></span><span>Tienes algo de experiencia conduciendo con embrague (no hace falta carnet ni experiencia en circuito)</span></li>
+      <li class="req-item"><span class="check"><i class="bi bi-check-lg"></i></span><span>No has competido nunca, o lo has hecho de forma amateur sin resultados destacados</span></li>
+      <li class="req-item"><span class="check"><i class="bi bi-check-lg"></i></span><span>Tienes motivación, compromiso y actitud para aprender</span></li>
+    </ul>
+
+    <div class="callout">
+      <i class="bi bi-stars"></i>
+      <span>No se exige palmarés ni formación previa en automovilismo. Partimos de cero contigo.</span>
+    </div>
+
+    <div class="legal-note">
+      <i class="bi bi-info-circle me-1"></i>
+      Si eres menor de edad, la inscripción y participación en las distintas fases requerirá la autorización de tu madre, padre o tutor/a legal.
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ QUÉ ES EL PROYECTO ══════════════ -->
+<section id="proyecto">
+  <div class="wrap-narrow reveal">
+    <span class="eyebrow">El proyecto</span>
+    <h2>Damos visibilidad al <span class="accent">talento femenino</span> en el motorsport</h2>
+    <p>El automovilismo es un deporte tradicionalmente masculinizado. Buscamos, en toda España, a una chica sin experiencia previa y le damos una oportunidad real: formación, acompañamiento técnico y una plaza en una carrera oficial del Campeonato de España de Rallycross (CERX).</p>
+    <p style="margin-top:1em">Las pruebas se celebran en el Circuito La Dehesa (Guadalajara), que se convierte así en sede de referencia nacional del motorsport femenino.</p>
+  </div>
+
+  <div class="photo-strip-outer wrap reveal" aria-hidden="true">
+    <div class="photo-strip">
+      <img src="{{ url_for('static', filename='img/seleccion_femenina/carrusel_1.jpg') }}" alt="" loading="lazy">
+      <img src="{{ url_for('static', filename='img/seleccion_femenina/carrusel_2.jpg') }}" alt="" loading="lazy">
+      <img src="{{ url_for('static', filename='img/seleccion_femenina/carrusel_3.jpg') }}" alt="" loading="lazy">
+      <img src="{{ url_for('static', filename='img/seleccion_femenina/carrusel_4.jpg') }}" alt="" loading="lazy">
+      <img src="{{ url_for('static', filename='img/seleccion_femenina/carrusel_5.jpg') }}" alt="" loading="lazy">
+      <img src="{{ url_for('static', filename='img/seleccion_femenina/carrusel_1.jpg') }}" alt="" loading="lazy">
+      <img src="{{ url_for('static', filename='img/seleccion_femenina/carrusel_2.jpg') }}" alt="" loading="lazy">
+      <img src="{{ url_for('static', filename='img/seleccion_femenina/carrusel_3.jpg') }}" alt="" loading="lazy">
+      <img src="{{ url_for('static', filename='img/seleccion_femenina/carrusel_4.jpg') }}" alt="" loading="lazy">
+      <img src="{{ url_for('static', filename='img/seleccion_femenina/carrusel_5.jpg') }}" alt="" loading="lazy">
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ PREMIO ══════════════ -->
+<section id="premio" style="background:var(--pink-soft)">
+  <div class="wrap-narrow reveal">
+    <span class="eyebrow">El premio</span>
+    <h2>¿Qué consigue la <span class="accent">piloto seleccionada</span>?</h2>
+    <div class="premio-grid">
+      <div class="premio-card"><div class="ico"><i class="bi bi-flag-fill"></i></div><div><strong>Carrera oficial</strong><span>Una carrera del Campeonato de España de Rallycross.</span></div></div>
+      <div class="premio-card"><div class="ico"><i class="bi bi-mortarboard-fill"></i></div><div><strong>Formación</strong><span>Formación específica previa a la competición.</span></div></div>
+      <div class="premio-card"><div class="ico"><i class="bi bi-tools"></i></div><div><strong>Acompañamiento técnico</strong><span>Durante todo el proceso.</span></div></div>
+      <div class="premio-card"><div class="ico"><i class="bi bi-graph-up-arrow"></i></div><div><strong>Asesoramiento continuo</strong><span>Para tu desarrollo como piloto.</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ PROCESO / TIMELINE ══════════════ -->
+<section id="proceso">
+  <div class="wrap-narrow reveal">
+    <span class="eyebrow">El proceso</span>
+    <h2>Así es el camino hasta convertirte en <span class="accent">piloto</span></h2>
+
+    <div class="timeline">
+      <div class="tl-step">
+        <div class="tl-marker">1</div>
+        <div class="tl-content">
+          <div class="tl-date">Preinscripción</div>
+          <h3>Rellena el formulario</h3>
+          <p>Es rápido y no necesitas aportar documentación todavía.</p>
+        </div>
+      </div>
+      <div class="tl-step">
+        <div class="tl-marker">2</div>
+        <div class="tl-content">
+          <div class="tl-date">3 de septiembre de 2026</div>
+          <h3>Ponencia inaugural</h3>
+          <p>Charla motivacional con deportistas de referencia. Al finalizar, comienzan las entrevistas.</p>
+        </div>
+      </div>
+      <div class="tl-step">
+        <div class="tl-marker">3</div>
+        <div class="tl-content">
+          <div class="tl-date">3 y 13 de septiembre de 2026</div>
+          <h3>Entrevistas personales</h3>
+          <p>10 minutos para conocerte: motivación, actitud y proyección. No es un examen técnico.</p>
+        </div>
+      </div>
+      <div class="tl-step">
+        <div class="tl-marker">4</div>
+        <div class="tl-content">
+          <div class="tl-date">26 de septiembre de 2026</div>
+          <h3>Prueba práctica de selección</h3>
+          <p>Prueba final en el Circuito La Dehesa: físicas, cognitivas y de conducción con vehículos Yacar.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="timeline-close">
+      <i class="bi bi-trophy me-1"></i> Al final del proceso, se seleccionará a una única piloto: la más completa tras la evaluación global.
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ UBICACIÓN ══════════════ -->
+<section id="ubicacion" style="background:var(--gray-100)">
+  <div class="wrap reveal">
+    <span class="eyebrow">Ubicación</span>
+    <h2>Dónde <span class="accent">tendrá lugar</span></h2>
+
+    <div class="loc-grid">
+      <div class="loc-card">
+        <div class="loc-card-map">
+          <iframe src="https://www.google.com/maps?q=Circuito+La+Dehesa+Alcolea+del+Pinar+Guadalajara&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Mapa: Circuito La Dehesa"></iframe>
+        </div>
+        <div class="loc-card-body">
+          <span class="loc-tag">Prueba práctica</span>
+          <h3>Circuito La Dehesa</h3>
+          <p>Alcolea del Pinar, Guadalajara</p>
+          <div class="loc-actions">
+            <a class="loc-btn" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=Circuito+La+Dehesa+Alcolea+del+Pinar+Guadalajara"><i class="bi bi-signpost-split-fill"></i>Google Maps</a>
+            <a class="loc-btn" target="_blank" rel="noopener" href="https://waze.com/ul?q=Circuito+La+Dehesa+Alcolea+del+Pinar+Guadalajara&navigate=yes"><i class="bi bi-cursor-fill"></i>Waze</a>
+            <a class="loc-btn" target="_blank" rel="noopener" href="https://maps.apple.com/?q=Circuito+La+Dehesa+Alcolea+del+Pinar+Guadalajara"><i class="bi bi-map-fill"></i>Apple Maps</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="loc-card">
+        <div class="loc-card-map">
+          <iframe src="https://www.google.com/maps?q=Espacio+Tyce+Guadalajara&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Mapa: Espacio Tyce Guadalajara"></iframe>
+        </div>
+        <div class="loc-card-body">
+          <span class="loc-tag">Ponencias</span>
+          <h3>Espacio Tyce</h3>
+          <p>Guadalajara</p>
+          <div class="loc-actions">
+            <a class="loc-btn" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=Espacio+Tyce+Guadalajara"><i class="bi bi-signpost-split-fill"></i>Google Maps</a>
+            <a class="loc-btn" target="_blank" rel="noopener" href="https://waze.com/ul?q=Espacio+Tyce+Guadalajara&navigate=yes"><i class="bi bi-cursor-fill"></i>Waze</a>
+            <a class="loc-btn" target="_blank" rel="noopener" href="https://maps.apple.com/?q=Espacio+Tyce+Guadalajara"><i class="bi bi-map-fill"></i>Apple Maps</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ REFERENTES ══════════════ -->
+<section id="referentes">
+  <div class="wrap-narrow reveal">
+    <span class="eyebrow">Inspiración</span>
+    <h2>Con la participación de <span class="accent">referentes</span> del deporte femenino español</h2>
+    <div class="referentes-box">
+      <div class="referentes-grid">
+        <div class="referente">
+          <img class="referente-photo" src="https://picsum.photos/seed/monica-plaza/300/300" alt="Mónica Plaza">
+          <span class="referente-name">Mónica Plaza</span>
+        </div>
+        <div class="referente">
+          <img class="referente-photo" src="https://picsum.photos/seed/lucia-moratilla/300/300" alt="Lucía Moratilla">
+          <span class="referente-name">Lucía Moratilla</span>
+        </div>
+        <div class="referente">
+          <img class="referente-photo" src="https://picsum.photos/seed/sara-garcia/300/300" alt="Sara García">
+          <span class="referente-name">Sara García</span>
+        </div>
+      </div>
+      <p>Compartirán su experiencia y trayectoria en la ponencia inaugural.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ FAQ ══════════════ -->
+<section id="faq">
+  <div class="wrap-narrow reveal">
+    <span class="eyebrow">Dudas frecuentes</span>
+    <h2>Preguntas <span class="accent">frecuentes</span></h2>
+
+    <div class="faq-list">
+      <details class="faq-item">
+        <summary>¿Necesito carnet de conducir?</summary>
+        <div class="faq-body">No, no es necesario. Basta con tener algo de experiencia conduciendo con embrague.</div>
+      </details>
+      <details class="faq-item">
+        <summary>¿Necesito tener coche propio?</summary>
+        <div class="faq-body">No, las pruebas se realizan con vehículos Yacar de carcross proporcionados por la organización.</div>
+      </details>
+      <details class="faq-item">
+        <summary>¿Tiene algún coste la inscripción?</summary>
+        <div class="faq-body">Te confirmaremos todos los detalles, incluido este, al contactar contigo tras la preinscripción.</div>
+      </details>
+      <details class="faq-item">
+        <summary>¿Qué pasa si soy menor de edad?</summary>
+        <div class="faq-body">Podrás inscribirte igualmente. Pediremos la autorización de tu madre, padre o tutor/a legal en las siguientes fases.</div>
+      </details>
+      <details class="faq-item">
+        <summary>¿Necesito experiencia previa en competición?</summary>
+        <div class="faq-body">No. Está pensado para chicas sin experiencia o con experiencia amateur sin resultados destacados.</div>
+      </details>
+      <details class="faq-item">
+        <summary>¿Dónde son las pruebas?</summary>
+        <div class="faq-body">En el Circuito La Dehesa, Alcolea del Pinar (Guadalajara).</div>
+      </details>
+      <details class="faq-item">
+        <summary>¿Cuántas plazas hay?</summary>
+        <div class="faq-body">Se seleccionará a una única piloto tras todo el proceso de evaluación.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ FORMULARIO ══════════════ -->
+<section class="form-section" id="preinscripcion">
+  <div class="wrap-narrow reveal">
+    <span class="eyebrow">Último paso</span>
+    <h2 style="color:#fff">Preinscríbete <span class="accent">ahora</span></h2>
+    <p style="color:rgba(255,255,255,.7)">Es rápido y solo es el primer paso. Si tu perfil encaja, te contactaremos con toda la información sobre la ponencia y las entrevistas.</p>
+
+    <div class="form-card">
+      {% if errores %}
+      <div class="form-alert"><i class="bi bi-exclamation-triangle-fill"></i>Revisa los campos marcados en rojo: falta algo por rellenar o corregir.</div>
+      {% endif %}
+
+      <form method="POST" action="{{ url_for('seleccion_femenina.preinscripcion') }}" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="field {{ 'has-err' if errores and errores.nombre_completo }}">
+          <label for="f_nombre">Nombre y apellidos</label>
+          <input type="text" id="f_nombre" name="nombre_completo" autocomplete="name"
+                 value="{{ datos.get('nombre_completo','') if datos else '' }}">
+          {% if errores and errores.nombre_completo %}<div class="err">{{ errores.nombre_completo }}</div>{% endif %}
+        </div>
+
+        <div class="field-row two">
+          <div class="field {{ 'has-err' if errores and errores.fecha_nacimiento }}">
+            <label for="f_fnac">Fecha de nacimiento</label>
+            <input type="date" id="f_fnac" name="fecha_nacimiento"
+                   value="{{ datos.get('fecha_nacimiento','') if datos else '' }}">
+            {% if errores and errores.fecha_nacimiento %}<div class="err">{{ errores.fecha_nacimiento }}</div>{% endif %}
+          </div>
+          <div class="field">
+            <label for="f_localidad">Localidad / provincia</label>
+            <input type="text" id="f_localidad" name="localidad" autocomplete="address-level2"
+                   value="{{ datos.get('localidad','') if datos else '' }}">
+          </div>
+        </div>
+
+        <div class="field-row two">
+          <div class="field {{ 'has-err' if errores and errores.email }}">
+            <label for="f_email">Email de contacto</label>
+            <input type="email" id="f_email" name="email" autocomplete="email"
+                   value="{{ datos.get('email','') if datos else '' }}">
+            {% if errores and errores.email %}<div class="err">{{ errores.email }}</div>{% endif %}
+          </div>
+          <div class="field {{ 'has-err' if errores and errores.telefono }}">
+            <label for="f_telefono">Teléfono de contacto</label>
+            <input type="tel" id="f_telefono" name="telefono" autocomplete="tel"
+                   value="{{ datos.get('telefono','') if datos else '' }}">
+            {% if errores and errores.telefono %}<div class="err">{{ errores.telefono }}</div>{% endif %}
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="f_exp">Experiencia previa</label>
+          <select id="f_exp" name="experiencia_previa">
+            {% for key, label in experiencia_opciones %}
+            <option value="{{ key }}" {% if datos and datos.get('experiencia_previa') == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="f_motiv">Motivación breve <span style="text-transform:none;font-weight:400">(opcional)</span></label>
+          <textarea id="f_motiv" name="motivacion" maxlength="600">{{ datos.get('motivacion','') if datos else '' }}</textarea>
+        </div>
+
+        <div class="check-field">
+          <input type="checkbox" id="f_privacidad" name="acepta_privacidad" value="1"
+                 {% if datos and datos.get('acepta_privacidad') %}checked{% endif %}>
+          <label for="f_privacidad">
+            He leído y acepto la <a class="privacy-link" href="{{ url_for('seleccion_femenina.privacidad') }}" target="_blank" rel="noopener">política de privacidad</a>.
+            {% if errores and errores.acepta_privacidad %}<div class="err">{{ errores.acepta_privacidad }}</div>{% endif %}
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block"><i class="bi bi-send-fill"></i>Enviar preinscripción</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ FOOTER ══════════════ -->
+<footer>
+  <div class="wrap">
+    <div class="footer-logos">
+      <div class="logo-chip lg"><img src="{{ url_for('static', filename='img/autoclub/logo_autoclub_blanco.png') }}" alt="Autoclub La Dehesa"></div>
+      <div class="logo-chip lg"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_jccm.png') }}" alt="JCCM"></div>
+      <div class="logo-chip lg"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_instituto_mujer.png') }}" alt="Instituto de la Mujer CLM"></div>
+      <div class="logo-chip"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_motorsport_iberica.png') }}" alt="Motorsport Ibérica"></div>
+      <div class="logo-chip"><img class="needs-invert" src="{{ url_for('static', filename='img/feeling_experience/logo_completo.png') }}" alt="Feeling Experience"></div>
+      <div class="logo-chip lg"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_rfeda.png') }}" alt="RFEDA · Comisión Mujer y Motor"></div>
+    </div>
+    <div class="footer-links">
+      <a href="{{ url_for('seleccion_femenina.privacidad') }}" target="_blank" rel="noopener">Política de privacidad</a>
+      <a href="#" onclick="return false">Bases legales</a>
+      <a href="mailto:seleccionfemenina@autoclubladehesa.com">Contacto</a>
+    </div>
+    <p class="footer-legal">© 2026 Autoclub La Dehesa. Proyecto impulsado por la Delegación de Igualdad de la Junta de Comunidades de Castilla-La Mancha.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduced || !('IntersectionObserver' in window)) return;
+  var els = document.querySelectorAll('.reveal');
+  els.forEach(function (el) { el.classList.add('reveal-init'); });
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-visible');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
+  els.forEach(function (el) { io.observe(el); });
+})();
+
+(function () {
+  var faqItems = document.querySelectorAll('.faq-item');
+  faqItems.forEach(function (item) {
+    item.addEventListener('toggle', function () {
+      if (!item.open) return;
+      faqItems.forEach(function (other) {
+        if (other !== item) other.open = false;
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

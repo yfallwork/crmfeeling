@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0D0D0D" />
+<meta name="robots" content="noindex" />
+<title>Bases Legales · Selección Femenina de Pilotos de Carcross</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+:root {
+  --pink:       #AD1726;
+  --pink-dark:  #8B1020;
+  --black:      #0D0D0D;
+  --gray-900:   #1F2937;
+  --gray-600:   #4B5563;
+  --gray-100:   #F3F4F6;
+  --border:     #E5E7EB;
+
+  --text-xs:   clamp(.78rem, .75rem + .15vw, .85rem);
+  --text-sm:   clamp(.88rem, .84rem + .18vw, .95rem);
+  --text-base: clamp(1rem, .95rem + .22vw, 1.08rem);
+  --text-lg:   clamp(1.15rem, 1.05rem + .45vw, 1.4rem);
+  --text-xl:   clamp(1.4rem, 1.25rem + .7vw, 1.9rem);
+
+  --space-s:   clamp(.75rem, .7rem + .2vw, 1rem);
+  --space-m:   clamp(1.25rem, 1.1rem + .6vw, 1.75rem);
+  --space-l:   clamp(2rem, 1.7rem + 1.2vw, 3rem);
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: var(--gray-900);
+  background: var(--gray-100);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+
+.wrap-narrow { max-width: min(760px, calc(100% - 2.5rem)); margin-inline: auto; }
+
+header {
+  background: var(--black); color: #fff;
+  padding: calc(var(--space-l) + env(safe-area-inset-top)) 0 var(--space-l);
+}
+.back-link {
+  display: inline-flex; align-items: center; gap: .5em;
+  color: rgba(255,255,255,.7); text-decoration: none; font-size: var(--text-sm); font-weight: 700;
+  margin-bottom: var(--space-m);
+}
+.back-link:hover { color: #fff; }
+header h1 { font-size: var(--text-xl); font-weight: 800; letter-spacing: -.02em; margin-bottom: .3em; }
+header p { color: rgba(255,255,255,.65); font-size: var(--text-sm); }
+
+main { padding-block: var(--space-l); }
+.doc {
+  background: #fff; border-radius: 18px; padding: var(--space-l) var(--space-m);
+  box-shadow: 0 2px 10px rgba(0,0,0,.05);
+}
+.doc h2 {
+  font-size: var(--text-lg); color: var(--black); font-weight: 800; letter-spacing: -.01em;
+  margin: var(--space-m) 0 .6em;
+}
+.doc h2:first-child { margin-top: 0; }
+.doc h3 {
+  font-size: var(--text-base); color: var(--black); font-weight: 800;
+  margin: var(--space-s) 0 .5em;
+}
+.doc p { font-size: var(--text-base); color: var(--gray-600); margin-bottom: .8em; }
+.doc ul, .doc ol { padding-left: 1.3em; margin-bottom: .8em; }
+.doc li { font-size: var(--text-base); color: var(--gray-600); margin-bottom: .4em; }
+.doc strong { color: var(--gray-900); }
+.doc hr { border: none; border-top: 1px solid var(--border); margin: var(--space-m) 0; }
+.doc .org-box {
+  background: var(--gray-100); border-radius: 12px; padding: 1em 1.2em;
+  font-size: var(--text-sm); color: var(--gray-900); margin-bottom: .8em;
+}
+.doc .org-box p { margin: 0; color: var(--gray-900); font-size: var(--text-sm); }
+.doc a { color: var(--pink); font-weight: 700; }
+
+footer { text-align: center; padding-block: var(--space-l); }
+footer a {
+  display: inline-flex; align-items: center; gap: .5em; min-height: 44px;
+  padding: .7em 1.4em; border-radius: 100px; background: var(--black); color: #fff;
+  text-decoration: none; font-weight: 700; font-size: var(--text-sm);
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap-narrow">
+    <a class="back-link" href="{{ url_for('seleccion_femenina.landing') }}"><i class="bi bi-arrow-left"></i>Volver a la página</a>
+    <h1>Bases Legales del Concurso</h1>
+    <p>Selección Femenina de Pilotos de Carcross</p>
+  </div>
+</header>
+
+<main>
+  <div class="wrap-narrow">
+    <div class="doc">
+
+      <h2>1. Entidad organizadora</h2>
+      <div class="org-box">
+        <p><strong>CD AUTOCLUB LA DEHESA</strong> · NIF G19281047<br>
+        Ctra. Luzaga s/n (Talleres Somolinos), 19260 Alcolea del Pinar (Guadalajara)<br>
+        Telf. 618 163 107 · <a href="mailto:info@autoclubladehesa.com">info@autoclubladehesa.com</a></p>
+      </div>
+      <p>En adelante, «la ORGANIZACIÓN».</p>
+      <p><strong>Entidades colaboradoras en la ejecución:</strong> Feeling Experience.</p>
+
+      <hr>
+
+      <h2>2. Objeto del concurso</h2>
+      <p>El presente concurso tiene por objeto la selección de <strong>una única piloto femenina</strong>, mediante un proceso de evaluación integral (entrevista personal y pruebas de selección), que resultará ganadora de una plaza de participación en una carrera oficial del Campeonato de España de Rallycross (CERX), junto con formación específica previa y acompañamiento técnico y deportivo.</p>
+      <p>El concurso se enmarca dentro de un proyecto de fomento de la igualdad de oportunidades y visibilidad de la mujer en el motorsport.</p>
+
+      <hr>
+
+      <h2>3. Ámbito territorial y temporal</h2>
+      <ul>
+        <li><strong>Ámbito territorial:</strong> el concurso tiene alcance nacional; puede participar cualquier persona residente en España que cumpla los requisitos del punto 4.</li>
+        <li><strong>Plazo de preinscripción:</strong> hasta el 13 de septiembre de 2026.</li>
+        <li><strong>Ponencia inaugural y comienzo de entrevistas:</strong> 2 de septiembre de 2026.</li>
+        <li><strong>Segunda jornada de entrevistas:</strong> 13 de septiembre de 2026.</li>
+        <li><strong>Prueba práctica de selección final:</strong> 26 de septiembre de 2026.</li>
+        <li><strong>Sede de las fases presenciales:</strong> Sala de Prensa de la Delegación de la Junta de Comunidades de Castilla-La Mancha, Guadalajara.</li>
+      </ul>
+
+      <hr>
+
+      <h2>4. Requisitos de participación</h2>
+      <p>Podrán participar en el concurso las personas que, en el momento de la preinscripción, cumplan <strong>todos</strong> los siguientes requisitos:</p>
+      <ul>
+        <li>Ser mujer y tener entre <strong>14 y 18 años</strong> de edad.</li>
+        <li>Tener algo de experiencia en conducción con embrague (no se exige carnet de conducir ni experiencia en circuito).</li>
+        <li>No tener experiencia previa en competición de motorsport, o tener experiencia amateur sin resultados destacados ni palmarés relevante. <strong>No podrán participar personas con licencia federativa de competición en vigor o trayectoria profesional/semiprofesional acreditada en motorsport.</strong></li>
+        <li>Residir en territorio español.</li>
+        <li>Contar con motivación, compromiso y actitud para desarrollarse en el deporte del motor.</li>
+      </ul>
+      <p><strong>No se exige palmarés ni formación previa en automovilismo.</strong></p>
+      <p><strong>Menores de edad:</strong> al ser todas las participantes potenciales menores de edad, la participación en las entrevistas y en la prueba práctica requerirán, en cada fase, la autorización expresa de la madre, padre o tutor/a legal, conforme a lo detallado en el punto 12.</p>
+
+      <hr>
+
+      <h2>5. Mecánica de participación</h2>
+      <h3>5.1. Fase de preinscripción</h3>
+      <p>Las interesadas deberán cumplimentar el formulario de preinscripción disponible en la web del proyecto, aportando los datos básicos solicitados. La preinscripción es gratuita y no implica compromiso de participación en fases posteriores ni por parte de la candidata ni por parte de la ORGANIZACIÓN.</p>
+      <h3>5.2. Fase de ponencia y entrevistas</h3>
+      <ul>
+        <li>El 2 de septiembre de 2026 se celebrará una ponencia inaugural de carácter motivacional e institucional.</li>
+        <li>A continuación de la ponencia, y también el 13 de septiembre de 2026, se realizarán entrevistas personales individuales de aproximadamente 10 minutos de duración a cada candidata admitida.</li>
+      </ul>
+      <h3>5.3. Fase de pruebas de selección</h3>
+      <ul>
+        <li>Las candidatas que superen la fase de entrevistas, según criterio exclusivo del jurado/tribunal evaluador, serán convocadas a la prueba práctica de selección, que tendrá lugar el 26 de septiembre de 2026 en el Circuito La Dehesa.</li>
+        <li>La participación en esta fase requiere la entrega, con la antelación que indique la ORGANIZACIÓN, de la documentación y autorizaciones detalladas en el punto 12.3.</li>
+      </ul>
+
+      <hr>
+
+      <h2>6. Proceso de selección y criterios de evaluación</h2>
+      <p>La selección se realizará mediante una <strong>evaluación global</strong>, no basada únicamente en la velocidad o el rendimiento técnico, que combina:</p>
+      <p><strong>a) Entrevista personal</strong> (peso determinante en la selección final): motivación personal, capacidad de compromiso, gestión emocional y de la presión, valores deportivos y personales, proyección y actitud de aprendizaje.</p>
+      <p><strong>b) Pruebas físicas:</strong> coordinación, resistencia básica, capacidad de reacción, control corporal.</p>
+      <p><strong>c) Pruebas cognitivas:</strong> toma de decisiones, atención y concentración, gestión del estrés, capacidad de aprendizaje.</p>
+      <p><strong>d) Pruebas de conducción:</strong> adaptación al vehículo, técnica básica, progresión, seguridad y control.</p>
+      <p><strong>Nivel de exigencia:</strong> intermedio, adaptado a candidatas sin experiencia previa en competición.</p>
+      <h3>6.1. Jurado / tribunal evaluador</h3>
+      <p>El proceso de evaluación será dirigido por el equipo técnico de los organizadores y colaboradores.</p>
+      <h3>6.2. Carácter de la decisión</h3>
+      <p>El fallo del tribunal evaluador será <strong>inapelable</strong>. La ORGANIZACIÓN se reserva el derecho de declarar el concurso desierto si, a criterio del tribunal, ninguna candidata reúne las condiciones mínimas necesarias para representar al proyecto.</p>
+
+      <hr>
+
+      <h2>7. Premio</h2>
+      <p>La ganadora del concurso obtendrá:</p>
+      <ul>
+        <li>Participación en una carrera oficial del Campeonato de España de Rallycross (CERX).</li>
+        <li>Formación específica previa a la competición (conducción avanzada, preparación física, psicología de competición, técnica y mecánica aplicada).</li>
+        <li>Acompañamiento técnico y deportivo durante el proceso.</li>
+        <li>Asesoramiento en su desarrollo como piloto.</li>
+      </ul>
+      <p><strong>Condiciones del premio:</strong></p>
+      <ul>
+        <li>El premio es personal e intransferible, y no podrá canjearse por su valor económico ni por ningún otro premio o compensación.</li>
+        <li>Para poder disfrutar del premio, la ganadora deberá cumplir los requisitos exigidos por la RFEDA y el reglamento del CERX para la obtención de la licencia federativa correspondiente, así como cualquier otro requisito administrativo o médico exigido por la normativa de competición vigente. <strong>La obtención de dicha licencia y el cumplimiento de estos requisitos serán responsabilidad de la ganadora y su tutor/a legal</strong>, con el apoyo de la ORGANIZACIÓN en su tramitación.</li>
+        <li>En caso de que la ganadora renuncie al premio, no cumpla los requisitos federativos necesarios, o no pueda disfrutarlo por causas ajenas a la ORGANIZACIÓN, esta se reserva el derecho de otorgarlo a la siguiente candidata mejor valorada por el tribunal, o de declararlo desierto.</li>
+      </ul>
+
+      <hr>
+
+      <h2>8. Exclusión de responsabilidad y riesgos</h2>
+      <p>La conducción y el deporte del motor conllevan riesgos inherentes. Al inscribirse y participar en las fases de pruebas físicas, cognitivas y de conducción, la candidata y su madre/padre/tutor legal:</p>
+      <ul>
+        <li>Declaran conocer y aceptar los riesgos asociados a la práctica de actividades de conducción y deporte del motor.</li>
+        <li>Eximen a la ORGANIZACIÓN, entidades colaboradoras e impulsoras del proyecto de responsabilidad por daños derivados de un uso indebido, negligente o contrario a las instrucciones del personal técnico durante las pruebas, sin perjuicio de la cobertura de seguro contratada por la ORGANIZACIÓN conforme al punto siguiente.</li>
+      </ul>
+      <p>La ORGANIZACIÓN contará con la cobertura de un <strong>seguro de responsabilidad civil y accidentes</strong> para todas las participantes durante el desarrollo de la prueba práctica de selección del 26 de septiembre de 2026, en los términos y con los límites que dicha póliza establezca.</p>
+      <p>La participación en las pruebas físicas y de conducción requiere la presentación de una declaración responsable de aptitud física, conforme al punto 12.3.</p>
+
+      <hr>
+
+      <h2>9. Autorización de imagen</h2>
+      <p>La ORGANIZACIÓN y las entidades impulsoras y colaboradoras del proyecto podrán captar imágenes y vídeos de las participantes durante la ponencia, las entrevistas y las pruebas de selección, con fines de comunicación, difusión y promoción del proyecto (web, redes sociales, medios de comunicación, materiales institucionales).</p>
+      <p>Dado que todas las participantes son menores de edad, esta cesión de derechos de imagen <strong>requiere la autorización expresa y por escrito de la madre, padre o tutor/a legal</strong>, mediante documento específico y diferenciado del consentimiento de tratamiento de datos, conforme al punto 12.3. La ORGANIZACIÓN no publicará imágenes de ninguna candidata sin dicha autorización previa.</p>
+
+      <hr>
+
+      <h2>10. Protección de datos personales</h2>
+      <p>El tratamiento de los datos personales de las participantes se realizará conforme al Reglamento (UE) 2016/679 (RGPD) y la Ley Orgánica 3/2018 (LOPDGDD), según lo detallado en la Política de Privacidad correspondiente a cada fase del proceso:</p>
+      <ul>
+        <li><strong>Política de Privacidad de la Preinscripción</strong>, aplicable a los datos recogidos en el formulario inicial — puedes consultarla <a href="{{ url_for('seleccion_femenina.privacidad') }}" target="_blank" rel="noopener">aquí</a>.</li>
+        <li><strong>Consentimiento informado de la fase de entrevistas</strong>, aplicable a los datos recogidos con motivo de la asistencia presencial.</li>
+        <li><strong>Consentimiento informado y autorizaciones de la fase de pruebas prácticas</strong>, aplicable a los datos de salud, contacto de emergencia y demás información recogida antes del 26 de septiembre de 2026.</li>
+      </ul>
+      <p>Dichos documentos se entregarán específicamente en cada fase del proceso.</p>
+
+      <hr>
+
+      <h2>11. Aceptación de las bases</h2>
+      <p>La participación en el concurso implica la aceptación íntegra de las presentes bases legales. La ORGANIZACIÓN se reserva el derecho de excluir del concurso a cualquier candidata que no cumpla los requisitos establecidos, facilite datos falsos o incumpla lo dispuesto en estas bases.</p>
+      <p>En el caso de las participantes menores de edad, la aceptación de las bases deberá contar en todo momento con el consentimiento de la madre, padre o tutor/a legal, en los términos descritos en el punto 12.</p>
+
+      <hr>
+
+      <h2>12. Consentimiento parental — resumen del flujo por fases</h2>
+      <p><em>(Remite a los documentos específicos de cada fase; se incluye aquí a título de resumen normativo del proceso.)</em></p>
+      <h3>12.1. Fase de preinscripción</h3>
+      <p>Aceptación de la Política de Privacidad de la preinscripción. No se exige aún documentación ni firma del tutor/a legal, sin perjuicio de que la preinscripción pueda ser cumplimentada directamente por este.</p>
+      <h3>12.2. Fase de entrevistas (2 y 13 de septiembre de 2026)</h3>
+      <p>Autorización básica y firmada de la madre, padre o tutor/a legal para la asistencia y participación de la menor en la entrevista personal, recogida presencialmente o de forma telemática con antelación a la cita.</p>
+      <h3>12.3. Fase de pruebas de selección (26 de septiembre de 2026)</h3>
+      <p>Entrega, con fecha límite el <strong>18 de septiembre de 2026</strong>, de:</p>
+      <ul>
+        <li>Copia del DNI de la participante y del tutor/a legal.</li>
+        <li>Autorización expresa de participación en pruebas físicas y de conducción.</li>
+        <li>Declaración responsable de aptitud física y datos médicos relevantes (alergias, condiciones médicas).</li>
+        <li>Contacto de emergencia.</li>
+        <li>Autorización de cesión de derechos de imagen (firma independiente, conforme al punto 9).</li>
+        <li>Consentimiento de tratamiento de datos conforme al punto 10.</li>
+      </ul>
+      <p>La falta de entrega de cualquiera de estos documentos en el plazo establecido impedirá la participación de la candidata en la prueba práctica, sin derecho a reclamación alguna frente a la ORGANIZACIÓN.</p>
+
+      <hr>
+
+      <h2>13. Modificación o cancelación</h2>
+      <p>La ORGANIZACIÓN se reserva el derecho de modificar las presentes bases, así como las fechas, sede o condiciones del concurso, por causas justificadas (climatológicas, de seguridad, de fuerza mayor u organizativas), comunicándolo con la mayor antelación posible a través de la web del proyecto y/o a las candidatas afectadas.</p>
+      <p>Asimismo, la ORGANIZACIÓN podrá cancelar el concurso si concurren circunstancias que impidan su normal desarrollo, sin que ello genere derecho a compensación alguna para las candidatas, salvo la devolución, en su caso, de cualquier cantidad abonada por su participación.</p>
+
+      <hr>
+
+      <h2>14. Legislación aplicable y jurisdicción</h2>
+      <p>Las presentes bases se rigen por la legislación española. Para cualquier controversia derivada de la interpretación o aplicación de estas bases, las partes se someten a los Juzgados y Tribunales que resulten competentes conforme a la normativa de protección de consumidores y usuarios, y en el caso de menores de edad, conforme a la normativa de protección del menor aplicable.</p>
+
+    </div>
+  </div>
+</main>
+
+<footer>
+  <a href="{{ url_for('seleccion_femenina.landing') }}"><i class="bi bi-arrow-left"></i>Volver a la página</a>
+</footer>
+
+</body>
+</html>

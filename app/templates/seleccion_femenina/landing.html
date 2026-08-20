@@ -86,39 +86,57 @@ a { color: var(--pink); }
   position: relative;
   min-height: 100vh; max-height: 100vh;
   min-height: 100svh; max-height: 100svh;
-  display: flex; align-items: center;
+  display: flex;
   background:
     linear-gradient(180deg, rgba(13,13,13,.6) 0%, rgba(13,13,13,.92) 70%, var(--black) 100%),
     url('{{ url_for("static", filename="img/seleccion_femenina/hero_bg.jpg") }}') center/cover no-repeat;
   color: #fff;
-  padding-top: calc(var(--space-l) + env(safe-area-inset-top));
-  padding-bottom: calc(var(--space-xl) + env(safe-area-inset-bottom));
-  overflow: clip;
+  /* Padding y huecos internos del hero escalan con la ALTURA del viewport
+     (vh), no con el ancho: así, en portátiles de escritorio con poca
+     altura disponible, todo el bloque se compacta automáticamente y cabe
+     sin scroll, en vez de depender del overflow-y de abajo como red de
+     seguridad para casos extremos. */
+  --hero-gap-xs: clamp(.4rem, 1vh, .7rem);
+  --hero-gap-s:  clamp(.5rem, 1.6vh, 1.1rem);
+  --hero-gap-m:  clamp(.7rem, 2.2vh, 1.6rem);
+  --hero-gap-l:  clamp(.9rem, 3vh, 2.1rem);
+  padding-top: calc(clamp(1rem, 4vh, 2.25rem) + env(safe-area-inset-top));
+  padding-bottom: calc(clamp(1.25rem, 4.5vh, 2.5rem) + env(safe-area-inset-bottom));
+  overflow-x: clip;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .hero::before {
   content: "";
   position: absolute; inset: 0 0 auto 0; height: 10px;
   background: repeating-linear-gradient(90deg, #fff 0 20px, #000 20px 40px);
 }
-.hero-inner { position: relative; z-index: 1; text-align: center; width: 100%; }
-.hero-main-logo { height: clamp(64px, 9vw, 88px); width: auto; margin: 0 auto var(--space-m); display: block; }
+.hero-inner {
+  position: relative; z-index: 1; text-align: center; width: 100%;
+  /* Auto margins centran verticalmente cuando el contenido cabe en la
+     altura fija del hero; si no cabe (móviles bajos, muchos logos), se
+     colapsan a 0 y el contenido queda arriba, deslizable dentro del hero,
+     en vez de quedar recortado y oculto por el overflow. */
+  margin-block: auto;
+}
+.hero-main-logo { height: clamp(44px, 7vh, 80px); width: auto; margin: 0 auto var(--hero-gap-m); display: block; }
 .hero h1 {
   font-size: var(--text-2xl);
   line-height: 1.05;
   letter-spacing: -.03em;
-  margin-bottom: var(--space-s);
+  margin-bottom: var(--hero-gap-xs);
 }
 .hero h1 .accent { color: var(--pink); }
 .hero-sub {
   font-size: var(--text-lg); color: rgba(255,255,255,.78);
-  max-width: 60ch; margin-inline: auto; margin-bottom: var(--space-m);
+  max-width: 60ch; margin-inline: auto; margin-bottom: var(--hero-gap-m);
 }
 .hero-cta-note {
-  margin-top: var(--space-s); font-size: var(--text-sm); color: rgba(255,255,255,.65);
+  margin-top: var(--hero-gap-xs); font-size: var(--text-sm); color: rgba(255,255,255,.65);
   max-width: 46ch; margin-inline: auto;
 }
 .hero-countdown {
-  margin-top: var(--space-m); display: inline-flex; align-items: center; gap: .6em;
+  margin-top: var(--hero-gap-m); display: inline-flex; align-items: center; gap: .6em;
   background: rgba(255,255,255,.08); backdrop-filter: blur(16px) saturate(160%);
   -webkit-backdrop-filter: blur(16px) saturate(160%);
   border: 1px solid rgba(255,255,255,.18);
@@ -130,7 +148,7 @@ a { color: var(--pink); }
    directly on the dark surface behind them. */
 .logos-strip {
   display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
-  gap: var(--space-l); margin-top: var(--space-l);
+  gap: var(--hero-gap-m) var(--hero-gap-l); margin-top: var(--hero-gap-l);
 }
 .logo-chip {
   display: flex; align-items: center; justify-content: center;
@@ -178,7 +196,8 @@ a { color: var(--pink); }
   display: flex; gap: var(--space-s); width: max-content;
   animation: photo-strip-scroll 32s linear infinite;
 }
-.photo-strip-outer:hover .photo-strip { animation-play-state: paused; }
+.photo-strip-outer:hover .photo-strip,
+.photo-strip-outer:active .photo-strip { animation-play-state: paused; }
 .photo-strip img {
   flex: 0 0 auto; width: min(70vw, 300px); aspect-ratio: 4/3; object-fit: cover;
   border-radius: 18px;
@@ -221,6 +240,7 @@ a { color: var(--pink); }
   transition: transform .25s cubic-bezier(.22,1,.36,1);
 }
 .premio-card:hover .ico { transform: scale(1.1) rotate(-4deg); }
+.premio-card > div:last-child { min-width: 0; }
 .premio-card strong { position: relative; display: block; color: #fff; font-size: var(--text-base); margin-bottom: .2em; }
 .premio-card span { position: relative; font-size: var(--text-sm); color: rgba(255,255,255,.7); }
 
@@ -267,7 +287,7 @@ a { color: var(--pink); }
 .loc-card-body p { font-size: var(--text-sm); margin-bottom: var(--space-s); }
 .loc-actions { display: flex; flex-wrap: wrap; gap: .6em; }
 .loc-btn {
-  display: inline-flex; align-items: center; gap: .5em; min-height: 40px;
+  display: inline-flex; align-items: center; gap: .5em; min-height: 44px;
   padding: .5em 1em; border-radius: 100px; background: var(--gray-100); color: var(--gray-900);
   font-size: var(--text-xs); font-weight: 700; text-decoration: none;
   transition: background .2s ease, transform .2s ease;
@@ -284,13 +304,23 @@ a { color: var(--pink); }
   display: flex; justify-content: center; flex-wrap: wrap; gap: var(--space-l);
   margin-bottom: var(--space-m);
 }
-.referente { display: flex; flex-direction: column; align-items: center; gap: .7em; }
+.referente {
+  display: flex; flex-direction: column; align-items: center; gap: .7em;
+  text-decoration: none; min-height: 44px;
+}
+.referente-photo-wrap { position: relative; display: inline-flex; }
 .referente-photo {
   width: 96px; height: 96px; border-radius: 50%; object-fit: cover;
   border: 3px solid rgba(255,255,255,.2); box-shadow: 0 10px 24px -8px rgba(0,0,0,.5);
   transition: transform .25s cubic-bezier(.22,1,.36,1);
 }
-.referente:hover .referente-photo { transform: scale(1.06); }
+.referente:hover .referente-photo, .referente:focus-visible .referente-photo { transform: scale(1.06); }
+.referente-ig {
+  position: absolute; right: -2px; bottom: -2px; width: 26px; height: 26px; border-radius: 50%;
+  background: linear-gradient(135deg, #f58529, #dd2a7b 60%, #8134af);
+  color: #fff; font-size: .8rem; display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--black);
+}
 .referente-name { font-weight: 800; font-size: var(--text-sm); color: #fff; letter-spacing: .01em; }
 .referentes-box p { color: rgba(255,255,255,.85); font-size: var(--text-base); max-width: 55ch; margin-inline: auto; }
 
@@ -320,24 +350,57 @@ a { color: var(--pink); }
   background: #fff; color: var(--gray-900); border-radius: 20px;
   padding: var(--space-l) var(--space-m); margin-top: var(--space-m);
 }
-.field { margin-bottom: var(--space-s); }
+.field { margin-bottom: var(--space-s); position: relative; }
 .field label {
-  display: block; font-size: var(--text-xs); font-weight: 800; text-transform: uppercase;
-  letter-spacing: .04em; color: var(--gray-600); margin-bottom: .5em;
+  display: block; font-size: var(--text-xs); font-weight: 700; text-transform: uppercase;
+  letter-spacing: .04em; color: var(--gray-600); margin-bottom: 6px;
 }
-.field input, .field select, .field textarea {
-  width: 100%; min-height: 50px; border: 1.5px solid var(--border); border-radius: 10px;
-  padding: .8em .9em; font-size: max(16px, 1rem); color: var(--gray-900);
-  font-family: inherit; background: #fff;
+.field label .optional { font-weight: 400; text-transform: none; letter-spacing: normal; color: var(--gray-400); }
+.field input:not([type="checkbox"]), .field select, .field textarea {
+  width: 100%; height: 44px; padding: 10px 14px;
+  border: 1px solid #D1D5DB; border-radius: 8px;
+  font-size: max(16px, 1rem); color: var(--gray-900);
+  font-family: inherit; background: #fff; outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease;
 }
-.field textarea { min-height: 90px; resize: vertical; }
-.field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--pink); }
-.field .err { color: var(--pink-dark); font-size: var(--text-xs); font-weight: 700; margin-top: .4em; }
-.field.has-err input, .field.has-err select { border-color: var(--pink-dark); }
+.field textarea { height: auto; min-height: 90px; padding-top: 10px; resize: vertical; }
+.field select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236B7280'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; background-size: 18px;
+  padding-right: 38px;
+}
+.field input:not([type="checkbox"]):hover, .field select:hover, .field textarea:hover { border-color: #9CA3AF; }
+.field input:not([type="checkbox"]):focus, .field select:focus, .field textarea:focus {
+  border-color: var(--pink); box-shadow: 0 0 0 3px rgba(173,23,38,.15);
+}
+.field.has-err input, .field.has-err select, .field.has-err textarea {
+  border-color: #DC2626; box-shadow: 0 0 0 3px rgba(220,38,38,.15);
+}
+.field .err { color: #DC2626; font-size: var(--text-xs); font-weight: 700; margin-top: 6px; }
 .field-row { display: grid; grid-template-columns: 1fr; gap: var(--space-s); }
 @media (min-width: 640px) {
   .field-row.two { grid-template-columns: 1fr 1fr; }
 }
+.motiv-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+.motiv-head label { margin-bottom: 0; }
+.motiv-count { font-size: var(--text-xs); font-weight: 400; text-transform: none; color: var(--gray-400); font-variant-numeric: tabular-nums; }
+
+/* Combobox de localidad */
+.combo-dropdown {
+  position: absolute; z-index: 50; top: calc(100% + 4px); left: 0; right: 0;
+  background: #fff; border: 1px solid #D1D5DB; border-radius: 8px;
+  box-shadow: 0 10px 26px -8px rgba(0,0,0,.22);
+  max-height: 240px; overflow-y: auto; list-style: none; padding: 6px;
+}
+.combo-option {
+  padding: .6em .7em; border-radius: 6px; font-size: var(--text-sm); color: var(--gray-900);
+  cursor: pointer; display: flex; align-items: baseline; justify-content: space-between; gap: .5em;
+}
+.combo-option strong { color: var(--pink); font-weight: 700; }
+.combo-province { color: var(--gray-400); font-size: var(--text-xs); flex-shrink: 0; }
+.combo-option.is-active, .combo-option:hover { background: var(--gray-100); }
+
 .check-field { display: flex; align-items: flex-start; gap: .7em; margin: var(--space-s) 0; }
 .check-field input { width: 22px; height: 22px; flex-shrink: 0; margin-top: .15em; accent-color: var(--pink); }
 .check-field label { font-size: var(--text-sm); color: var(--gray-600); font-weight: 500; text-transform: none; letter-spacing: normal; }
@@ -347,6 +410,18 @@ a { color: var(--pink); }
   display: flex; gap: .7em; align-items: flex-start;
 }
 .privacy-link { color: var(--pink); font-weight: 700; }
+
+/* Botón de envío: se mantiene el diseño de píldora original; solo se
+   añade un estado de carga (spinner + disabled) sin cambiar su forma. */
+.btn:disabled, .btn.is-loading { opacity: .65; cursor: not-allowed; }
+.btn .spinner {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.4); border-top-color: #fff;
+  display: none; animation: spin .7s linear infinite;
+}
+.btn.is-loading .spinner { display: inline-block; }
+.btn.is-loading .btn-label-text { opacity: .85; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── FOOTER ───────────────────────────────────────────── */
 footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block: var(--space-l); }
@@ -396,6 +471,7 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
       <div class="logo-chip"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_motorsport_iberica.png') }}" alt="Motorsport Ibérica"></div>
       <div class="logo-chip"><img class="needs-invert" src="{{ url_for('static', filename='img/feeling_experience/logo_completo.png') }}" alt="Feeling Experience"></div>
       <div class="logo-chip lg"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_rfeda.png') }}" alt="RFEDA · Comisión Mujer y Motor"></div>
+      <div class="logo-chip"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_yacar.png') }}" alt="Yacar Racing"></div>
     </div>
   </div>
 </header>
@@ -483,7 +559,7 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
       <div class="tl-step">
         <div class="tl-marker">2</div>
         <div class="tl-content">
-          <div class="tl-date">3 de septiembre de 2026</div>
+          <div class="tl-date">2 de septiembre de 2026</div>
           <h3>Ponencia inaugural</h3>
           <p>Charla motivacional con deportistas de referencia. Al finalizar, comienzan las entrevistas.</p>
         </div>
@@ -491,7 +567,7 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
       <div class="tl-step">
         <div class="tl-marker">3</div>
         <div class="tl-content">
-          <div class="tl-date">3 y 13 de septiembre de 2026</div>
+          <div class="tl-date">2 y 13 de septiembre de 2026</div>
           <h3>Entrevistas personales</h3>
           <p>10 minutos para conocerte: motivación, actitud y proyección. No es un examen técnico.</p>
         </div>
@@ -537,16 +613,16 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
 
       <div class="loc-card">
         <div class="loc-card-map">
-          <iframe src="https://www.google.com/maps?q=Espacio+Tyce+Guadalajara&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Mapa: Espacio Tyce Guadalajara"></iframe>
+          <iframe src="https://www.google.com/maps?q=Consejer%C3%ADa+de+Educaci%C3%B3n+Cultura+y+Deportes+Calle+Juan+Bautista+Topete+1+19001+Guadalajara&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Mapa: Consejería de Educación, Cultura y Deportes"></iframe>
         </div>
         <div class="loc-card-body">
           <span class="loc-tag">Ponencias</span>
-          <h3>Espacio Tyce</h3>
-          <p>Guadalajara</p>
+          <h3>Consejería de Educación, Cultura y Deportes</h3>
+          <p>C. Juan Bautista Topete, 1, 3, 19001 Guadalajara</p>
           <div class="loc-actions">
-            <a class="loc-btn" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=Espacio+Tyce+Guadalajara"><i class="bi bi-signpost-split-fill"></i>Google Maps</a>
-            <a class="loc-btn" target="_blank" rel="noopener" href="https://waze.com/ul?q=Espacio+Tyce+Guadalajara&navigate=yes"><i class="bi bi-cursor-fill"></i>Waze</a>
-            <a class="loc-btn" target="_blank" rel="noopener" href="https://maps.apple.com/?q=Espacio+Tyce+Guadalajara"><i class="bi bi-map-fill"></i>Apple Maps</a>
+            <a class="loc-btn" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=Consejer%C3%ADa+de+Educaci%C3%B3n+Cultura+y+Deportes+Calle+Juan+Bautista+Topete+1+19001+Guadalajara"><i class="bi bi-signpost-split-fill"></i>Google Maps</a>
+            <a class="loc-btn" target="_blank" rel="noopener" href="https://waze.com/ul?q=Calle+Juan+Bautista+Topete+1+19001+Guadalajara&navigate=yes"><i class="bi bi-cursor-fill"></i>Waze</a>
+            <a class="loc-btn" target="_blank" rel="noopener" href="https://maps.apple.com/?q=Calle+Juan+Bautista+Topete+1+19001+Guadalajara"><i class="bi bi-map-fill"></i>Apple Maps</a>
           </div>
         </div>
       </div>
@@ -561,18 +637,27 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
     <h2>Con la participación de <span class="accent">referentes</span> del deporte femenino español</h2>
     <div class="referentes-box">
       <div class="referentes-grid">
-        <div class="referente">
-          <img class="referente-photo" src="https://picsum.photos/seed/monica-plaza/300/300" alt="Mónica Plaza">
+        <a class="referente" href="https://www.instagram.com/monicaplazaa/" target="_blank" rel="noopener">
+          <span class="referente-photo-wrap">
+            <img class="referente-photo" src="{{ url_for('static', filename='img/seleccion_femenina/referente_monica.jpg') }}" alt="Mónica Plaza">
+            <i class="bi bi-instagram referente-ig"></i>
+          </span>
           <span class="referente-name">Mónica Plaza</span>
-        </div>
-        <div class="referente">
-          <img class="referente-photo" src="https://picsum.photos/seed/lucia-moratilla/300/300" alt="Lucía Moratilla">
+        </a>
+        <a class="referente" href="https://www.instagram.com/caoba.lmt/" target="_blank" rel="noopener">
+          <span class="referente-photo-wrap">
+            <img class="referente-photo" src="{{ url_for('static', filename='img/seleccion_femenina/referente_lucia.jpg') }}" alt="Lucía Moratilla">
+            <i class="bi bi-instagram referente-ig"></i>
+          </span>
           <span class="referente-name">Lucía Moratilla</span>
-        </div>
-        <div class="referente">
-          <img class="referente-photo" src="https://picsum.photos/seed/sara-garcia/300/300" alt="Sara García">
+        </a>
+        <a class="referente" href="https://www.instagram.com/sarita98garcia/" target="_blank" rel="noopener">
+          <span class="referente-photo-wrap">
+            <img class="referente-photo" src="{{ url_for('static', filename='img/seleccion_femenina/referente_sara.jpg') }}" alt="Sara García">
+            <i class="bi bi-instagram referente-ig"></i>
+          </span>
           <span class="referente-name">Sara García</span>
-        </div>
+        </a>
       </div>
       <p>Compartirán su experiencia y trayectoria en la ponencia inaugural.</p>
     </div>
@@ -630,12 +715,13 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
       <div class="form-alert"><i class="bi bi-exclamation-triangle-fill"></i>Revisa los campos marcados en rojo: falta algo por rellenar o corregir.</div>
       {% endif %}
 
-      <form method="POST" action="{{ url_for('seleccion_femenina.preinscripcion') }}" novalidate>
+      <form method="POST" action="{{ url_for('seleccion_femenina.preinscripcion') }}" id="preinscripcion-form" novalidate>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <div class="field {{ 'has-err' if errores and errores.nombre_completo }}">
           <label for="f_nombre">Nombre y apellidos</label>
           <input type="text" id="f_nombre" name="nombre_completo" autocomplete="name"
+                 placeholder="Ej. María García Pérez" minlength="3" required
                  value="{{ datos.get('nombre_completo','') if datos else '' }}">
           {% if errores and errores.nombre_completo %}<div class="err">{{ errores.nombre_completo }}</div>{% endif %}
         </div>
@@ -643,14 +729,18 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
         <div class="field-row two">
           <div class="field {{ 'has-err' if errores and errores.fecha_nacimiento }}">
             <label for="f_fnac">Fecha de nacimiento</label>
-            <input type="date" id="f_fnac" name="fecha_nacimiento"
+            <input type="date" id="f_fnac" name="fecha_nacimiento" max="{{ hoy }}" required
                    value="{{ datos.get('fecha_nacimiento','') if datos else '' }}">
             {% if errores and errores.fecha_nacimiento %}<div class="err">{{ errores.fecha_nacimiento }}</div>{% endif %}
           </div>
           <div class="field">
             <label for="f_localidad">Localidad / provincia</label>
-            <input type="text" id="f_localidad" name="localidad" autocomplete="address-level2"
+            <input type="text" id="f_localidad" name="localidad" autocomplete="off"
+                   placeholder="Escribe tu municipio o provincia..." required
+                   role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="loc-dropdown"
                    value="{{ datos.get('localidad','') if datos else '' }}">
+            <input type="hidden" id="f_localidad_codigo" name="localidad_codigo_provincia" value="">
+            <ul class="combo-dropdown" id="loc-dropdown" role="listbox" hidden></ul>
           </div>
         </div>
 
@@ -658,12 +748,14 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
           <div class="field {{ 'has-err' if errores and errores.email }}">
             <label for="f_email">Email de contacto</label>
             <input type="email" id="f_email" name="email" autocomplete="email"
+                   placeholder="nombre@ejemplo.com" required
                    value="{{ datos.get('email','') if datos else '' }}">
             {% if errores and errores.email %}<div class="err">{{ errores.email }}</div>{% endif %}
           </div>
           <div class="field {{ 'has-err' if errores and errores.telefono }}">
             <label for="f_telefono">Teléfono de contacto</label>
             <input type="tel" id="f_telefono" name="telefono" autocomplete="tel"
+                   placeholder="+34 600 000 000" pattern="[0-9+ ]{9,15}" required
                    value="{{ datos.get('telefono','') if datos else '' }}">
             {% if errores and errores.telefono %}<div class="err">{{ errores.telefono }}</div>{% endif %}
           </div>
@@ -671,7 +763,8 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
 
         <div class="field">
           <label for="f_exp">Experiencia previa</label>
-          <select id="f_exp" name="experiencia_previa">
+          <select id="f_exp" name="experiencia_previa" required>
+            <option value="" disabled {% if not datos %}selected{% endif %}>Selecciona una opción...</option>
             {% for key, label in experiencia_opciones %}
             <option value="{{ key }}" {% if datos and datos.get('experiencia_previa') == key %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
@@ -679,12 +772,15 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
         </div>
 
         <div class="field">
-          <label for="f_motiv">Motivación breve <span style="text-transform:none;font-weight:400">(opcional)</span></label>
+          <div class="motiv-head">
+            <label for="f_motiv">Motivación breve <span class="optional">(opcional)</span></label>
+            <span class="motiv-count" id="motiv-count">0/600</span>
+          </div>
           <textarea id="f_motiv" name="motivacion" maxlength="600">{{ datos.get('motivacion','') if datos else '' }}</textarea>
         </div>
 
         <div class="check-field">
-          <input type="checkbox" id="f_privacidad" name="acepta_privacidad" value="1"
+          <input type="checkbox" id="f_privacidad" name="acepta_privacidad" value="1" required
                  {% if datos and datos.get('acepta_privacidad') %}checked{% endif %}>
           <label for="f_privacidad">
             He leído y acepto la <a class="privacy-link" href="{{ url_for('seleccion_femenina.privacidad') }}" target="_blank" rel="noopener">política de privacidad</a>.
@@ -692,7 +788,10 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
           </label>
         </div>
 
-        <button type="submit" class="btn btn-primary btn-block"><i class="bi bi-send-fill"></i>Enviar preinscripción</button>
+        <button type="submit" class="btn btn-primary btn-block" id="preinscripcion-submit">
+          <span class="spinner" aria-hidden="true"></span>
+          <i class="bi bi-send-fill"></i><span class="btn-label-text">Enviar preinscripción</span>
+        </button>
       </form>
     </div>
   </div>
@@ -708,13 +807,13 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
       <div class="logo-chip"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_motorsport_iberica.png') }}" alt="Motorsport Ibérica"></div>
       <div class="logo-chip"><img class="needs-invert" src="{{ url_for('static', filename='img/feeling_experience/logo_completo.png') }}" alt="Feeling Experience"></div>
       <div class="logo-chip lg"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_rfeda.png') }}" alt="RFEDA · Comisión Mujer y Motor"></div>
+      <div class="logo-chip"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_yacar.png') }}" alt="Yacar Racing"></div>
     </div>
     <div class="footer-links">
       <a href="{{ url_for('seleccion_femenina.privacidad') }}" target="_blank" rel="noopener">Política de privacidad</a>
-      <a href="#" onclick="return false">Bases legales</a>
-      <a href="mailto:seleccionfemenina@autoclubladehesa.com">Contacto</a>
+      <a href="{{ url_for('seleccion_femenina.bases_legales') }}" target="_blank" rel="noopener">Bases legales</a>
     </div>
-    <p class="footer-legal">© 2026 Autoclub La Dehesa. Proyecto impulsado por la Delegación de Igualdad de la Junta de Comunidades de Castilla-La Mancha.</p>
+    <p class="footer-legal">© 2026 Autoclub La Dehesa.</p>
   </div>
 </footer>
 
@@ -744,6 +843,159 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
         if (other !== item) other.open = false;
       });
     });
+  });
+})();
+
+(function () {
+  // Combobox de localidad: municipios capitales de provincia de España
+  // (dataset estático de ejemplo; en el futuro se puede sustituir por una
+  // consulta a un listado oficial de municipios/API).
+  var MUNICIPIOS = [
+    {n:"Vitoria-Gasteiz", p:"Álava", c:"01"}, {n:"Albacete", p:"Albacete", c:"02"},
+    {n:"Alicante", p:"Alicante", c:"03"}, {n:"Almería", p:"Almería", c:"04"},
+    {n:"Ávila", p:"Ávila", c:"05"}, {n:"Badajoz", p:"Badajoz", c:"06"},
+    {n:"Palma", p:"Illes Balears", c:"07"}, {n:"Barcelona", p:"Barcelona", c:"08"},
+    {n:"Burgos", p:"Burgos", c:"09"}, {n:"Cáceres", p:"Cáceres", c:"10"},
+    {n:"Cádiz", p:"Cádiz", c:"11"}, {n:"Castellón de la Plana", p:"Castellón", c:"12"},
+    {n:"Ciudad Real", p:"Ciudad Real", c:"13"}, {n:"Córdoba", p:"Córdoba", c:"14"},
+    {n:"A Coruña", p:"A Coruña", c:"15"}, {n:"Cuenca", p:"Cuenca", c:"16"},
+    {n:"Girona", p:"Girona", c:"17"}, {n:"Granada", p:"Granada", c:"18"},
+    {n:"Guadalajara", p:"Guadalajara", c:"19"}, {n:"Alcolea del Pinar", p:"Guadalajara", c:"19"},
+    {n:"Donostia-San Sebastián", p:"Gipuzkoa", c:"20"}, {n:"Huelva", p:"Huelva", c:"21"},
+    {n:"Huesca", p:"Huesca", c:"22"}, {n:"Jaén", p:"Jaén", c:"23"},
+    {n:"León", p:"León", c:"24"}, {n:"Lleida", p:"Lleida", c:"25"},
+    {n:"Logroño", p:"La Rioja", c:"26"}, {n:"Lugo", p:"Lugo", c:"27"},
+    {n:"Madrid", p:"Madrid", c:"28"}, {n:"Málaga", p:"Málaga", c:"29"},
+    {n:"Murcia", p:"Murcia", c:"30"}, {n:"Pamplona/Iruña", p:"Navarra", c:"31"},
+    {n:"Ourense", p:"Ourense", c:"32"}, {n:"Oviedo", p:"Asturias", c:"33"},
+    {n:"Palencia", p:"Palencia", c:"34"}, {n:"Las Palmas de Gran Canaria", p:"Las Palmas", c:"35"},
+    {n:"Pontevedra", p:"Pontevedra", c:"36"}, {n:"Salamanca", p:"Salamanca", c:"37"},
+    {n:"Santa Cruz de Tenerife", p:"Santa Cruz de Tenerife", c:"38"}, {n:"Santander", p:"Cantabria", c:"39"},
+    {n:"Segovia", p:"Segovia", c:"40"}, {n:"Sevilla", p:"Sevilla", c:"41"},
+    {n:"Soria", p:"Soria", c:"42"}, {n:"Tarragona", p:"Tarragona", c:"43"},
+    {n:"Teruel", p:"Teruel", c:"44"}, {n:"Toledo", p:"Toledo", c:"45"},
+    {n:"Valencia", p:"Valencia", c:"46"}, {n:"Valladolid", p:"Valladolid", c:"47"},
+    {n:"Bilbao", p:"Bizkaia", c:"48"}, {n:"Zamora", p:"Zamora", c:"49"},
+    {n:"Zaragoza", p:"Zaragoza", c:"50"}, {n:"Ceuta", p:"Ceuta", c:"51"},
+    {n:"Melilla", p:"Melilla", c:"52"}
+  ];
+
+  var input = document.getElementById('f_localidad');
+  if (!input) return;
+  var hiddenCodigo = document.getElementById('f_localidad_codigo');
+  var dropdown = document.getElementById('loc-dropdown');
+  var results = [];
+  var activeIndex = -1;
+  var debounceTimer = null;
+
+  function normalize(s) {
+    return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  }
+
+  function highlight(name, needle) {
+    var idx = normalize(name).indexOf(needle);
+    if (idx === -1) return name;
+    return name.slice(0, idx) + '<strong>' + name.slice(idx, idx + needle.length) + '</strong>' + name.slice(idx + needle.length);
+  }
+
+  function closeDropdown() {
+    dropdown.hidden = true;
+    dropdown.innerHTML = '';
+    activeIndex = -1;
+    input.setAttribute('aria-expanded', 'false');
+    input.removeAttribute('aria-activedescendant');
+  }
+
+  function selectOption(i) {
+    var m = results[i];
+    if (!m) return;
+    input.value = m.n + ' (' + m.p + ')';
+    hiddenCodigo.value = m.c;
+    closeDropdown();
+  }
+
+  function renderDropdown(needle) {
+    if (!results.length) { closeDropdown(); return; }
+    dropdown.innerHTML = '';
+    results.forEach(function (m, i) {
+      var li = document.createElement('li');
+      li.className = 'combo-option';
+      li.id = 'loc-opt-' + i;
+      li.setAttribute('role', 'option');
+      li.innerHTML = '<span>' + highlight(m.n, needle) + '</span><span class="combo-province">' + m.p + '</span>';
+      li.addEventListener('mousedown', function (e) { e.preventDefault(); selectOption(i); });
+      dropdown.appendChild(li);
+    });
+    activeIndex = -1;
+    dropdown.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+  }
+
+  function search(q) {
+    var needle = normalize(q);
+    results = MUNICIPIOS.filter(function (m) { return normalize(m.n).indexOf(needle) !== -1; }).slice(0, 6);
+    renderDropdown(needle);
+  }
+
+  function updateActive() {
+    Array.prototype.forEach.call(dropdown.children, function (li, i) {
+      li.classList.toggle('is-active', i === activeIndex);
+    });
+    if (activeIndex >= 0) {
+      input.setAttribute('aria-activedescendant', 'loc-opt-' + activeIndex);
+      dropdown.children[activeIndex].scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  input.addEventListener('input', function () {
+    hiddenCodigo.value = '';
+    clearTimeout(debounceTimer);
+    var q = input.value.trim();
+    if (q.length < 2) { closeDropdown(); return; }
+    debounceTimer = setTimeout(function () { search(q); }, 280);
+  });
+
+  input.addEventListener('keydown', function (e) {
+    if (dropdown.hidden) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeIndex = Math.min(activeIndex + 1, results.length - 1);
+      updateActive();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeIndex = Math.max(activeIndex - 1, 0);
+      updateActive();
+    } else if (e.key === 'Enter') {
+      if (activeIndex >= 0) { e.preventDefault(); selectOption(activeIndex); }
+    } else if (e.key === 'Tab') {
+      if (activeIndex >= 0) selectOption(activeIndex);
+    } else if (e.key === 'Escape') {
+      closeDropdown();
+    }
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.combo-wrap') && e.target !== input) closeDropdown();
+  });
+})();
+
+(function () {
+  var motiv = document.getElementById('f_motiv');
+  var motivCount = document.getElementById('motiv-count');
+  if (!motiv || !motivCount) return;
+  function updateCount() { motivCount.textContent = motiv.value.length + '/600'; }
+  motiv.addEventListener('input', updateCount);
+  updateCount();
+})();
+
+(function () {
+  var form = document.getElementById('preinscripcion-form');
+  var submitBtn = document.getElementById('preinscripcion-submit');
+  if (!form || !submitBtn) return;
+  form.addEventListener('submit', function () {
+    if (!form.checkValidity()) return;
+    submitBtn.disabled = true;
+    submitBtn.classList.add('is-loading');
   });
 })();
 </script>

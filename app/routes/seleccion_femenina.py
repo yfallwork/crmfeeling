@@ -20,7 +20,7 @@ seleccion_femenina_bp = Blueprint("seleccion_femenina", __name__)
 EDAD_MINIMA = 14
 EDAD_MAXIMA = 18
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-FECHA_PONENCIA = datetime(2026, 9, 3).date()
+FECHA_PONENCIA = datetime(2026, 9, 2).date()
 
 
 @seleccion_femenina_bp.route("/")
@@ -31,6 +31,7 @@ def landing():
         experiencia_opciones=EXPERIENCIA_PREVIA_OPCIONES,
         datos=None, errores=None,
         dias_ponencia=dias_ponencia if dias_ponencia >= 0 else None,
+        hoy=datetime.utcnow().date().isoformat(),
     )
 
 
@@ -79,6 +80,7 @@ def preinscripcion():
             experiencia_opciones=EXPERIENCIA_PREVIA_OPCIONES,
             datos=form, errores=errores,
             dias_ponencia=dias_ponencia if dias_ponencia >= 0 else None,
+            hoy=datetime.utcnow().date().isoformat(),
         ), 400
 
     preinscripcion = PreinscripcionCarcross(
@@ -112,3 +114,8 @@ def gracias():
 @seleccion_femenina_bp.route("/privacidad")
 def privacidad():
     return render_template("seleccion_femenina/privacidad.html")
+
+
+@seleccion_femenina_bp.route("/bases-legales")
+def bases_legales():
+    return render_template("seleccion_femenina/bases_legales.html")

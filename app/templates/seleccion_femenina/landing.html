@@ -87,27 +87,27 @@ a { color: var(--pink); }
    mobile; on wide screens content stays centered with a wider max-width. */
 .hero {
   position: relative;
-  min-height: 100vh; max-height: 100vh;
-  min-height: 100svh; max-height: 100svh;
+  min-height: 100vh;
+  min-height: 100svh;
   display: flex;
   background:
     linear-gradient(180deg, rgba(13,13,13,.6) 0%, rgba(13,13,13,.92) 70%, var(--black) 100%),
     url('{{ url_for("static", filename="img/seleccion_femenina/hero_bg.jpg") }}') center/cover no-repeat;
   color: #fff;
   /* Padding y huecos internos del hero escalan con la ALTURA del viewport
-     (vh), no con el ancho: así, en portátiles de escritorio con poca
-     altura disponible, todo el bloque se compacta automáticamente y cabe
-     sin scroll, en vez de depender del overflow-y de abajo como red de
-     seguridad para casos extremos. */
+     (vh), no con el ancho: así en pantallas bajas todo el bloque se
+     compacta automáticamente y cabe en una sola pantalla. Solo hay
+     min-height (no max-height): si aun así el contenido no cupiera en
+     algún caso extremo, el hero simplemente crece un poco más de una
+     pantalla y el usuario sigue haciendo scroll normal de la página, en
+     vez de quedar atrapado en un scroll interno del hero. */
   --hero-gap-xs: clamp(.4rem, 1vh, .7rem);
   --hero-gap-s:  clamp(.5rem, 1.6vh, 1.1rem);
   --hero-gap-m:  clamp(.7rem, 2.2vh, 1.6rem);
   --hero-gap-l:  clamp(.9rem, 3vh, 2.1rem);
   padding-top: calc(clamp(1rem, 4vh, 2.25rem) + env(safe-area-inset-top));
   padding-bottom: calc(clamp(1.25rem, 4.5vh, 2.5rem) + env(safe-area-inset-bottom));
-  overflow-x: clip;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow: clip;
 }
 .hero::before {
   content: "";

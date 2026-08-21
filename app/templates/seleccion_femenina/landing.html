@@ -147,15 +147,38 @@ a { color: var(--pink); }
 }
 .hero-countdown strong { color: #ff5468; font-size: 1.1em; }
 
-/* Logos strip — intrinsic wrap, no query needed. No boxes: logos sit
-   directly on the dark surface behind them. */
+/* Logos strip — en móvil, carrusel automático de una sola fila (mismo
+   truco del carrusel de fotos: se duplica el set de logos en el HTML y se
+   desliza en bucle) para no sumar filas envueltas a la altura del hero.
+   Desde 700px hay hueco de sobra: vuelve a ser una fila centrada estática
+   y se oculta el set duplicado. No boxes: logos sit directly on the dark
+   surface behind them. */
 .logos-strip {
-  display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
-  gap: var(--hero-gap-m) var(--hero-gap-l); margin-top: var(--hero-gap-l);
+  margin-top: var(--hero-gap-l); overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+.logos-track {
+  display: flex; align-items: center; width: max-content;
+  gap: var(--hero-gap-m) var(--hero-gap-l);
+  animation: logos-scroll 20s linear infinite;
+}
+.logos-strip:hover .logos-track,
+.logos-strip:active .logos-track { animation-play-state: paused; }
+@keyframes logos-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@media (min-width: 700px) {
+  .logos-strip { overflow: visible; -webkit-mask-image: none; mask-image: none; }
+  .logos-track {
+    flex-wrap: wrap; justify-content: center; width: auto; animation: none; transform: none;
+  }
+  .logos-track .logo-chip:nth-child(n+7) { display: none; }
 }
 .logo-chip {
   display: flex; align-items: center; justify-content: center;
-  height: 32px; opacity: .92;
+  height: 32px; opacity: .92; flex-shrink: 0;
 }
 .logo-chip img { height: 30px; width: auto; opacity: .92; }
 .logo-chip img.needs-invert { filter: brightness(0) invert(1); opacity: .9; }
@@ -440,6 +463,7 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
   .photo-strip { animation: none !important; overflow-x: auto; }
+  .logos-track { animation: none !important; }
 }
 </style>
 </head>
@@ -468,13 +492,21 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
     </div>
     {% endif %}
 
-    <div class="logos-strip">
-      <div class="logo-chip lg"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_jccm.png') }}" alt="JCCM · Delegación de Igualdad"></div>
-      <div class="logo-chip lg"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_instituto_mujer.png') }}" alt="Instituto de la Mujer CLM"></div>
-      <div class="logo-chip"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_motorsport_iberica.png') }}" alt="Motorsport Ibérica"></div>
-      <div class="logo-chip"><img class="needs-invert" src="{{ url_for('static', filename='img/feeling_experience/logo_completo.png') }}" alt="Feeling Experience"></div>
-      <div class="logo-chip lg"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_rfeda.png') }}" alt="RFEDA · Comisión Mujer y Motor"></div>
-      <div class="logo-chip"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_yacar.png') }}" alt="Yacar Racing"></div>
+    <div class="logos-strip" aria-hidden="true">
+      <div class="logos-track">
+        <div class="logo-chip lg"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_jccm.png') }}" alt="JCCM · Delegación de Igualdad"></div>
+        <div class="logo-chip lg"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_instituto_mujer.png') }}" alt="Instituto de la Mujer CLM"></div>
+        <div class="logo-chip"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_motorsport_iberica.png') }}" alt="Motorsport Ibérica"></div>
+        <div class="logo-chip"><img class="needs-invert" src="{{ url_for('static', filename='img/feeling_experience/logo_completo.png') }}" alt="Feeling Experience"></div>
+        <div class="logo-chip lg"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_rfeda.png') }}" alt="RFEDA · Comisión Mujer y Motor"></div>
+        <div class="logo-chip"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_yacar.png') }}" alt="Yacar Racing"></div>
+        <div class="logo-chip lg"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_jccm.png') }}" alt="" loading="lazy"></div>
+        <div class="logo-chip lg"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_instituto_mujer.png') }}" alt="" loading="lazy"></div>
+        <div class="logo-chip"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_motorsport_iberica.png') }}" alt="" loading="lazy"></div>
+        <div class="logo-chip"><img class="needs-invert" src="{{ url_for('static', filename='img/feeling_experience/logo_completo.png') }}" alt="" loading="lazy"></div>
+        <div class="logo-chip lg"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_rfeda.png') }}" alt="" loading="lazy"></div>
+        <div class="logo-chip"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_yacar.png') }}" alt="" loading="lazy"></div>
+      </div>
     </div>
   </div>
 </header>

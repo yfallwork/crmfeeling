@@ -162,9 +162,8 @@ a { color: var(--pink); }
   display: flex; align-items: center; width: max-content;
   gap: var(--hero-gap-m) var(--hero-gap-l);
   animation: logos-scroll 20s linear infinite;
+  pointer-events: none; /* siempre en movimiento: ni tap ni hover lo pausan */
 }
-.logos-strip:hover .logos-track,
-.logos-strip:active .logos-track { animation-play-state: paused; }
 @keyframes logos-scroll {
   from { transform: translateX(0); }
   to   { transform: translateX(-50%); }

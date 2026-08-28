@@ -1,0 +1,76 @@
+{% extends "autoclub/base.html" %}
+{% block title %}Eventos — AutoClub{% endblock %}
+{% block page_title %}Eventos{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.eventos_nuevo') }}" class="btn btn-primary btn-sm">
+  <i class="bi bi-plus-lg me-1"></i><span class="btn-label">Nuevo evento</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Evento</th>
+          <th>Fecha</th>
+          <th>Lugar</th>
+          <th>Entradas</th>
+          <th>Válidas</th>
+          <th>Escaneadas</th>
+          <th>Estado</th>
+          <th style="width:70px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in eventos %}
+        <tr>
+          <td>
+            <a href="{{ url_for('autoclub.eventos_detalle', id=e.id) }}" class="fw-semibold text-sm text-decoration-none">
+              {{ e.nombre }}
+            </a>
+          </td>
+          <td class="text-sm text-muted">{{ e.fecha.strftime('%d/%m/%Y') if e.fecha else '—' }}</td>
+          <td class="text-sm text-muted">{{ e.lugar or '—' }}</td>
+          <td class="text-sm">{{ e.total_entradas }}</td>
+          <td class="text-sm">{{ e.total_validas }}</td>
+          <td class="text-sm">{{ e.total_escaneadas }}</td>
+          <td>
+            {% if e.activo %}
+            <span class="badge" style="background:#16a34a18;color:#16a34a;font-weight:700">
+              <i class="bi bi-broadcast me-1"></i>Activo
+            </span>
+            {% else %}
+            <span class="badge" style="background:#6b728018;color:#6b7280;font-weight:700">Inactivo</span>
+            {% endif %}
+          </td>
+          <td class="text-nowrap">
+            <a href="{{ url_for('autoclub.eventos_escanear', id=e.id) }}" class="btn btn-xs btn-outline-secondary" title="Escanear entradas">
+              <i class="bi bi-qr-code-scan"></i>
+            </a>
+            <form method="POST" action="{{ url_for('autoclub.eventos_eliminar', id=e.id) }}" class="d-inline"
+                  onsubmit="return confirm('¿Eliminar «{{ e.nombre }}» y todas sus entradas? Esta acción no se puede deshacer.')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-xs btn-outline-danger" title="Eliminar evento">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8">
+            <div class="empty-state">
+              <i class="bi bi-ticket-perforated"></i>
+              <p>No hay eventos todavía.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

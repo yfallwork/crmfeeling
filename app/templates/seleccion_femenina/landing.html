@@ -292,10 +292,7 @@ a { color: var(--pink); }
 }
 
 /* ── UBICACIÓN ────────────────────────────────────────── */
-.loc-grid { display: grid; grid-template-columns: 1fr; gap: var(--space-m); margin-top: var(--space-m); }
-@media (min-width: 700px) {
-  .loc-grid { grid-template-columns: repeat(2, 1fr); }
-}
+.loc-grid { display: grid; grid-template-columns: 1fr; gap: var(--space-m); margin-top: var(--space-m); max-width: 480px; margin-inline: auto; }
 .loc-card {
   background: #fff; border-radius: 18px; overflow: hidden;
   box-shadow: 0 12px 30px -16px rgba(0,0,0,.25);
@@ -481,13 +478,13 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
     <a href="#preinscripcion" class="btn btn-primary"><i class="bi bi-flag-fill"></i>Quiero inscribirme</a>
     <p class="hero-cta-note">Sin experiencia en competición ni licencia federativa. Solo motivación y ganas de subirte a un coche de carreras.</p>
 
-    {% if dias_ponencia is not none %}
+    {% if dias_presentacion is not none %}
     <div class="hero-countdown">
       <i class="bi bi-hourglass-split"></i>
-      {% if dias_ponencia > 0 %}
-        Quedan <strong>{{ dias_ponencia }} día{{ 's' if dias_ponencia != 1 }}</strong> para la ponencia inaugural
+      {% if dias_presentacion > 0 %}
+        Quedan <strong>{{ dias_presentacion }} día{{ 's' if dias_presentacion != 1 }}</strong> para la presentación del proyecto
       {% else %}
-        <strong>¡Ya está aquí!</strong> Hoy es la ponencia inaugural
+        <strong>¡Ya está aquí!</strong> Hoy es la presentación del proyecto
       {% endif %}
     </div>
     {% endif %}
@@ -595,14 +592,14 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
         <div class="tl-marker">2</div>
         <div class="tl-content">
           <div class="tl-date">2 de septiembre de 2026</div>
-          <h3>Ponencia inaugural</h3>
-          <p>Charla motivacional con deportistas de referencia. Al finalizar, comienzan las entrevistas.</p>
+          <h3>Presentación del proyecto</h3>
+          <p>Acto de presentación con deportistas de referencia. La preinscripción es de cara a las entrevistas, que comienzan el 13 de septiembre.</p>
         </div>
       </div>
       <div class="tl-step">
         <div class="tl-marker">3</div>
         <div class="tl-content">
-          <div class="tl-date">2 y 13 de septiembre de 2026</div>
+          <div class="tl-date">A partir del 13 de septiembre de 2026</div>
           <h3>Entrevistas personales</h3>
           <p>10 minutos para conocerte: motivación, actitud y proyección. No es un examen técnico.</p>
         </div>
@@ -635,29 +632,13 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
           <iframe src="https://www.google.com/maps?q=Circuito+La+Dehesa+Alcolea+del+Pinar+Guadalajara&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Mapa: Circuito La Dehesa"></iframe>
         </div>
         <div class="loc-card-body">
-          <span class="loc-tag">Prueba práctica</span>
+          <span class="loc-tag">Entrevistas y prueba práctica</span>
           <h3>Circuito La Dehesa</h3>
           <p>Alcolea del Pinar, Guadalajara</p>
           <div class="loc-actions">
             <a class="loc-btn" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=Circuito+La+Dehesa+Alcolea+del+Pinar+Guadalajara"><i class="bi bi-signpost-split-fill"></i>Google Maps</a>
             <a class="loc-btn" target="_blank" rel="noopener" href="https://waze.com/ul?q=Circuito+La+Dehesa+Alcolea+del+Pinar+Guadalajara&navigate=yes"><i class="bi bi-cursor-fill"></i>Waze</a>
             <a class="loc-btn" target="_blank" rel="noopener" href="https://maps.apple.com/?q=Circuito+La+Dehesa+Alcolea+del+Pinar+Guadalajara"><i class="bi bi-map-fill"></i>Apple Maps</a>
-          </div>
-        </div>
-      </div>
-
-      <div class="loc-card">
-        <div class="loc-card-map">
-          <iframe src="https://www.google.com/maps?q=Consejer%C3%ADa+de+Educaci%C3%B3n+Cultura+y+Deportes+Calle+Juan+Bautista+Topete+1+19001+Guadalajara&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Mapa: Consejería de Educación, Cultura y Deportes"></iframe>
-        </div>
-        <div class="loc-card-body">
-          <span class="loc-tag">Ponencias</span>
-          <h3>Consejería de Educación, Cultura y Deportes</h3>
-          <p>C. Juan Bautista Topete, 1, 3, 19001 Guadalajara</p>
-          <div class="loc-actions">
-            <a class="loc-btn" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=Consejer%C3%ADa+de+Educaci%C3%B3n+Cultura+y+Deportes+Calle+Juan+Bautista+Topete+1+19001+Guadalajara"><i class="bi bi-signpost-split-fill"></i>Google Maps</a>
-            <a class="loc-btn" target="_blank" rel="noopener" href="https://waze.com/ul?q=Calle+Juan+Bautista+Topete+1+19001+Guadalajara&navigate=yes"><i class="bi bi-cursor-fill"></i>Waze</a>
-            <a class="loc-btn" target="_blank" rel="noopener" href="https://maps.apple.com/?q=Calle+Juan+Bautista+Topete+1+19001+Guadalajara"><i class="bi bi-map-fill"></i>Apple Maps</a>
           </div>
         </div>
       </div>
@@ -679,13 +660,6 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
           </span>
           <span class="referente-name">Mónica Plaza</span>
         </a>
-        <a class="referente" href="https://www.instagram.com/caoba.lmt/" target="_blank" rel="noopener">
-          <span class="referente-photo-wrap">
-            <img class="referente-photo" src="{{ url_for('static', filename='img/seleccion_femenina/referente_lucia.jpg') }}" alt="Lucía Moratilla">
-            <i class="bi bi-instagram referente-ig"></i>
-          </span>
-          <span class="referente-name">Lucía Moratilla</span>
-        </a>
         <a class="referente" href="https://www.instagram.com/sarita98garcia/" target="_blank" rel="noopener">
           <span class="referente-photo-wrap">
             <img class="referente-photo" src="{{ url_for('static', filename='img/seleccion_femenina/referente_sara.jpg') }}" alt="Sara García">
@@ -694,7 +668,7 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
           <span class="referente-name">Sara García</span>
         </a>
       </div>
-      <p>Compartirán su experiencia y trayectoria en la ponencia inaugural.</p>
+      <p>Colaborarán aportando su experiencia y trayectoria en distintas fases del proyecto.</p>
     </div>
   </div>
 </section>
@@ -743,7 +717,7 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
   <div class="wrap-narrow reveal">
     <span class="eyebrow">Último paso</span>
     <h2 style="color:#fff">Preinscríbete <span class="accent">ahora</span></h2>
-    <p style="color:rgba(255,255,255,.7)">Es rápido y solo es el primer paso. Si tu perfil encaja, te contactaremos con toda la información sobre la ponencia y las entrevistas.</p>
+    <p style="color:rgba(255,255,255,.7)">Es rápido y solo es el primer paso. Si tu perfil encaja, te contactaremos con toda la información sobre la presentación del proyecto y las entrevistas.</p>
 
     <div class="form-card">
       {% if errores %}

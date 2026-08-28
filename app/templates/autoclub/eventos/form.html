@@ -1,0 +1,61 @@
+{% extends "autoclub/base.html" %}
+{% block title %}{{ 'Editar' if evento else 'Nuevo' }} evento — AutoClub{% endblock %}
+{% block page_title %}{{ 'Editar' if evento else 'Nuevo' }} evento{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.eventos_detalle', id=evento.id) if evento else url_for('autoclub.eventos_lista') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Cancelar</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:560px">
+  <div class="card-body p-4">
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="mb-3">
+        <label class="form-label text-sm fw-semibold">Nombre del evento</label>
+        <input type="text" name="nombre" class="form-control" required
+               placeholder="Ej. V Autocross La Dehesa"
+               value="{{ evento.nombre if evento else 'V Autocross La Dehesa' }}">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label text-sm fw-semibold">Fecha</label>
+        <input type="date" name="fecha" class="form-control"
+               value="{{ evento.fecha.isoformat() if evento and evento.fecha else '' }}">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label text-sm fw-semibold">Lugar</label>
+        <input type="text" name="lugar" class="form-control" placeholder="Circuito La Dehesa, Alcolea del Pinar"
+               value="{{ evento.lugar if evento else '' }}">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label text-sm fw-semibold">IDs de producto de WooCommerce</label>
+        <input type="text" name="woo_producto_ids" class="form-control"
+               placeholder="Ej. 354857, 354863, 354864"
+               value="{{ evento.woo_producto_ids if evento else '354857, 354863, 354864' }}">
+        <div class="text-xs text-muted mt-1">
+          Solo los pedidos de estos productos se asignarán a este evento. Sepáralos por comas.
+          Déjalo vacío para que este evento reciba los pedidos por defecto (solo recomendable si es el único evento activo).
+        </div>
+      </div>
+
+      <div class="form-check mb-4">
+        <input class="form-check-input" type="checkbox" name="activo" value="1" id="activo"
+               {% if not evento or evento.activo %}checked{% endif %}>
+        <label class="form-check-label text-sm" for="activo">
+          Marcar como evento activo (respaldo para pedidos sin producto configurado en ningún evento)
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-lg me-1"></i>{{ 'Guardar cambios' if evento else 'Crear evento' }}
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

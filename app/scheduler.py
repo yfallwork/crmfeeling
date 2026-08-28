@@ -107,6 +107,14 @@ def init_scheduler(app):
         misfire_grace_time=300,
     )
 
+    _scheduler.add_job(
+        func=lambda: _job_eventos_woo_sync(app),
+        trigger=IntervalTrigger(minutes=10),
+        id="eventos_woo_sync_periodico",
+        replace_existing=True,
+        misfire_grace_time=300,
+    )
+
     _scheduler.start()
     atexit.register(_scheduler.shutdown)
 
@@ -281,6 +289,24 @@ def _job_woo_sync(app):
                          f"{stats['actualizadas']} actualizadas, {stats['errores']} errores")
         except Exception as e:
             log.error(f"Error en job woo_sync: {e}")
+
+
+def _job_eventos_woo_sync(app):
+    """Red de seguridad para el webhook de entradas/eventos: re-sincroniza
+    pedidos recientes cada pocos minutos por si algún webhook puntual no
+    llegó. max_pages moderado — cubre lo reciente más el histórico si no
+    se ha sincronizado nunca (barato, son pocos pedidos por evento)."""
+    with app.app_context():
+        try:
+            if not (app.config.get("EVENTOS_WOO_CONSUMER_KEY") and app.config.get("EVENTOS_WOO_CONSUMER_SECRET")):
+                return  # integración no configurada en este entorno
+            from app.services.evento_sync import sync_pedidos_evento
+            stats = sync_pedidos_evento(max_pages=5)
+            if stats["nuevas"] or stats["actualizadas"] or stats["errores"]:
+                log.info(f"Job eventos_woo_sync: {stats['nuevas']} nuevas, "
+                         f"{stats['actualizadas']} actualizadas, {stats['errores']} errores")
+        except Exception as e:
+            log.error(f"Error en job eventos_woo_sync: {e}")
 
 
 def _job_campanas(app):

@@ -1,0 +1,196 @@
+{% extends "autoclub/base.html" %}
+{% block title %}{{ evento.nombre }} — AutoClub{% endblock %}
+{% block page_title %}{{ evento.nombre }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.eventos_escanear', id=evento.id) }}" class="btn btn-primary btn-sm">
+  <i class="bi bi-qr-code-scan me-1"></i><span class="btn-label">Escanear entradas</span>
+</a>
+<form method="POST" action="{{ url_for('autoclub.eventos_sincronizar', id=evento.id) }}" class="d-inline">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button type="submit" class="btn btn-sm btn-outline-secondary" {{ 'disabled' if not woo_configurado }}>
+    <i class="bi bi-arrow-repeat me-1"></i><span class="btn-label">Sincronizar ahora</span>
+  </button>
+</form>
+<a href="{{ url_for('autoclub.eventos_editar', id=evento.id) }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-pencil me-1"></i><span class="btn-label">Editar</span>
+</a>
+{% if not evento.activo %}
+<form method="POST" action="{{ url_for('autoclub.eventos_activar', id=evento.id) }}" class="d-inline">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button type="submit" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-broadcast me-1"></i><span class="btn-label">Marcar como activo</span>
+  </button>
+</form>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+{% if not woo_configurado %}
+<div class="alert alert-warning d-flex align-items-center gap-2 mb-3">
+  <i class="bi bi-exclamation-triangle-fill"></i>
+  <div>
+    Falta configurar la conexión con el WooCommerce de entradas
+    (<code>EVENTOS_WOO_BASE_URL</code>, <code>EVENTOS_WOO_CONSUMER_KEY</code>,
+    <code>EVENTOS_WOO_CONSUMER_SECRET</code> en el <code>.env</code>). Sin esto no se
+    podrán aprobar pedidos ni sincronizar desde aquí, aunque el webhook seguirá recibiendo pedidos igualmente.
+  </div>
+</div>
+{% endif %}
+
+<div class="text-xs text-muted mb-3">
+  {% if evento.producto_ids_lista %}
+  <i class="bi bi-funnel-fill me-1"></i>Solo pedidos de los productos: <strong>{{ evento.woo_producto_ids }}</strong>
+  {% else %}
+  <i class="bi bi-exclamation-circle me-1"></i>Sin productos configurados — recibe los pedidos por defecto solo si es el evento activo.
+  {% endif %}
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('autoclub.eventos_detalle', id=evento.id) }}" class="text-decoration-none">
+      <div class="card p-3 text-center">
+        <div class="text-xs text-muted text-uppercase fw-semibold">Entradas</div>
+        <div class="text-xl fw-bold">{{ evento.total_entradas }}</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('autoclub.eventos_detalle', id=evento.id, validas=1) }}" class="text-decoration-none" title="Ver solo las entradas aprobadas — las que ya tienen QR y hay que leer en el acceso">
+      <div class="card p-3 text-center" {% if validas %}style="border:2px solid #16a34a"{% endif %}>
+        <div class="text-xs text-muted text-uppercase fw-semibold">Válidas</div>
+        <div class="text-xl fw-bold" style="color:#16a34a">{{ evento.total_validas }}</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('autoclub.eventos_detalle', id=evento.id, validas=1, escaneadas=1) }}" class="text-decoration-none">
+      <div class="card p-3 text-center" {% if validas and escaneadas == '1' %}style="border:2px solid #1d4ed8"{% endif %}>
+        <div class="text-xs text-muted text-uppercase fw-semibold">Escaneadas</div>
+        <div class="text-xl fw-bold" style="color:#1d4ed8">{{ evento.total_escaneadas }}</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('autoclub.eventos_detalle', id=evento.id, validas=1, escaneadas=0) }}" class="text-decoration-none" title="Válidas que todavía no han pasado por el acceso">
+      <div class="card p-3 text-center" {% if validas and escaneadas == '0' %}style="border:2px solid #d97706"{% endif %}>
+        <div class="text-xs text-muted text-uppercase fw-semibold">Por escanear</div>
+        <div class="text-xl fw-bold" style="color:#d97706">{{ evento.total_validas - evento.total_escaneadas }}</div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="filter-bar">
+    <form method="GET" class="d-flex align-items-center gap-2 flex-wrap w-100">
+      {% if validas %}<input type="hidden" name="validas" value="1">{% endif %}
+      {% if escaneadas %}<input type="hidden" name="escaneadas" value="{{ escaneadas }}">{% endif %}
+      <div class="input-group input-group-sm" style="max-width:280px">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" class="form-control" placeholder="Nombre, email, nº pedido…" value="{{ q }}" />
+      </div>
+      <select name="estado" class="form-select form-select-sm" style="max-width:180px" onchange="this.form.submit()" {{ 'disabled' if validas }}>
+        <option value="" {% if not estado %}selected{% endif %}>Todos los estados</option>
+        {% for e in estados_presentes %}
+        <option value="{{ e }}" {% if estado == e %}selected{% endif %}>{{ estado_labels.get(e, e) }}</option>
+        {% endfor %}
+      </select>
+      <select name="tipo" class="form-select form-select-sm" style="max-width:260px" onchange="this.form.submit()">
+        <option value="" {% if not tipo %}selected{% endif %}>Todos los tipos de entrada</option>
+        {% for t in tipos_presentes %}
+        <option value="{{ t }}" {% if tipo == t %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
+      {% if q or estado or tipo or validas or escaneadas %}
+      <a href="{{ url_for('autoclub.eventos_detalle', id=evento.id) }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-x me-1"></i>Limpiar
+      </a>
+      {% endif %}
+      {% if validas %}
+      <span class="badge" style="background:#16a34a18;color:#16a34a;font-weight:700">
+        <i class="bi bi-funnel-fill me-1"></i>Solo válidas{% if escaneadas == '1' %} — escaneadas{% elif escaneadas == '0' %} — por escanear{% endif %}
+      </span>
+      {% endif %}
+      <div class="ms-auto"><span class="text-xs text-muted">{{ entradas | length }} entrada/s</span></div>
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Tipo de pase</th>
+          <th>Nº pedido</th>
+          <th>Fecha del pedido</th>
+          <th>Estado</th>
+          <th>Detalles</th>
+          <th>Escaneada</th>
+          <th style="width:120px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for en in entradas %}
+        <tr>
+          <td class="text-sm">
+            <a href="{{ url_for('autoclub.eventos_entrada_detalle', id=evento.id, eid=en.id) }}" class="fw-semibold text-decoration-none">
+              {{ en.nombre_cliente or '—' }}
+            </a>
+            <div class="text-xs text-muted">{{ en.email_cliente }}</div>
+          </td>
+          <td class="text-sm text-muted">{{ en.tipo_pase or '—' }}</td>
+          <td class="text-sm text-muted">{{ en.woo_order_numero or en.woo_order_id or '—' }}</td>
+          <td class="text-sm text-muted">{{ en.fecha_pedido.strftime('%d/%m/%Y %H:%M') if en.fecha_pedido else '—' }}</td>
+          <td>
+            {% if en.es_valida %}
+            <span class="badge" style="background:#16a34a18;color:#16a34a;font-weight:700">{{ en.estado_label }}</span>
+            {% else %}
+            <span class="badge" style="background:#d9770618;color:#d97706;font-weight:700">{{ en.estado_label }}</span>
+            {% endif %}
+          </td>
+          <td class="text-xs text-muted">
+            {% if en.dni_prensa or en.medio_comunicacion or en.cargo_prensa %}
+              <div>{{ en.medio_comunicacion or '—' }}</div>
+              {% if en.cargo_prensa %}<div>{{ en.cargo_prensa }}</div>{% endif %}
+            {% elif en.institucion or en.cargo_institucional %}
+              <div>{{ en.institucion or '—' }}</div>
+              {% if en.cargo_institucional %}<div>{{ en.cargo_institucional }}</div>{% endif %}
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if en.escaneada %}
+            <span class="text-xs" style="color:#1d4ed8"><i class="bi bi-check-circle-fill me-1"></i>{{ en.escaneada_en.strftime('%d/%m %H:%M') if en.escaneada_en else '' }}</span>
+            {% else %}
+            <span class="text-xs text-muted">Sin escanear</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if not en.es_valida and en.woo_order_id %}
+            <form method="POST" action="{{ url_for('autoclub.eventos_entrada_aprobar', id=evento.id, eid=en.id) }}"
+                  onsubmit="return confirm('¿Aprobar este pedido en WooCommerce? Se generará el QR y se avisará al cliente por email.')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-xs btn-outline-primary" {{ 'disabled' if not woo_configurado }}>
+                <i class="bi bi-check-lg me-1"></i>Aprobar
+              </button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8">
+            <div class="empty-state">
+              <i class="bi bi-ticket-perforated"></i>
+              <p>No hay entradas{% if q or estado or tipo or validas %} con ese filtro{% endif %} todavía.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

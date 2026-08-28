@@ -174,6 +174,63 @@ def webhook():
     return jsonify({"ok": True, "stats": stats})
 
 
+@woo_bp.route("/webhook-eventos", methods=["POST"])
+@csrf.exempt
+def webhook_eventos():
+    """
+    Endpoint para los webhooks del WooCommerce de ENTRADAS/EVENTOS (tienda
+    distinta a la de experiencias, ej. Autocross La Dehesa). Configura en
+    ese WooCommerce → Ajustes → Avanzado → Webhooks:
+      - Tema: Pedido creado / Pedido actualizado
+      - URL: https://tu-servidor.com/woocommerce/webhook-eventos
+      - Secreto: el valor de EVENTOS_WOO_WEBHOOK_SECRET en .env
+
+    Exento de CSRF por ser una llamada servidor-a-servidor; la autenticidad
+    se verifica con la firma HMAC de abajo.
+    """
+    secret = current_app.config.get("EVENTOS_WOO_WEBHOOK_SECRET", "")
+    if not secret:
+        current_app.logger.error(
+            "Webhook eventos rechazado: EVENTOS_WOO_WEBHOOK_SECRET no está configurado."
+        )
+        return jsonify({"ok": False, "error": "Webhook no configurado"}), 503
+
+    sig_header = request.headers.get("X-WC-Webhook-Signature", "")
+    payload    = request.get_data()
+    expected   = base64.b64encode(
+        hmac.new(secret.encode("utf-8"), payload, hashlib.sha256).digest()
+    ).decode()
+    if not sig_header or not hmac.compare_digest(sig_header, expected):
+        current_app.logger.warning("Webhook eventos: firma inválida")
+        return jsonify({"ok": False, "error": "Firma invalida"}), 401
+
+    topic = request.headers.get("X-WC-Webhook-Topic", "")
+    if not topic.startswith("order."):
+        return jsonify({"ok": True, "skip": True})
+
+    order = request.get_json(force=True, silent=True)
+    if not order:
+        return jsonify({"ok": False, "error": "Sin datos"}), 400
+
+    try:
+        from app.services.evento_sync import procesar_pedido_evento
+        from app.services.log_service import registrar_log
+        entrada = procesar_pedido_evento(order)
+        db.session.commit()
+        registrar_log(
+            "webhook", "entrada_evento", entrada.id if entrada else None,
+            detalle=f"Webhook {topic} pedido #{order.get('id')} → {entrada.estado_pedido if entrada else 'sin evento activo'}",
+            origen="webhook",
+        )
+        current_app.logger.info(f"Webhook eventos {topic} pedido #{order.get('id')}")
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Webhook eventos error: {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+    return jsonify({"ok": True})
+
+
 @woo_bp.route("/experiencias", methods=["GET", "POST"])
 @login_required
 def experiencias():

@@ -1,0 +1,172 @@
+{% extends "autoclub/base.html" %}
+{% block title %}{{ entrada.nombre_cliente or 'Entrada' }} — {{ evento.nombre }} — AutoClub{% endblock %}
+{% block page_title %}Entrada de {{ entrada.nombre_cliente or '—' }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.eventos_detalle', id=evento.id) }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Volver al evento</span>
+</a>
+{% if not entrada.es_valida and entrada.woo_order_id %}
+<form method="POST" action="{{ url_for('autoclub.eventos_entrada_aprobar', id=evento.id, eid=entrada.id) }}"
+      onsubmit="return confirm('¿Aprobar este pedido en WooCommerce? Se generará el QR y se avisará al cliente por email.')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button type="submit" class="btn btn-primary btn-sm" {{ 'disabled' if not woo_configurado }}>
+    <i class="bi bi-check-lg me-1"></i><span class="btn-label">Aprobar (marcar completado)</span>
+  </button>
+</form>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+{% if not woo_configurado %}
+<div class="alert alert-warning d-flex align-items-center gap-2 mb-3">
+  <i class="bi bi-exclamation-triangle-fill"></i>
+  <div>Falta configurar la conexión con el WooCommerce de entradas — no se puede aprobar desde aquí.</div>
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-12 col-lg-7">
+    <div class="card p-4 mb-3">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+          {% if entrada.es_valida %}
+          <span class="badge" style="background:#16a34a18;color:#16a34a;font-weight:700;font-size:.85rem">
+            <i class="bi bi-check-circle-fill me-1"></i>{{ entrada.estado_label }}
+          </span>
+          {% else %}
+          <span class="badge" style="background:#d9770618;color:#d97706;font-weight:700;font-size:.85rem">
+            <i class="bi bi-hourglass-split me-1"></i>{{ entrada.estado_label }}
+          </span>
+          {% endif %}
+          {% if requiere_aprobacion_manual %}
+          <span class="badge ms-1" style="background:#dc262618;color:#dc2626;font-weight:700;font-size:.85rem">
+            <i class="bi bi-person-badge me-1"></i>Requiere aprobación manual
+          </span>
+          {% elif not entrada.es_valida %}
+          <span class="badge ms-1" style="background:#1d4ed818;color:#1d4ed8;font-weight:700;font-size:.85rem">
+            <i class="bi bi-magic me-1"></i>Auto-aprobable (entrada general)
+          </span>
+          {% endif %}
+        </div>
+        {% if entrada.escaneada %}
+        <span class="text-sm" style="color:#1d4ed8"><i class="bi bi-qr-code-scan me-1"></i>Escaneada</span>
+        {% endif %}
+      </div>
+
+      <h6 class="text-xs text-uppercase text-muted fw-semibold mb-2">Titular del pase</h6>
+      <div class="mb-3">
+        <div class="fw-semibold">{{ entrada.nombre_cliente or '—' }}</div>
+        <div class="text-sm text-muted">{{ entrada.email_cliente or '—' }}</div>
+        <div class="text-sm text-muted">{{ entrada.telefono_cliente or '—' }}</div>
+      </div>
+
+      <h6 class="text-xs text-uppercase text-muted fw-semibold mb-2">Pedido</h6>
+      <div class="row mb-3">
+        <div class="col-6 col-sm-4">
+          <div class="text-xs text-muted">Tipo de entrada</div>
+          <div class="text-sm fw-semibold">{{ entrada.tipo_pase or '—' }}</div>
+        </div>
+        <div class="col-6 col-sm-4">
+          <div class="text-xs text-muted">Nº pedido</div>
+          <div class="text-sm fw-semibold">{{ entrada.woo_order_numero or entrada.woo_order_id or '—' }}</div>
+        </div>
+        <div class="col-6 col-sm-4">
+          <div class="text-xs text-muted">Fecha del pedido</div>
+          <div class="text-sm fw-semibold">{{ entrada.fecha_pedido.strftime('%d/%m/%Y %H:%M') if entrada.fecha_pedido else '—' }}</div>
+        </div>
+      </div>
+
+      {% if entrada.dni_prensa or entrada.medio_comunicacion or entrada.cargo_prensa or entrada.carne_prensa or entrada.portfolio_redes %}
+      <h6 class="text-xs text-uppercase text-muted fw-semibold mb-2">Datos de prensa</h6>
+      <div class="row mb-3">
+        <div class="col-6 col-sm-4">
+          <div class="text-xs text-muted">DNI</div>
+          <div class="text-sm fw-semibold">{{ entrada.dni_prensa or '—' }}</div>
+        </div>
+        <div class="col-6 col-sm-4">
+          <div class="text-xs text-muted">Medio de comunicación</div>
+          <div class="text-sm fw-semibold">{{ entrada.medio_comunicacion or '—' }}</div>
+        </div>
+        <div class="col-6 col-sm-4">
+          <div class="text-xs text-muted">Cargo</div>
+          <div class="text-sm fw-semibold">{{ entrada.cargo_prensa or '—' }}</div>
+        </div>
+        <div class="col-6 col-sm-4">
+          <div class="text-xs text-muted">Carné de prensa</div>
+          <div class="text-sm fw-semibold">{{ entrada.carne_prensa or '—' }}</div>
+        </div>
+        {% if entrada.portfolio_redes %}
+        <div class="col-12 col-sm-8">
+          <div class="text-xs text-muted">Portfolio / redes</div>
+          <div class="text-sm fw-semibold text-break">{{ entrada.portfolio_redes }}</div>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% if entrada.institucion or entrada.cif_institucion or entrada.cargo_institucional %}
+      <h6 class="text-xs text-uppercase text-muted fw-semibold mb-2">Datos institucionales</h6>
+      <div class="row mb-3">
+        <div class="col-6 col-sm-4">
+          <div class="text-xs text-muted">Institución u organismo</div>
+          <div class="text-sm fw-semibold">{{ entrada.institucion or '—' }}</div>
+        </div>
+        <div class="col-6 col-sm-4">
+          <div class="text-xs text-muted">CIF</div>
+          <div class="text-sm fw-semibold">{{ entrada.cif_institucion or '—' }}</div>
+        </div>
+        <div class="col-6 col-sm-4">
+          <div class="text-xs text-muted">Cargo</div>
+          <div class="text-sm fw-semibold">{{ entrada.cargo_institucional or '—' }}</div>
+        </div>
+        <div class="col-6 col-sm-4">
+          <div class="text-xs text-muted">Acompañantes</div>
+          <div class="text-sm fw-semibold">{{ entrada.num_acompanantes or 0 }}</div>
+        </div>
+      </div>
+      {% endif %}
+
+      <h6 class="text-xs text-uppercase text-muted fw-semibold mb-2">Acceso al evento</h6>
+      <div class="text-sm">
+        {% if entrada.escaneada %}
+        Escaneada el <strong>{{ entrada.escaneada_en.strftime('%d/%m/%Y %H:%M') if entrada.escaneada_en else '—' }}</strong>
+        por <strong>{{ entrada.escaneada_por.nombre if entrada.escaneada_por else '—' }}</strong>.
+        {% elif entrada.es_valida %}
+        <span class="text-muted">Válida, todavía no se ha escaneado en el acceso.</span>
+        {% else %}
+        <span class="text-muted">No se puede escanear hasta que el pedido esté aprobado.</span>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if meta_data %}
+    <div class="card p-4">
+      <h6 class="text-xs text-uppercase text-muted fw-semibold mb-2">Metadatos completos del pedido</h6>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <tbody>
+            {% for m in meta_data %}
+            <tr>
+              <td class="text-xs text-muted text-nowrap">{{ m.key }}</td>
+              <td class="text-xs text-break">{{ m.value }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-12 col-lg-5">
+    <div class="card p-4">
+      <h6 class="text-xs text-uppercase text-muted fw-semibold mb-2">Evento</h6>
+      <a href="{{ url_for('autoclub.eventos_detalle', id=evento.id) }}" class="text-sm fw-semibold text-decoration-none">
+        {{ evento.nombre }}
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

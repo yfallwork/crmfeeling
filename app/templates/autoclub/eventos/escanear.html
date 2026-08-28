@@ -1,0 +1,184 @@
+{% extends "autoclub/base.html" %}
+{% block title %}Escanear · {{ evento.nombre }} — AutoClub{% endblock %}
+{% block page_title %}Escanear entradas — {{ evento.nombre }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.eventos_detalle', id=evento.id) }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Volver al evento</span>
+</a>
+{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="scan-wrap">
+  <div class="card p-3">
+    <div id="reader"></div>
+    <div id="reader-fallback" class="text-sm text-muted text-center py-4" style="display:none">
+      <i class="bi bi-camera-video-off d-block mb-2" style="font-size:1.8rem"></i>
+      No se pudo acceder a la cámara. Usa la entrada manual de abajo.
+    </div>
+  </div>
+
+  <div class="card p-3 mt-3">
+    <label class="form-label text-sm fw-semibold">Código manual</label>
+    <form id="manual-form" class="d-flex gap-2">
+      <input type="text" id="manual-token" class="form-control" placeholder="Pega o escribe el código del pase">
+      <button type="submit" class="btn btn-outline-primary"><i class="bi bi-search"></i></button>
+    </form>
+  </div>
+
+  <div id="resultado" class="scan-result mt-3" style="display:none">
+    <div class="scan-result-icon"><i id="resultado-icon" class="bi"></i></div>
+    <div id="resultado-titulo" class="scan-result-title"></div>
+    <div id="resultado-mensaje" class="text-sm text-muted mb-2"></div>
+    <div id="resultado-datos" class="scan-result-datos"></div>
+    <button type="button" id="btn-siguiente" class="btn btn-primary btn-block mt-2">
+      <i class="bi bi-qr-code-scan me-1"></i>Escanear siguiente
+    </button>
+  </div>
+</div>
+
+<style>
+.scan-wrap { max-width: 480px; margin-inline: auto; }
+#reader { width: 100%; }
+.scan-result {
+  border-radius: 14px; padding: 1.5rem; text-align: center;
+  background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.08);
+}
+.scan-result-icon { font-size: 3rem; margin-bottom: .5rem; }
+.scan-result-title { font-size: 1.3rem; font-weight: 800; margin-bottom: .3rem; }
+.scan-result.ok { border: 2px solid #16a34a; }
+.scan-result.ok .scan-result-icon, .scan-result.ok .scan-result-title { color: #16a34a; }
+.scan-result.warn { border: 2px solid #d97706; }
+.scan-result.warn .scan-result-icon, .scan-result.warn .scan-result-title { color: #d97706; }
+.scan-result.error { border: 2px solid #dc2626; }
+.scan-result.error .scan-result-icon, .scan-result.error .scan-result-title { color: #dc2626; }
+.scan-result-datos { text-align: left; font-size: .85rem; background: var(--gray-50, #f9fafb); border-radius: 10px; padding: .8rem 1rem; }
+.scan-result-datos div { margin-bottom: .2rem; }
+.scan-result-datos strong { color: var(--gray-900, #111827); }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var validarUrl = {{ url_for('autoclub.eventos_escanear_validar', id=evento.id) | tojson }};
+  var resultadoBox = document.getElementById('resultado');
+  var icon = document.getElementById('resultado-icon');
+  var titulo = document.getElementById('resultado-titulo');
+  var mensaje = document.getElementById('resultado-mensaje');
+  var datos = document.getElementById('resultado-datos');
+  var btnSiguiente = document.getElementById('btn-siguiente');
+  var manualForm = document.getElementById('manual-form');
+  var manualInput = document.getElementById('manual-token');
+  var scanner = null;
+  var procesando = false;
+
+  var ESTILOS = {
+    valida:        { clase: 'ok',    icono: 'bi-check-circle-fill',      titulo: 'ENTRADA VÁLIDA' },
+    ya_escaneada:  { clase: 'warn',  icono: 'bi-exclamation-triangle-fill', titulo: 'YA ESCANEADA' },
+    no_valida:     { clase: 'warn',  icono: 'bi-hourglass-split',        titulo: 'PEDIDO NO APROBADO' },
+    no_encontrada: { clase: 'error', icono: 'bi-x-circle-fill',          titulo: 'NO RECONOCIDA' },
+    error:         { clase: 'error', icono: 'bi-x-circle-fill',          titulo: 'ERROR' },
+  };
+
+  function mostrarResultado(payload) {
+    var cfg = ESTILOS[payload.resultado] || ESTILOS.error;
+    resultadoBox.className = 'scan-result mt-3 ' + cfg.clase;
+    icon.className = 'bi ' + cfg.icono;
+    titulo.textContent = cfg.titulo;
+    mensaje.textContent = payload.mensaje || '';
+
+    datos.innerHTML = '';
+    var e = payload.entrada;
+    if (e) {
+      var filas = [
+        ['Nombre', e.nombre_cliente],
+        ['Tipo de pase', e.tipo_pase],
+        ['Email', e.email_cliente],
+      ];
+      if (e.dni_prensa || e.medio_comunicacion) {
+        filas.push(['Medio', e.medio_comunicacion]);
+        filas.push(['Cargo', e.cargo_prensa]);
+        filas.push(['DNI prensa', e.dni_prensa]);
+      }
+      if (e.escaneada_en) {
+        filas.push(['Escaneada', e.escaneada_en + (e.escaneada_por ? ' — ' + e.escaneada_por : '')]);
+      }
+      filas.forEach(function (f) {
+        if (!f[1]) return;
+        var div = document.createElement('div');
+        div.innerHTML = '<strong>' + f[0] + ':</strong> ' + f[1];
+        datos.appendChild(div);
+      });
+    }
+    resultadoBox.style.display = 'block';
+    resultadoBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function validar(token) {
+    if (procesando || !token) return;
+    procesando = true;
+    fetch(validarUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: token }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (payload) {
+        mostrarResultado(payload);
+      })
+      .catch(function () {
+        mostrarResultado({ resultado: 'error', mensaje: 'No se pudo conectar con el servidor.' });
+      })
+      .finally(function () { procesando = false; });
+  }
+
+  function extraerToken(texto) {
+    try {
+      var url = new URL(texto);
+      var t = url.searchParams.get('token') || url.searchParams.get('token_pase');
+      if (t) return t;
+    } catch (e) { /* no era una URL, se usa el texto tal cual */ }
+    return texto.trim();
+  }
+
+  manualForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var token = extraerToken(manualInput.value);
+    manualInput.value = '';
+    validar(token);
+  });
+
+  btnSiguiente.addEventListener('click', function () {
+    resultadoBox.style.display = 'none';
+    if (scanner) { scanner.resume(); }
+  });
+
+  if (window.Html5Qrcode) {
+    scanner = new Html5Qrcode('reader');
+    Html5Qrcode.getCameras().then(function (cams) {
+      if (!cams || !cams.length) throw new Error('sin cámaras');
+      scanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: 250 },
+        function (decodedText) {
+          scanner.pause(true);
+          validar(extraerToken(decodedText));
+        },
+        function () { /* frame sin QR, ignorar */ }
+      );
+    }).catch(function () {
+      document.getElementById('reader').style.display = 'none';
+      document.getElementById('reader-fallback').style.display = 'block';
+    });
+  } else {
+    document.getElementById('reader').style.display = 'none';
+    document.getElementById('reader-fallback').style.display = 'block';
+  }
+})();
+</script>
+{% endblock %}

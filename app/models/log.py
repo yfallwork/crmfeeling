@@ -58,4 +58,6 @@ class Log(db.Model):
             "tag":          "Etiqueta",
             "plantilla":    "Plantilla email",
             "rule":         "Norma",
+            "evento":       "Evento",
+            "entrada_evento": "Entrada de evento",
         }.get(self.entidad or "", self.entidad or "")

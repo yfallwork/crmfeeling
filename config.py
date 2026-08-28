@@ -62,6 +62,13 @@ class Config:
     # WooCommerce Webhook
     WOO_WEBHOOK_SECRET = os.environ.get("WOO_WEBHOOK_SECRET", "")
 
+    # WooCommerce del sitio de ENTRADAS/EVENTOS (tienda distinta a la de
+    # experiencias — ej. entradas y pases de prensa del Autocross La Dehesa).
+    EVENTOS_WOO_BASE_URL = os.environ.get("EVENTOS_WOO_BASE_URL", "")
+    EVENTOS_WOO_CONSUMER_KEY = os.environ.get("EVENTOS_WOO_CONSUMER_KEY", "")
+    EVENTOS_WOO_CONSUMER_SECRET = os.environ.get("EVENTOS_WOO_CONSUMER_SECRET", "")
+    EVENTOS_WOO_WEBHOOK_SECRET = os.environ.get("EVENTOS_WOO_WEBHOOK_SECRET", "")
+
     # Paginación
     ITEMS_PER_PAGE = 25
 

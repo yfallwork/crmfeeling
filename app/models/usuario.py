@@ -39,6 +39,7 @@ AUTOCLUB_SECCIONES = [
     ("informacion",    "Información",     "bi-info-circle-fill"),
     ("seguimiento",    "Seguimiento",     "bi-activity"),
     ("seleccion-femenina", "Selección Femenina", "bi-flag-fill"),
+    ("eventos",        "Eventos",         "bi-qr-code-scan"),
 ]
 AUTOCLUB_SECCIONES_KEYS = [s[0] for s in AUTOCLUB_SECCIONES]
 

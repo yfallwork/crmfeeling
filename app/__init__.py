@@ -75,6 +75,7 @@ def create_app(env="default"):
         from app.models import fecha_apertura       # noqa: F401
         from app.models import configuracion        # noqa: F401
         from app.models import preinscripcion_carcross  # noqa: F401
+        from app.models import evento                   # noqa: F401
         db.create_all()
         _migrate_columns()
         _migrate_indices()
@@ -253,6 +254,12 @@ def _migrate_columns():
         ("reservas",           "token_seguro",            "VARCHAR(64)"),
         ("configuracion",      "seguro_recordatorio_activo", "BOOLEAN DEFAULT 1"),
         ("configuracion",      "seguro_recordatorio_dias",   "INTEGER DEFAULT 7"),
+        ("eventos",            "woo_producto_ids",          "TEXT DEFAULT ''"),
+        ("entradas_evento",    "fecha_pedido",              "DATETIME"),
+        ("entradas_evento",    "cargo_institucional",       "VARCHAR(100) DEFAULT ''"),
+        ("entradas_evento",    "institucion",               "VARCHAR(150) DEFAULT ''"),
+        ("entradas_evento",    "cif_institucion",           "VARCHAR(20) DEFAULT ''"),
+        ("entradas_evento",    "num_acompanantes",          "INTEGER DEFAULT 0"),
     ]
     with db.engine.connect() as conn:
         for tabla, columna, tipo in nuevas:

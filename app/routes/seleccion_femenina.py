@@ -20,17 +20,17 @@ seleccion_femenina_bp = Blueprint("seleccion_femenina", __name__)
 EDAD_MINIMA = 14
 EDAD_MAXIMA = 18
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-FECHA_PONENCIA = datetime(2026, 9, 2).date()
+FECHA_PRESENTACION = datetime(2026, 9, 2).date()
 
 
 @seleccion_femenina_bp.route("/")
 def landing():
-    dias_ponencia = (FECHA_PONENCIA - datetime.utcnow().date()).days
+    dias_presentacion = (FECHA_PRESENTACION - datetime.utcnow().date()).days
     return render_template(
         "seleccion_femenina/landing.html",
         experiencia_opciones=EXPERIENCIA_PREVIA_OPCIONES,
         datos=None, errores=None,
-        dias_ponencia=dias_ponencia if dias_ponencia >= 0 else None,
+        dias_presentacion=dias_presentacion if dias_presentacion >= 0 else None,
         hoy=datetime.utcnow().date().isoformat(),
     )
 
@@ -74,12 +74,12 @@ def preinscripcion():
 
     if errores:
         flash("Revisa los datos marcados: hay algún campo obligatorio sin rellenar.", "danger")
-        dias_ponencia = (FECHA_PONENCIA - datetime.utcnow().date()).days
+        dias_presentacion = (FECHA_PRESENTACION - datetime.utcnow().date()).days
         return render_template(
             "seleccion_femenina/landing.html",
             experiencia_opciones=EXPERIENCIA_PREVIA_OPCIONES,
             datos=form, errores=errores,
-            dias_ponencia=dias_ponencia if dias_ponencia >= 0 else None,
+            dias_presentacion=dias_presentacion if dias_presentacion >= 0 else None,
             hoy=datetime.utcnow().date().isoformat(),
         ), 400
 

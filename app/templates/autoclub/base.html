@@ -62,7 +62,7 @@
     {% if current_user.puede_acceder_autoclub('pilotos') or current_user.puede_acceder_autoclub('vehiculos')
           or current_user.puede_acceder_autoclub('inscripciones') or current_user.puede_acceder_autoclub('gastos')
           or current_user.puede_acceder_autoclub('staff') or current_user.puede_acceder_autoclub('calendario')
-          or current_user.puede_acceder_autoclub('prensa') %}
+          or current_user.puede_acceder_autoclub('prensa') or current_user.puede_acceder_autoclub('eventos') %}
     <div class="nav-section-label">Competición</div>
     {% endif %}
 
@@ -119,6 +119,14 @@
        class="nav-item {% if request.endpoint and 'prensa' in request.endpoint %}active{% endif %}"
        data-tooltip="Prensa">
       <i class="bi bi-newspaper"></i><span>Prensa</span>
+    </a>
+    {% endif %}
+
+    {% if current_user.puede_acceder_autoclub('eventos') %}
+    <a href="{{ url_for('autoclub.eventos_lista') }}"
+       class="nav-item {% if request.endpoint and request.endpoint.startswith('autoclub.eventos') %}active{% endif %}"
+       data-tooltip="Eventos">
+      <i class="bi bi-qr-code-scan"></i><span>Eventos</span>
     </a>
     {% endif %}
 

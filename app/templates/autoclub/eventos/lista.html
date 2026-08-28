@@ -11,7 +11,7 @@
 {% block content %}
 <div class="card">
   <div class="table-responsive">
-    <table class="table table-hover mb-0">
+    <table class="table table-hover mb-0 table-cards-mobile">
       <thead>
         <tr>
           <th>Evento</th>
@@ -27,17 +27,17 @@
       <tbody>
         {% for e in eventos %}
         <tr>
-          <td>
+          <td class="card-title" data-label="">
             <a href="{{ url_for('autoclub.eventos_detalle', id=e.id) }}" class="fw-semibold text-sm text-decoration-none">
               {{ e.nombre }}
             </a>
           </td>
-          <td class="text-sm text-muted">{{ e.fecha.strftime('%d/%m/%Y') if e.fecha else '—' }}</td>
-          <td class="text-sm text-muted">{{ e.lugar or '—' }}</td>
-          <td class="text-sm">{{ e.total_entradas }}</td>
-          <td class="text-sm">{{ e.total_validas }}</td>
-          <td class="text-sm">{{ e.total_escaneadas }}</td>
-          <td>
+          <td class="text-sm text-muted" data-label="Fecha">{{ e.fecha.strftime('%d/%m/%Y') if e.fecha else '—' }}</td>
+          <td class="text-sm text-muted" data-label="Lugar">{{ e.lugar or '—' }}</td>
+          <td class="text-sm" data-label="Entradas">{{ e.total_entradas }}</td>
+          <td class="text-sm" data-label="Válidas">{{ e.total_validas }}</td>
+          <td class="text-sm" data-label="Escaneadas">{{ e.total_escaneadas }}</td>
+          <td data-label="Estado">
             {% if e.activo %}
             <span class="badge" style="background:#16a34a18;color:#16a34a;font-weight:700">
               <i class="bi bi-broadcast me-1"></i>Activo
@@ -46,7 +46,7 @@
             <span class="badge" style="background:#6b728018;color:#6b7280;font-weight:700">Inactivo</span>
             {% endif %}
           </td>
-          <td class="text-nowrap">
+          <td class="text-nowrap card-actions" data-label="">
             <a href="{{ url_for('autoclub.eventos_escanear', id=e.id) }}" class="btn btn-xs btn-outline-secondary" title="Escanear entradas">
               <i class="bi bi-qr-code-scan"></i>
             </a>

@@ -119,7 +119,7 @@
   </div>
 
   <div class="table-responsive">
-    <table class="table table-hover mb-0">
+    <table class="table table-hover mb-0 table-cards-mobile">
       <thead>
         <tr>
           <th>Cliente</th>
@@ -135,23 +135,23 @@
       <tbody>
         {% for en in entradas %}
         <tr>
-          <td class="text-sm">
+          <td class="text-sm card-title" data-label="">
             <a href="{{ url_for('autoclub.eventos_entrada_detalle', id=evento.id, eid=en.id) }}" class="fw-semibold text-decoration-none">
               {{ en.nombre_cliente or '—' }}
             </a>
             <div class="text-xs text-muted">{{ en.email_cliente }}</div>
           </td>
-          <td class="text-sm text-muted">{{ en.tipo_pase or '—' }}</td>
-          <td class="text-sm text-muted">{{ en.woo_order_numero or en.woo_order_id or '—' }}</td>
-          <td class="text-sm text-muted">{{ en.fecha_pedido.strftime('%d/%m/%Y %H:%M') if en.fecha_pedido else '—' }}</td>
-          <td>
+          <td class="text-sm text-muted" data-label="Tipo de pase">{{ en.tipo_pase or '—' }}</td>
+          <td class="text-sm text-muted" data-label="Nº pedido">{{ en.woo_order_numero or en.woo_order_id or '—' }}</td>
+          <td class="text-sm text-muted" data-label="Fecha del pedido">{{ en.fecha_pedido.strftime('%d/%m/%Y %H:%M') if en.fecha_pedido else '—' }}</td>
+          <td data-label="Estado">
             {% if en.es_valida %}
             <span class="badge" style="background:#16a34a18;color:#16a34a;font-weight:700">{{ en.estado_label }}</span>
             {% else %}
             <span class="badge" style="background:#d9770618;color:#d97706;font-weight:700">{{ en.estado_label }}</span>
             {% endif %}
           </td>
-          <td class="text-xs text-muted">
+          <td class="text-xs text-muted" data-label="Detalles">
             {% if en.dni_prensa or en.medio_comunicacion or en.cargo_prensa %}
               <div>{{ en.medio_comunicacion or '—' }}</div>
               {% if en.cargo_prensa %}<div>{{ en.cargo_prensa }}</div>{% endif %}
@@ -160,14 +160,14 @@
               {% if en.cargo_institucional %}<div>{{ en.cargo_institucional }}</div>{% endif %}
             {% else %}—{% endif %}
           </td>
-          <td>
+          <td data-label="Escaneada">
             {% if en.escaneada %}
             <span class="text-xs" style="color:#1d4ed8"><i class="bi bi-check-circle-fill me-1"></i>{{ en.escaneada_en.strftime('%d/%m %H:%M') if en.escaneada_en else '' }}</span>
             {% else %}
             <span class="text-xs text-muted">Sin escanear</span>
             {% endif %}
           </td>
-          <td>
+          <td class="card-actions" data-label="">
             {% if not en.es_valida and en.woo_order_id %}
             <form method="POST" action="{{ url_for('autoclub.eventos_entrada_aprobar', id=evento.id, eid=en.id) }}"
                   onsubmit="return confirm('¿Aprobar este pedido en WooCommerce? Se generará el QR y se avisará al cliente por email.')">

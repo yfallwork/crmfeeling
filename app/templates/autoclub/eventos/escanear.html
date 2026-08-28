@@ -158,13 +158,18 @@
     if (scanner) { scanner.resume(); }
   });
 
+  function qrboxSize(viewfinderWidth, viewfinderHeight) {
+    var lado = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.8);
+    return { width: lado, height: lado };
+  }
+
   if (window.Html5Qrcode) {
     scanner = new Html5Qrcode('reader');
     Html5Qrcode.getCameras().then(function (cams) {
       if (!cams || !cams.length) throw new Error('sin cámaras');
       scanner.start(
         { facingMode: 'environment' },
-        { fps: 10, qrbox: 250 },
+        { fps: 10, qrbox: qrboxSize },
         function (decodedText) {
           scanner.pause(true);
           validar(extraerToken(decodedText));

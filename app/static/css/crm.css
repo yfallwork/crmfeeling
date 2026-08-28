@@ -1031,6 +1031,48 @@ img, svg, video, canvas, iframe {
   .table th { padding: 8px 12px !important; font-size: .63rem; }
   .table td { padding: 9px 12px !important; font-size: .82rem; }
 
+  /* — Tablas con acciones por fila → tarjetas apiladas (opt-in con .table-cards-mobile,
+     ej. gestión de entradas/eventos en AutoClub, para que todo el flujo funcione desde el
+     móvil sin depender de scroll horizontal) — */
+  .table-cards-mobile,
+  .table-cards-mobile thead,
+  .table-cards-mobile tbody,
+  .table-cards-mobile tr,
+  .table-cards-mobile th,
+  .table-cards-mobile td { display: block; width: 100%; }
+  .table-cards-mobile thead tr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .table-cards-mobile tbody tr {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow-sm);
+  }
+  .table-cards-mobile tbody tr:last-child { margin-bottom: 0; }
+  .table-cards-mobile td {
+    padding: 7px 0 !important;
+    border-bottom: 1px solid var(--border-light) !important;
+  }
+  .table-cards-mobile td:last-child { border-bottom: none !important; padding-bottom: 0 !important; }
+  .table-cards-mobile td[data-label]:not([data-label=""])::before {
+    content: attr(data-label);
+    display: block;
+    font-weight: 700; font-size: .64rem; text-transform: uppercase;
+    letter-spacing: .5px; color: var(--gray-500); margin-bottom: 3px;
+  }
+  .table-cards-mobile td.card-title { padding-top: 0 !important; padding-bottom: 10px !important; }
+  .table-cards-mobile td.card-actions {
+    display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+    padding-top: 10px !important;
+  }
+  /* Un único botón/form de acción (ej. "Aprobar") ocupa todo el ancho para
+     facilitar el tap; varios botones (ej. escanear + eliminar) quedan en fila. */
+  .table-cards-mobile td.card-actions:has(> :only-child) { justify-content: stretch; }
+  .table-cards-mobile td.card-actions:has(> :only-child) > form,
+  .table-cards-mobile td.card-actions:has(> :only-child) > .btn { width: 100%; }
+  .table-cards-mobile .empty-state { padding: 24px 8px; }
+
   /* — Filter bar: inputs full-width — */
   .filter-bar { padding: 10px 12px; gap: 6px; }
   .filter-bar form > .input-group,

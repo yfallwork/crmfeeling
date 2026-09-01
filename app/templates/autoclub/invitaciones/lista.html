@@ -1,0 +1,254 @@
+{% extends "autoclub/base.html" %}
+{% block title %}Invitaciones — AutoClub{% endblock %}
+{% block page_title %}Invitaciones{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.eventos_lista') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-qr-code-scan me-1"></i><span class="btn-label">Entradas de eventos</span>
+</a>
+{% endblock %}
+
+{% block content %}
+
+{% if duplicado_existente %}
+<div class="alert alert-warning mb-3">
+  <i class="bi bi-exclamation-triangle-fill me-1"></i>
+  Ya existe una invitación para <strong>{{ duplicado_existente.email }}</strong>
+  ({{ duplicado_existente.nombre }}, enviada el {{ duplicado_existente.creado_en.strftime('%d/%m/%Y') if duplicado_existente.creado_en else '—' }}).
+  <div class="d-flex gap-2 mt-2 flex-wrap">
+    <form method="POST" action="{{ url_for('autoclub.invitaciones_reenviar', id=duplicado_existente.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-envelope-arrow-up me-1"></i>Reenviar la existente
+      </button>
+    </form>
+    <form method="POST" action="{{ url_for('autoclub.invitaciones_crear') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="forzar" value="1">
+      <input type="hidden" name="nombre" value="{{ datos.nombre }}">
+      <input type="hidden" name="email" value="{{ datos.email }}">
+      <input type="hidden" name="tipo" value="{{ datos.tipo }}">
+      <input type="hidden" name="notas" value="{{ datos.notas }}">
+      <button type="submit" class="btn btn-sm btn-outline-secondary">
+        Crear una invitación nueva de todas formas
+      </button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-3 mb-3">
+  <!-- ── FORMULARIO INDIVIDUAL ── -->
+  <div class="col-12 col-lg-6">
+    <div class="card p-4 h-100">
+      <h6 class="text-xs text-uppercase text-muted fw-semibold mb-3">Nueva invitación</h6>
+      <form method="POST" action="{{ url_for('autoclub.invitaciones_crear') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-3">
+          <label class="form-label text-sm fw-semibold">Nombre</label>
+          <input type="text" name="nombre" class="form-control" required
+                 placeholder="Persona o entidad" value="{{ datos.nombre if datos else '' }}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-sm fw-semibold">Email</label>
+          <input type="email" name="email" class="form-control" required
+                 placeholder="a quién se envía la invitación" value="{{ datos.email if datos else '' }}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-sm fw-semibold">Tipo</label>
+          <select name="tipo" class="form-select" required>
+            <option value="">Selecciona…</option>
+            {% for k, label in tipos %}
+            <option value="{{ k }}" {% if datos and datos.tipo == k %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-sm fw-semibold">Notas <span class="text-muted fw-normal">(interna, no se envía)</span></label>
+          <textarea name="notas" class="form-control" rows="2">{{ datos.notas if datos else '' }}</textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-send me-1"></i>Enviar invitación
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── CARGA POR LOTE (CSV) ── -->
+  <div class="col-12 col-lg-6">
+    <div class="card p-4 h-100">
+      <h6 class="text-xs text-uppercase text-muted fw-semibold mb-3">Subir invitaciones por lote</h6>
+      <p class="text-sm text-muted">
+        Sube un CSV con las columnas <code>nombre,email,tipo,notas</code>.
+        <a href="{{ url_for('autoclub.invitaciones_plantilla_csv') }}">Descargar plantilla CSV</a>.
+      </p>
+      <form method="POST" action="{{ url_for('autoclub.invitaciones_lote_previsualizar') }}" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-3">
+          <input type="file" name="archivo_csv" accept=".csv" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-outline-primary">
+          <i class="bi bi-upload me-1"></i>Subir y previsualizar
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% if preview_errores %}
+<div class="card p-4 mb-3">
+  <h6 class="text-sm fw-bold text-danger mb-2">
+    <i class="bi bi-x-circle-fill me-1"></i>El CSV tiene errores — no se ha procesado nada. Corrígelos y vuelve a subirlo.
+  </h6>
+  <div class="table-responsive">
+    <table class="table table-sm mb-0">
+      <thead><tr><th>Fila</th><th>Campo</th><th>Error</th></tr></thead>
+      <tbody>
+        {% for e in preview_errores %}
+        <tr>
+          <td class="text-sm">{{ e.fila if e.fila else '—' }}</td>
+          <td class="text-sm text-muted">{{ e.campo }}</td>
+          <td class="text-sm">{{ e.error }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if preview_filas %}
+{% set incluidas = preview_filas | rejectattr('ya_invitado') | list %}
+{% set duplicadas = preview_filas | selectattr('ya_invitado') | list %}
+<div class="card p-4 mb-3">
+  <h6 class="text-sm fw-bold mb-2"><i class="bi bi-eye me-1"></i>Previsualización del lote</h6>
+  <p class="text-sm text-muted">
+    {{ incluidas | length }} invitación(es) nueva(s) para enviar.
+    {% if duplicadas %}{{ duplicadas | length }} fila(s) marcadas como «ya invitado» — excluidas por defecto.{% endif %}
+  </p>
+  <form method="POST" action="{{ url_for('autoclub.invitaciones_lote_confirmar') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="filas_json" value='{{ preview_filas_json }}'>
+    <div class="table-responsive mb-3">
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Fila</th><th>Nombre</th><th>Email</th><th>Tipo</th><th>Estado</th></tr></thead>
+        <tbody>
+          {% for f in preview_filas %}
+          <tr>
+            <td class="text-sm">{{ f.fila }}</td>
+            <td class="text-sm">{{ f.nombre }}</td>
+            <td class="text-sm text-muted">{{ f.email }}</td>
+            <td class="text-sm text-muted">{{ f.tipo }}</td>
+            <td class="text-sm">
+              {% if f.ya_invitado %}
+              <label class="d-inline-flex align-items-center gap-1">
+                <input type="checkbox" name="incluir_{{ f.fila }}">
+                <span class="badge" style="background:#d9770618;color:#d97706;font-weight:700">Ya invitado — incluir de todas formas</span>
+              </label>
+              {% else %}
+              <span class="badge" style="background:#16a34a18;color:#16a34a;font-weight:700">Se enviará</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <button type="submit" class="btn btn-primary" {{ 'disabled' if not incluidas }}>
+      <i class="bi bi-send me-1"></i>Confirmar y enviar {{ incluidas | length }} invitaciones
+    </button>
+  </form>
+</div>
+{% endif %}
+
+{% if lote_resultado %}
+<div class="card p-4 mb-3">
+  <h6 class="text-sm fw-bold mb-2"><i class="bi bi-clipboard-check me-1"></i>Resultado del lote</h6>
+  <p class="text-sm">
+    <span style="color:#16a34a;font-weight:700">{{ lote_resultado.ok | length }} creadas</span>
+    {% if lote_resultado.fallidas %} · <span style="color:#dc2626;font-weight:700">{{ lote_resultado.fallidas | length }} fallidas</span>{% endif %}
+  </p>
+  {% if lote_resultado.fallidas %}
+  <div class="table-responsive mb-3">
+    <table class="table table-sm mb-0">
+      <thead><tr><th>Nombre</th><th>Email</th><th>Error</th></tr></thead>
+      <tbody>
+        {% for f in lote_resultado.fallidas %}
+        <tr>
+          <td class="text-sm">{{ f.nombre }}</td>
+          <td class="text-sm text-muted">{{ f.email }}</td>
+          <td class="text-sm text-danger">{{ f.error }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <form method="POST" action="{{ url_for('autoclub.invitaciones_lote_confirmar') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="filas_json" value='{{ lote_resultado.fallidas | tojson }}'>
+    <button type="submit" class="btn btn-sm btn-outline-danger">
+      <i class="bi bi-arrow-repeat me-1"></i>Reintentar solo las fallidas
+    </button>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- ── TABLA DE INVITACIONES ENVIADAS ── -->
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 table-cards-mobile">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Email</th>
+          <th>Tipo</th>
+          <th>Fecha de envío</th>
+          <th>Estado</th>
+          <th style="width:110px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in invitaciones %}
+        <tr>
+          <td class="text-sm card-title" data-label="">{{ inv.nombre }}</td>
+          <td class="text-sm text-muted" data-label="Email">{{ inv.email }}</td>
+          <td class="text-sm text-muted" data-label="Tipo">{{ inv.tipo_label }}</td>
+          <td class="text-sm text-muted" data-label="Fecha de envío">
+            {{ inv.email_enviado_en.strftime('%d/%m/%Y %H:%M') if inv.email_enviado_en else (inv.creado_en.strftime('%d/%m/%Y %H:%M') if inv.creado_en else '—') }}
+          </td>
+          <td data-label="Estado">
+            {% if inv.usado %}
+            <span class="badge" style="background:#16a34a18;color:#16a34a;font-weight:700">QR usado</span>
+            {% elif not inv.email_enviado %}
+            <span class="badge" style="background:#dc262618;color:#dc2626;font-weight:700" title="{{ inv.email_error }}">
+              {{ 'Envío fallido' if inv.email_error else 'Envío pendiente' }}
+            </span>
+            {% else %}
+            <span class="badge" style="background:#d9770618;color:#d97706;font-weight:700">QR no usado</span>
+            {% endif %}
+          </td>
+          <td class="card-actions" data-label="">
+            <form method="POST" action="{{ url_for('autoclub.invitaciones_reenviar', id=inv.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-xs btn-outline-secondary" title="Reenviar email">
+                <i class="bi bi-envelope-arrow-up"></i> Reenviar
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6">
+            <div class="empty-state">
+              <i class="bi bi-envelope-heart"></i>
+              <p>No hay invitaciones enviadas todavía.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

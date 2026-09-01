@@ -3,6 +3,9 @@
 {% block page_title %}Eventos{% endblock %}
 
 {% block topbar_actions %}
+<a href="{{ url_for('autoclub.invitaciones_lista') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-envelope-heart-fill me-1"></i><span class="btn-label">Invitaciones</span>
+</a>
 <a href="{{ url_for('autoclub.eventos_nuevo') }}" class="btn btn-primary btn-sm">
   <i class="bi bi-plus-lg me-1"></i><span class="btn-label">Nuevo evento</span>
 </a>

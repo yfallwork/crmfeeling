@@ -124,8 +124,8 @@
 
     {% if current_user.puede_acceder_autoclub('eventos') %}
     <a href="{{ url_for('autoclub.eventos_lista') }}"
-       class="nav-item {% if request.endpoint and request.endpoint.startswith('autoclub.eventos') %}active{% endif %}"
-       data-tooltip="Eventos">
+       class="nav-item {% if request.path.startswith('/autoclub/eventos') %}active{% endif %}"
+       data-tooltip="Eventos e invitaciones">
       <i class="bi bi-qr-code-scan"></i><span>Eventos</span>
     </a>
     {% endif %}

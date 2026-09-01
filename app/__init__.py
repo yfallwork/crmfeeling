@@ -24,6 +24,7 @@ def create_app(env="default"):
     from app.routes.logs import logs_bp
     from app.routes.agenda import agenda_bp
     from app.routes.autoclub import autoclub_bp
+    from app.routes import eventos as _eventos_routes  # noqa: F401  # registra rutas de eventos/invitaciones en autoclub_bp
     from app.routes.teambuilding import teambuilding_bp
     from app.routes.marketing import marketing_bp
     from app.routes.vista import vista_bp
@@ -76,6 +77,7 @@ def create_app(env="default"):
         from app.models import configuracion        # noqa: F401
         from app.models import preinscripcion_carcross  # noqa: F401
         from app.models import evento                   # noqa: F401
+        from app.models import invitacion                # noqa: F401
         db.create_all()
         _migrate_columns()
         _migrate_indices()

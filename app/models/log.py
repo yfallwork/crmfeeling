@@ -60,4 +60,5 @@ class Log(db.Model):
             "rule":         "Norma",
             "evento":       "Evento",
             "entrada_evento": "Entrada de evento",
+            "invitacion":   "Invitación",
         }.get(self.entidad or "", self.entidad or "")

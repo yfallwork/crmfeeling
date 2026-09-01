@@ -69,6 +69,10 @@ class Config:
     EVENTOS_WOO_CONSUMER_SECRET = os.environ.get("EVENTOS_WOO_CONSUMER_SECRET", "")
     EVENTOS_WOO_WEBHOOK_SECRET = os.environ.get("EVENTOS_WOO_WEBHOOK_SECRET", "")
 
+    # Producto WooCommerce "Invitación" (0€, oculto) usado para invitar
+    # directamente desde el CRM sin pasar por el checkout público.
+    WOO_PRODUCT_ID_INVITACION = os.environ.get("WOO_PRODUCT_ID_INVITACION", "")
+
     # Paginación
     ITEMS_PER_PAGE = 25
 

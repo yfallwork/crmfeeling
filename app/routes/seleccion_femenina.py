@@ -20,17 +20,22 @@ seleccion_femenina_bp = Blueprint("seleccion_femenina", __name__)
 EDAD_MINIMA = 14
 EDAD_MAXIMA = 18
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-FECHA_PRESENTACION = datetime(2026, 9, 2).date()
+# Fecha límite de preinscripción = inicio de entrevistas. Es la que se
+# muestra en la cuenta atrás de la portada: la presentación del proyecto
+# (2 de septiembre) no requiere asistencia de las candidatas, así que no
+# tiene sentido contar los días para esa fecha — generaba confusión sobre
+# si tenían que acudir ese día.
+FECHA_LIMITE_PREINSCRIPCION = datetime(2026, 9, 13).date()
 
 
 @seleccion_femenina_bp.route("/")
 def landing():
-    dias_presentacion = (FECHA_PRESENTACION - datetime.utcnow().date()).days
+    dias_preinscripcion = (FECHA_LIMITE_PREINSCRIPCION - datetime.utcnow().date()).days
     return render_template(
         "seleccion_femenina/landing.html",
         experiencia_opciones=EXPERIENCIA_PREVIA_OPCIONES,
         datos=None, errores=None,
-        dias_presentacion=dias_presentacion if dias_presentacion >= 0 else None,
+        dias_preinscripcion=dias_preinscripcion if dias_preinscripcion >= 0 else None,
         hoy=datetime.utcnow().date().isoformat(),
     )
 
@@ -74,12 +79,12 @@ def preinscripcion():
 
     if errores:
         flash("Revisa los datos marcados: hay algún campo obligatorio sin rellenar.", "danger")
-        dias_presentacion = (FECHA_PRESENTACION - datetime.utcnow().date()).days
+        dias_preinscripcion = (FECHA_LIMITE_PREINSCRIPCION - datetime.utcnow().date()).days
         return render_template(
             "seleccion_femenina/landing.html",
             experiencia_opciones=EXPERIENCIA_PREVIA_OPCIONES,
             datos=form, errores=errores,
-            dias_presentacion=dias_presentacion if dias_presentacion >= 0 else None,
+            dias_preinscripcion=dias_preinscripcion if dias_preinscripcion >= 0 else None,
             hoy=datetime.utcnow().date().isoformat(),
         ), 400
 

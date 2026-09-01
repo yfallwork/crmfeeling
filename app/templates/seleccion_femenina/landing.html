@@ -478,13 +478,13 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
     <a href="#preinscripcion" class="btn btn-primary"><i class="bi bi-flag-fill"></i>Quiero inscribirme</a>
     <p class="hero-cta-note">Sin experiencia en competición ni licencia federativa. Solo motivación y ganas de subirte a un coche de carreras.</p>
 
-    {% if dias_presentacion is not none %}
+    {% if dias_preinscripcion is not none %}
     <div class="hero-countdown">
       <i class="bi bi-hourglass-split"></i>
-      {% if dias_presentacion > 0 %}
-        Quedan <strong>{{ dias_presentacion }} día{{ 's' if dias_presentacion != 1 }}</strong> para la presentación del proyecto
+      {% if dias_preinscripcion > 0 %}
+        Quedan <strong>{{ dias_preinscripcion }} día{{ 's' if dias_preinscripcion != 1 }}</strong> para preinscribirte
       {% else %}
-        <strong>¡Ya está aquí!</strong> Hoy es la presentación del proyecto
+        <strong>¡Último día!</strong> Hoy termina el plazo de preinscripción
       {% endif %}
     </div>
     {% endif %}
@@ -593,7 +593,7 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
         <div class="tl-content">
           <div class="tl-date">2 de septiembre de 2026</div>
           <h3>Presentación del proyecto</h3>
-          <p>Acto de presentación con deportistas de referencia. La preinscripción es de cara a las entrevistas, que comienzan el 13 de septiembre.</p>
+          <p>Acto institucional de presentación con deportistas de referencia. <strong>Es de acceso restringido</strong> — las candidatas no asisten. Tu proceso empieza con las entrevistas, que comienzan el 13 de septiembre.</p>
         </div>
       </div>
       <div class="tl-step">
@@ -715,6 +715,10 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
         <summary>¿Cuántas plazas hay?</summary>
         <div class="faq-body">Se seleccionará a una única piloto tras todo el proceso de evaluación.</div>
       </details>
+      <details class="faq-item">
+        <summary>¿Tengo que ir a la presentación del proyecto el 2 de septiembre?</summary>
+        <div class="faq-body">No. Es un acto institucional de acceso restringido, las candidatas no asisten. Tu proceso empieza con las entrevistas, a partir del 13 de septiembre.</div>
+      </details>
     </div>
   </div>
 </section>
@@ -724,7 +728,7 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
   <div class="wrap-narrow reveal">
     <span class="eyebrow">Último paso</span>
     <h2 style="color:#fff">Preinscríbete <span class="accent">ahora</span></h2>
-    <p style="color:rgba(255,255,255,.7)">Es rápido y solo es el primer paso. Si tu perfil encaja, te contactaremos con toda la información sobre la presentación del proyecto y las entrevistas.</p>
+    <p style="color:rgba(255,255,255,.7)">Es rápido y solo es el primer paso. Si tu perfil encaja, te contactaremos con toda la información sobre las entrevistas.</p>
 
     <div class="form-card">
       {% if errores %}

@@ -21,7 +21,7 @@ from app.models.inscripcion_piloto import InscripcionPiloto
 from app.models.gasto_inscripcion import GastoInscripcion, CATEGORIAS_GASTO
 from app.models.staff_miembro import StaffMiembro, TIPOS_STAFF
 from app.models.resultado_inscripcion import ResultadoInscripcion
-from app.models.preinscripcion_carcross import PreinscripcionCarcross, ESTADOS_PREINSCRIPCION
+from app.models.preinscripcion_carcross import PreinscripcionCarcross, ESTADOS_PREINSCRIPCION, EXPERIENCIA_PREVIA_OPCIONES
 from app.services.log_service import registrar_log
 
 autoclub_bp = Blueprint("autoclub", __name__)
@@ -2795,11 +2795,23 @@ def seleccion_femenina_estado(id):
     preinscripcion = PreinscripcionCarcross.query.get_or_404(id)
     nuevo_estado = request.form.get("estado")
     if nuevo_estado in ESTADOS_PREINSCRIPCION:
+        disparar_email_inscripcion = (
+            nuevo_estado == "apta_inscripcion" and preinscripcion.estado != "apta_inscripcion"
+        )
         preinscripcion.estado = nuevo_estado
         db.session.commit()
         registrar_log("cambiar_estado", "preinscripcion_carcross", id,
                       f"Estado -> {nuevo_estado}: {preinscripcion.nombre_completo}")
-        flash("Estado actualizado.", "success")
+
+        if disparar_email_inscripcion:
+            from app.services.inscripcion_autorizacion_service import obtener_o_crear_inscripcion, enviar_email_inscripcion
+            inscripcion = obtener_o_crear_inscripcion(preinscripcion)
+            if enviar_email_inscripcion(preinscripcion, inscripcion):
+                flash("Estado actualizado y email de inscripción/autorización enviado.", "success")
+            else:
+                flash("Estado actualizado, pero falló el envío del email de inscripción (revisa el historial de mails).", "warning")
+        else:
+            flash("Estado actualizado.", "success")
     return redirect(request.referrer or url_for("autoclub.seleccion_femenina_lista"))
 
 
@@ -2831,4 +2843,224 @@ def seleccion_femenina_exportar():
     resp = Response(output.getvalue(), mimetype="text/csv; charset=utf-8")
     resp.headers["Content-Disposition"] = "attachment; filename=preinscripciones_seleccion_femenina.csv"
     return resp
+
+
+def _leer_form_preinscripcion(form, errores):
+    nombre = form.get("nombre_completo", "").strip()
+    fnac_str = form.get("fecha_nacimiento", "").strip()
+    localidad = form.get("localidad", "").strip()
+    email = form.get("email", "").strip()
+    telefono = form.get("telefono", "").strip()
+    experiencia = form.get("experiencia_previa", "ninguna")
+    motivacion = form.get("motivacion", "").strip()
+    notas_internas = form.get("notas_internas", "").strip()
+    estado = form.get("estado", "pendiente")
+
+    if not nombre:
+        errores["nombre_completo"] = "Indica el nombre y apellidos."
+    fecha_nacimiento = None
+    if not fnac_str:
+        errores["fecha_nacimiento"] = "Indica la fecha de nacimiento."
+    else:
+        try:
+            fecha_nacimiento = datetime.strptime(fnac_str, "%Y-%m-%d").date()
+        except ValueError:
+            errores["fecha_nacimiento"] = "Fecha no válida."
+    if not email:
+        errores["email"] = "Indica un email."
+    if not telefono:
+        errores["telefono"] = "Indica un teléfono."
+    if experiencia not in dict(EXPERIENCIA_PREVIA_OPCIONES):
+        experiencia = "ninguna"
+    if estado not in ESTADOS_PREINSCRIPCION:
+        estado = "pendiente"
+
+    return {
+        "nombre_completo": nombre, "fecha_nacimiento": fecha_nacimiento, "localidad": localidad,
+        "email": email, "telefono": telefono, "experiencia_previa": experiencia,
+        "motivacion": motivacion, "notas_internas": notas_internas, "estado": estado,
+    }
+
+
+def _datos_form_repoblar(form):
+    """Dict de strings tal cual se escribieron en el formulario, para
+    volver a rellenarlo si falla la validación — nunca se pasa
+    request.form directamente a la plantilla (es un MultiDict, no un dict
+    plano, y fecha_nacimiento necesita quedar siempre como string ISO para
+    el <input type=date>, igual que al precargar una preinscripción ya
+    guardada en base de datos)."""
+    return {
+        "nombre_completo": form.get("nombre_completo", ""),
+        "fecha_nacimiento": form.get("fecha_nacimiento", ""),
+        "localidad": form.get("localidad", ""),
+        "email": form.get("email", ""),
+        "telefono": form.get("telefono", ""),
+        "experiencia_previa": form.get("experiencia_previa", "ninguna"),
+        "motivacion": form.get("motivacion", ""),
+        "notas_internas": form.get("notas_internas", ""),
+        "estado": form.get("estado", "pendiente"),
+    }
+
+
+def _datos_desde_preinscripcion(p):
+    return {
+        "nombre_completo": p.nombre_completo,
+        "fecha_nacimiento": p.fecha_nacimiento.isoformat() if p.fecha_nacimiento else "",
+        "localidad": p.localidad or "",
+        "email": p.email,
+        "telefono": p.telefono,
+        "experiencia_previa": p.experiencia_previa,
+        "motivacion": p.motivacion or "",
+        "notas_internas": p.notas_internas or "",
+        "estado": p.estado,
+    }
+
+
+@autoclub_bp.route("/seleccion-femenina/nueva", methods=["GET", "POST"])
+@login_required
+def seleccion_femenina_nueva():
+    if request.method == "POST":
+        errores = {}
+        datos = _leer_form_preinscripcion(request.form, errores)
+        if errores:
+            flash("Revisa los campos marcados.", "danger")
+            return render_template(
+                "autoclub/seleccion_femenina/form.html", preinscripcion=None,
+                datos=_datos_form_repoblar(request.form), errores=errores,
+                experiencia_opciones=EXPERIENCIA_PREVIA_OPCIONES, estados=ESTADOS_PREINSCRIPCION,
+            ), 400
+
+        preinscripcion = PreinscripcionCarcross(acepta_privacidad=True, ip="alta-manual-crm", **datos)
+        db.session.add(preinscripcion)
+        db.session.commit()
+        registrar_log("crear", "preinscripcion_carcross", preinscripcion.id,
+                      f"Alta manual: {preinscripcion.nombre_completo}")
+        flash("Preinscripción creada.", "success")
+        return redirect(url_for("autoclub.seleccion_femenina_lista"))
+
+    return render_template(
+        "autoclub/seleccion_femenina/form.html", preinscripcion=None,
+        datos=None, errores=None,
+        experiencia_opciones=EXPERIENCIA_PREVIA_OPCIONES, estados=ESTADOS_PREINSCRIPCION,
+    )
+
+
+@autoclub_bp.route("/seleccion-femenina/<int:id>/editar", methods=["GET", "POST"])
+@login_required
+def seleccion_femenina_editar(id):
+    preinscripcion = PreinscripcionCarcross.query.get_or_404(id)
+    if request.method == "POST":
+        errores = {}
+        datos = _leer_form_preinscripcion(request.form, errores)
+        if errores:
+            flash("Revisa los campos marcados.", "danger")
+            return render_template(
+                "autoclub/seleccion_femenina/form.html", preinscripcion=preinscripcion,
+                datos=_datos_form_repoblar(request.form), errores=errores,
+                experiencia_opciones=EXPERIENCIA_PREVIA_OPCIONES, estados=ESTADOS_PREINSCRIPCION,
+                mailings=preinscripcion.mailings.all(),
+            ), 400
+
+        for campo, valor in datos.items():
+            setattr(preinscripcion, campo, valor)
+        db.session.commit()
+        registrar_log("editar", "preinscripcion_carcross", preinscripcion.id,
+                      f"Preinscripción editada: {preinscripcion.nombre_completo}")
+        flash("Preinscripción actualizada.", "success")
+        return redirect(url_for("autoclub.seleccion_femenina_lista"))
+
+    return render_template(
+        "autoclub/seleccion_femenina/form.html", preinscripcion=preinscripcion,
+        datos=_datos_desde_preinscripcion(preinscripcion), errores=None,
+        experiencia_opciones=EXPERIENCIA_PREVIA_OPCIONES, estados=ESTADOS_PREINSCRIPCION,
+        mailings=preinscripcion.mailings.all(),
+    )
+
+
+@autoclub_bp.route("/seleccion-femenina/<int:id>/inscripcion")
+@login_required
+def seleccion_femenina_inscripcion_detalle(id):
+    preinscripcion = PreinscripcionCarcross.query.get_or_404(id)
+    if not preinscripcion.inscripcion_autorizacion:
+        abort(404)
+    return render_template(
+        "autoclub/seleccion_femenina/inscripcion_detalle.html",
+        preinscripcion=preinscripcion, insc=preinscripcion.inscripcion_autorizacion,
+    )
+
+
+@autoclub_bp.route("/seleccion-femenina/<int:id>/eliminar", methods=["POST"])
+@login_required
+def seleccion_femenina_eliminar(id):
+    preinscripcion = PreinscripcionCarcross.query.get_or_404(id)
+    nombre = preinscripcion.nombre_completo
+    db.session.delete(preinscripcion)
+    db.session.commit()
+    registrar_log("eliminar", "preinscripcion_carcross", id, f"Preinscripción eliminada: {nombre}")
+    flash(f"Preinscripción de «{nombre}» eliminada.", "info")
+    return redirect(url_for("autoclub.seleccion_femenina_lista"))
+
+
+@autoclub_bp.route("/seleccion-femenina/mailing", methods=["GET", "POST"])
+@login_required
+def seleccion_femenina_mailing():
+    from app.services.seleccion_femenina_mail import destinatarias_mailing, _html_mailing
+
+    if request.method == "POST" and request.form.get("accion") == "previsualizar":
+        asunto = request.form.get("asunto", "").strip()
+        cuerpo = request.form.get("cuerpo", "").strip()
+        estados_sel = request.form.getlist("estados")
+        if not asunto or not cuerpo:
+            flash("Indica un asunto y un cuerpo para el email.", "danger")
+            return redirect(url_for("autoclub.seleccion_femenina_mailing"))
+
+        destinatarias = destinatarias_mailing(estados_sel or None)
+        preview_html = _html_mailing("Nombre de ejemplo", cuerpo.replace("\n", "<br>"))
+        return render_template(
+            "autoclub/seleccion_femenina/mailing.html",
+            estados=ESTADOS_PREINSCRIPCION, estados_sel=estados_sel,
+            asunto=asunto, cuerpo=cuerpo,
+            preview_html=preview_html, destinatarias=destinatarias,
+            resultado=None,
+        )
+
+    return render_template(
+        "autoclub/seleccion_femenina/mailing.html",
+        estados=ESTADOS_PREINSCRIPCION, estados_sel=[],
+        asunto="", cuerpo="", preview_html=None, destinatarias=None,
+        resultado=None,
+    )
+
+
+@autoclub_bp.route("/seleccion-femenina/mailing/enviar", methods=["POST"])
+@login_required
+def seleccion_femenina_mailing_enviar():
+    from app.services.seleccion_femenina_mail import enviar_mailing_masivo
+
+    asunto = request.form.get("asunto", "").strip()
+    cuerpo = request.form.get("cuerpo", "").strip()
+    estados_sel = request.form.getlist("estados")
+    if not asunto or not cuerpo:
+        flash("Indica un asunto y un cuerpo para el email.", "danger")
+        return redirect(url_for("autoclub.seleccion_femenina_mailing"))
+
+    resultado = enviar_mailing_masivo(asunto, cuerpo, estados_sel or None)
+    registrar_log("crear", "preinscripcion_carcross", None, (
+        f"Mailing enviado: {len(resultado['enviados'])} correctos, "
+        f"{len(resultado['fallidos'])} fallidos — asunto: {asunto}"
+    ))
+    if resultado["fallidos"]:
+        flash(
+            f"{len(resultado['enviados'])} emails enviados. {len(resultado['fallidos'])} fallaron.",
+            "warning",
+        )
+    else:
+        flash(f"{len(resultado['enviados'])} emails enviados correctamente.", "success")
+
+    return render_template(
+        "autoclub/seleccion_femenina/mailing.html",
+        estados=ESTADOS_PREINSCRIPCION, estados_sel=[],
+        asunto="", cuerpo="", preview_html=None, destinatarias=None,
+        resultado=resultado,
+    )
 

@@ -11,7 +11,12 @@ EXPERIENCIA_PREVIA_OPCIONES = [
 ]
 EXPERIENCIA_PREVIA_KEYS = [k for k, _ in EXPERIENCIA_PREVIA_OPCIONES]
 
-ESTADOS_PREINSCRIPCION = ["pendiente", "contactada", "descartada", "seleccionada"]
+ESTADOS_PREINSCRIPCION = [
+    "pendiente", "contactada",
+    "apta_inscripcion",       # pasó el filtro: se le envía el email de inscripción/autorización
+    "inscripcion_completada", # ambos tutores (o el único, si aplica) han firmado
+    "descartada", "seleccionada",
+]
 
 
 class PreinscripcionCarcross(db.Model):
@@ -44,3 +49,25 @@ class PreinscripcionCarcross(db.Model):
     @property
     def experiencia_previa_label(self):
         return dict(EXPERIENCIA_PREVIA_OPCIONES).get(self.experiencia_previa, self.experiencia_previa)
+
+
+class MailingSeleccionFemenina(db.Model):
+    """Un registro por cada email de mailing masivo enviado a esta
+    candidata — se ve en su ficha de edición para saber qué se le ha
+    comunicado y cuándo (y si falló el envío)."""
+    __tablename__ = "mailings_seleccion_femenina"
+
+    id                 = db.Column(db.Integer, primary_key=True)
+    preinscripcion_id  = db.Column(db.Integer, db.ForeignKey("preinscripciones_carcross.id", ondelete="CASCADE"),
+                                    nullable=False, index=True)
+    asunto             = db.Column(db.String(200), nullable=False)
+    cuerpo             = db.Column(db.Text, default="")
+    enviado_ok         = db.Column(db.Boolean, default=True, nullable=False)
+    error              = db.Column(db.Text, nullable=True)
+    enviado_en         = db.Column(db.DateTime, default=datetime.utcnow)
+
+    preinscripcion = db.relationship(
+        "PreinscripcionCarcross",
+        backref=db.backref("mailings", cascade="all, delete-orphan", lazy="dynamic",
+                            order_by="MailingSeleccionFemenina.enviado_en.desc()"),
+    )

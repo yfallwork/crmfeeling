@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Inscripción y Autorización — Selección Femenina de Pilotos</title>
+<style>
+:root{
+  --rojo:#AD1726; --rojo-dark:#8B1020; --negro:#0D0D0D; --blanco:#FFFFFF;
+  --gray-100:#F3F4F6; --gray-400:#9CA3AF; --border:#E5E7EB;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:var(--gray-100);color:var(--negro);line-height:1.55}
+.wrap{max-width:760px;margin:0 auto;padding:24px 18px 80px}
+header.top{background:var(--negro);color:#fff;padding:20px 18px;border-top:4px solid var(--rojo)}
+header.top .brand{font-weight:900;font-size:1.2rem;letter-spacing:-.3px}
+header.top .sub{color:var(--rojo);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.card{background:#fff;border-radius:12px;padding:22px 22px;margin-top:18px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+h1{font-size:1.35rem;margin:0 0 6px}
+h2{font-size:1.05rem;margin:0 0 10px;border-left:4px solid var(--rojo);padding-left:10px}
+h3{font-size:.95rem;margin:0 0 8px}
+p{margin:0 0 .8em}
+label{display:block;font-size:.85rem;font-weight:600;margin-bottom:4px}
+input[type=text],input[type=email],input[type=tel],input[type=date],input[type=file],textarea,select{
+  width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:.92rem;font-family:inherit;margin-bottom:12px;
+}
+textarea{min-height:70px;resize:vertical}
+.field.err input,.field.err textarea,.field.err select{border-color:var(--rojo)}
+.err-msg{color:var(--rojo);font-size:.78rem;margin:-8px 0 12px}
+.row{display:flex;gap:14px;flex-wrap:wrap}
+.row > div{flex:1 1 220px}
+.check-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:14px}
+.check-row input{margin-top:3px;flex-shrink:0}
+.check-row .txt{font-size:.88rem}
+.radio-group{display:flex;gap:18px;margin-bottom:12px;flex-wrap:wrap}
+.radio-group label{display:flex;align-items:center;gap:6px;font-weight:400;margin:0}
+.tabs{display:flex;gap:6px;margin-bottom:14px;border-bottom:2px solid var(--border)}
+.tab-btn{padding:9px 16px;border:none;background:none;font-weight:700;font-size:.85rem;color:var(--gray-400);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+.tab-btn.active{color:var(--rojo);border-color:var(--rojo)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+.legal-block{background:var(--gray-100);border-radius:8px;padding:14px 16px;font-size:.85rem;color:#444;margin-bottom:14px}
+.legal-block p:last-child{margin-bottom:0}
+.btn{display:inline-block;background:var(--rojo);color:#fff;border:none;padding:13px 26px;border-radius:8px;font-weight:700;font-size:1rem;cursor:pointer}
+.btn:hover{background:var(--rojo-dark)}
+.alert{background:#fff8e1;border:1px solid #fcd34d;color:#92400e;border-radius:8px;padding:12px 16px;font-size:.85rem;margin-bottom:18px}
+details summary{cursor:pointer;font-weight:700;font-size:.85rem;color:var(--rojo)}
+hr{border:none;border-top:1px solid var(--border);margin:20px 0}
+.badge-name{background:#fde8ea;color:var(--rojo);font-weight:700;padding:2px 8px;border-radius:6px}
+.signature-wrap{border:1px dashed var(--border);border-radius:8px;padding:6px;background:#fafafa}
+.signature-canvas{display:block;width:100%;height:180px;background:#fff;border-radius:6px;touch-action:none;cursor:crosshair}
+.signature-clear{margin-top:8px;background:none;border:1px solid var(--border);border-radius:6px;padding:6px 12px;font-size:.78rem;font-weight:600;color:#666;cursor:pointer}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap" style="padding:0">
+    <div class="brand">SELECCIÓN FEMENINA</div>
+    <div class="sub">Pilotos de Carcross</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <h1>Inscripción y Autorización General del Proceso de Selección</h1>
+    <p>Estás completando la inscripción de <span class="badge-name">{{ preinscripcion.nombre_completo }}</span>.
+    Si no eres tú o has recibido este enlace por error, no continúes y contacta con nosotros.</p>
+  </div>
+
+  {% if errores %}
+  <div class="alert">Revisa los campos marcados en rojo — falta algo por rellenar o corregir.</div>
+  {% endif %}
+
+  <form method="POST" enctype="multipart/form-data" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <!-- ── 1. DATOS DE LA PARTICIPANTE ── -->
+    <div class="card">
+      <h2>1. Datos de la participante</h2>
+      <div class="field {{ 'err' if errores.nombre_completo }}">
+        <label>Nombre y apellidos</label>
+        <input type="text" name="nombre_completo" value="{{ datos.nombre_completo }}">
+        {% if errores.nombre_completo %}<div class="err-msg">{{ errores.nombre_completo }}</div>{% endif %}
+      </div>
+      <div class="row">
+        <div class="field {{ 'err' if errores.fecha_nacimiento }}">
+          <label>Fecha de nacimiento</label>
+          <input type="date" name="fecha_nacimiento" value="{{ datos.fecha_nacimiento }}">
+          {% if errores.fecha_nacimiento %}<div class="err-msg">{{ errores.fecha_nacimiento }}</div>{% endif %}
+        </div>
+        <div class="field {{ 'err' if errores.dni_nie_participante }}">
+          <label>DNI/NIE</label>
+          <input type="text" name="dni_nie_participante" value="{{ datos.dni_nie_participante }}">
+          {% if errores.dni_nie_participante %}<div class="err-msg">{{ errores.dni_nie_participante }}</div>{% endif %}
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Localidad / provincia</label>
+          <input type="text" name="localidad" value="{{ datos.localidad }}">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field {{ 'err' if errores.email }}">
+          <label>Email de contacto</label>
+          <input type="email" name="email" value="{{ datos.email }}">
+          {% if errores.email %}<div class="err-msg">{{ errores.email }}</div>{% endif %}
+        </div>
+        <div class="field {{ 'err' if errores.telefono }}">
+          <label>Teléfono de contacto</label>
+          <input type="tel" name="telefono" value="{{ datos.telefono }}">
+          {% if errores.telefono %}<div class="err-msg">{{ errores.telefono }}</div>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 2. DATOS DE LOS TUTORES ── -->
+    <div class="card">
+      <h2>2. Datos de los progenitores / tutores legales</h2>
+
+      <div class="check-row">
+        <input type="checkbox" id="solo_un_tutor" name="solo_un_tutor" value="1" {{ 'checked' if datos.solo_un_tutor }}>
+        <label for="solo_un_tutor" class="txt" style="font-weight:600">
+          Solo hay un progenitor/tutor legal (custodia exclusiva u otra situación legal)
+        </label>
+      </div>
+
+      <div class="tabs">
+        <button type="button" class="tab-btn active" data-tab="tutor1">Tutor/a 1</button>
+        <button type="button" class="tab-btn" id="tab-btn-tutor2" data-tab="tutor2">Tutor/a 2</button>
+      </div>
+
+      <div class="tab-panel active" id="tab-tutor1">
+        {% set prefix = "tutor1" %}
+        {% include "seleccion_femenina/_tutor_campos.html" with context %}
+      </div>
+      <div class="tab-panel" id="tab-tutor2">
+        {% set prefix = "tutor2" %}
+        {% include "seleccion_femenina/_tutor_campos.html" with context %}
+      </div>
+
+      <div class="field {{ 'err' if errores.doc_custodia }}" id="doc-custodia-field" style="display:none">
+        <label>Documento acreditativo (sentencia de custodia u otra situación legal) <span style="font-weight:400;color:#888">— opcional</span></label>
+        <input type="file" name="doc_custodia">
+        <div style="font-size:.8rem;color:#666;margin:-8px 0 12px">
+          {% if inscripcion.doc_custodia_path %}Ya se subió un documento anteriormente — puedes dejarlo vacío para conservarlo, o subir uno nuevo para sustituirlo.
+          {% else %}Si no lo tienes a mano ahora, puedes dejarlo en blanco — nos pondremos en contacto para pedírtelo antes de dar la inscripción por completada.{% endif %}
+        </div>
+        {% if errores.doc_custodia %}<div class="err-msg">{{ errores.doc_custodia }}</div>{% endif %}
+      </div>
+    </div>
+
+    <!-- ── 3. CONTACTO DE EMERGENCIA ── -->
+    <div class="card">
+      <h2>3. Contacto de emergencia <span style="font-weight:400;font-size:.8rem;color:#888">(puede coincidir con el punto 2)</span></h2>
+      <div class="row">
+        <div class="field {{ 'err' if errores.emergencia_nombre }}">
+          <label>Nombre y apellidos</label>
+          <input type="text" name="emergencia_nombre" value="{{ datos.emergencia_nombre }}">
+          {% if errores.emergencia_nombre %}<div class="err-msg">{{ errores.emergencia_nombre }}</div>{% endif %}
+        </div>
+        <div class="field {{ 'err' if errores.emergencia_telefono }}">
+          <label>Teléfono</label>
+          <input type="tel" name="emergencia_telefono" value="{{ datos.emergencia_telefono }}">
+          {% if errores.emergencia_telefono %}<div class="err-msg">{{ errores.emergencia_telefono }}</div>{% endif %}
+        </div>
+      </div>
+      <div class="field">
+        <label>Relación con la participante</label>
+        <input type="text" name="emergencia_relacion" value="{{ datos.emergencia_relacion }}">
+      </div>
+    </div>
+
+    <!-- ── 4. FASES DEL PROCESO ── -->
+    <div class="card">
+      <h2>4. Fases del proceso para las que se otorga esta autorización</h2>
+      <p>Este documento formaliza la <strong>inscripción oficial</strong> de la participante (posterior a la preinscripción informativa ya realizada) y autoriza su participación en la totalidad del proceso de selección, compuesto por las siguientes fases:</p>
+      <ol style="font-size:.9rem;padding-left:20px">
+        <li><strong>Preinscripción</strong> de las interesadas (ya completada).</li>
+        <li><strong>Inscripción formal</strong> vía email/CRM (el presente documento).</li>
+        <li><strong>Entrevista personal.</strong></li>
+        <li><strong>Pruebas físicas.</strong></li>
+        <li><strong>Pruebas psicofísicas.</strong></li>
+        <li><strong>Pruebas de conducción.</strong></li>
+      </ol>
+    </div>
+
+    <!-- ── 5. AUTORIZACIÓN DE PARTICIPACIÓN ── -->
+    <div class="card">
+      <h2>5. Autorización de participación</h2>
+      <p>Mediante la firma del presente documento, ambos progenitores/tutores legales autorizan expresamente a la menor arriba identificada a participar en la totalidad de las fases descritas en el punto 4, incluyendo la entrevista personal y las pruebas físicas, psicofísicas y de conducción que se celebrarán en el Circuito La Dehesa (Alcolea del Pinar, Guadalajara) en las fechas comunicadas por la organización.</p>
+      <div class="check-row {{ 'err' if errores.consiente_participacion }}">
+        <input type="checkbox" id="consiente_participacion" name="consiente_participacion" value="1" {{ 'checked' if datos.consiente_participacion }}>
+        <label for="consiente_participacion" class="txt" style="font-weight:400"><strong>Autorizo</strong> la participación de la menor en todas las fases del proceso de selección.</label>
+      </div>
+      {% if errores.consiente_participacion %}<div class="err-msg">{{ errores.consiente_participacion }}</div>{% endif %}
+    </div>
+
+    <!-- ── 6. EXPERIENCIA PREVIA ── -->
+    <div class="card">
+      <h2>6. Declaración responsable de experiencia previa de conducción/pilotaje</h2>
+      <div class="field">
+        <label>Experiencia previa en conducción con embrague</label>
+        <input type="text" name="experiencia_conduccion" value="{{ datos.experiencia_conduccion }}">
+      </div>
+      <div class="field">
+        <label>Experiencia previa en competición (autocross, rallycross u otra disciplina, si la hubiera)</label>
+        <input type="text" name="experiencia_competicion" value="{{ datos.experiencia_competicion }}">
+      </div>
+      <label>Licencia federativa en vigor</label>
+      <div class="radio-group {{ 'err' if errores.licencia_federativa }}">
+        <label><input type="radio" name="licencia_federativa" value="no" {{ 'checked' if datos.licencia_federativa == 'no' }}> No</label>
+        <label><input type="radio" name="licencia_federativa" value="si" {{ 'checked' if datos.licencia_federativa == 'si' }}> Sí</label>
+      </div>
+      {% if errores.licencia_federativa %}<div class="err-msg">{{ errores.licencia_federativa }}</div>{% endif %}
+      <div class="field {{ 'err' if errores.licencia_federativa_detalle }}">
+        <label>En caso afirmativo, especificar disciplina y federación</label>
+        <input type="text" name="licencia_federativa_detalle" value="{{ datos.licencia_federativa_detalle }}">
+        {% if errores.licencia_federativa_detalle %}<div class="err-msg">{{ errores.licencia_federativa_detalle }}</div>{% endif %}
+      </div>
+      <div class="legal-block">
+        <p>Declaro que la información aportada es veraz, siendo consciente de que <strong>no puede participar en este proceso quien disponga de licencia federativa de competición en vigor o trayectoria profesional/semiprofesional acreditada</strong>, conforme al punto 4 de las Bases Legales del concurso.</p>
+      </div>
+    </div>
+
+    <!-- ── 7. TRATAMIENTO DE DATOS ── -->
+    <div class="card">
+      <h2>7. Tratamiento de datos personales durante todo el proceso</h2>
+      <div class="legal-block">
+        <p>Se informa a los progenitores/tutores legales de que, a lo largo del proceso de selección, se recogerán y tratarán los siguientes datos de la participante:</p>
+        <ul style="margin:0 0 .8em;padding-left:20px">
+          <li>Notas y valoración escrita del entrevistador durante la entrevista personal.</li>
+          <li>Resultados y valoraciones de las pruebas físicas, psicofísicas y de conducción.</li>
+        </ul>
+        <p>Estos datos se tratarán conforme a lo establecido en la <a href="{{ url_for('seleccion_femenina.privacidad') }}" target="_blank">Política de Privacidad del proyecto</a>, siendo CD Autoclub La Dehesa el responsable del tratamiento, con la finalidad exclusiva de gestionar el proceso de selección. Se conservarán durante el desarrollo del proceso y se eliminarán en el plazo indicado en dicha política una vez finalizado, salvo que la candidata resulte seleccionada, en cuyo caso se conservarán conforme a las condiciones del programa y, en su caso, del contrato o precontrato posterior con el club.</p>
+      </div>
+      <div class="check-row {{ 'err' if errores.consiente_datos_personales }}">
+        <input type="checkbox" id="consiente_datos_personales" name="consiente_datos_personales" value="1" {{ 'checked' if datos.consiente_datos_personales }}>
+        <label for="consiente_datos_personales" class="txt" style="font-weight:400"><strong>He leído y acepto</strong> el tratamiento de los datos personales recogidos durante el proceso de selección, conforme a la Política de Privacidad del proyecto.</label>
+      </div>
+      {% if errores.consiente_datos_personales %}<div class="err-msg">{{ errores.consiente_datos_personales }}</div>{% endif %}
+    </div>
+
+    <!-- ── 8. AUTORIZACIÓN DE IMAGEN ── -->
+    <div class="card">
+      <h2>8. Autorización de captación y uso de imagen</h2>
+      <div class="legal-block">
+        <p>Se informa a los progenitores/tutores legales de que <strong>durante la ponencia, la entrevista, las pruebas de selección y, en su caso, la posterior participación en el Campeonato de España de Rallycross (CERX)</strong>, se realizarán fotografías y/o vídeos de la participante, con la finalidad de difundir el proyecto en las redes sociales y canales de comunicación de CD Autoclub La Dehesa y de las entidades impulsoras y colaboradoras (Delegación de Igualdad de la JCCM, Instituto de la Mujer de Castilla-La Mancha, Motorsport Ibérica, Feeling Experience).</p>
+        <p>Esta autorización es <strong>independiente</strong> del resto de consentimientos de este documento y puede ser revocada en cualquier momento, sin que ello afecte a la participación de la menor en el proceso, dirigiéndose por escrito a info@autoclubladehesa.com.</p>
+      </div>
+      <div class="radio-group {{ 'err' if errores.autorizacion_imagen }}" style="flex-direction:column;gap:10px">
+        <label><input type="radio" name="autorizacion_imagen" value="autoriza" {{ 'checked' if datos.autorizacion_imagen == 'autoriza' }}> <strong>Autorizo</strong> la captación de fotografías/vídeos de la menor durante el proceso de selección y su publicación en redes sociales y canales de comunicación del proyecto.</label>
+        <label><input type="radio" name="autorizacion_imagen" value="no_autoriza" {{ 'checked' if datos.autorizacion_imagen == 'no_autoriza' }}> <strong>No autorizo</strong> la captación y/o publicación de imágenes de la menor. La organización tomará medidas razonables para evitarlo, si bien no puede garantizarse en imágenes de conjunto tomadas en espacios abiertos al público, como la ponencia o las pruebas.</label>
+      </div>
+      {% if errores.autorizacion_imagen %}<div class="err-msg">{{ errores.autorizacion_imagen }}</div>{% endif %}
+    </div>
+
+    <!-- ── 9. COMPROMISOS Y DEBERES ── -->
+    <div class="card">
+      <h2>9. Compromisos y deberes de la participante y su entorno familiar</h2>
+      <div class="legal-block">
+        <p>Al inscribirse en el proceso de selección, la participante y sus progenitores/tutores legales asumen los siguientes compromisos:</p>
+        <p><strong>a)</strong> Participar en todas las pruebas del programa de selección conforme al calendario establecido por la organización.</p>
+        <p><strong>b)</strong> Asumir los valores del Autoclub, así como su código de conducta y disciplina deportiva, incluyendo: comportamiento respetuoso en el paddock, principios de juego limpio, uso responsable de redes sociales en relación con el proyecto, y respeto a los compromisos con los patrocinadores de la escudería. Estos compromisos alcanzan tanto a la participante como a su entorno familiar directo, en aquello que razonablemente pueda afectar a la imagen del proyecto.</p>
+        <p><strong>c)</strong> Participación en el CERX, en caso de resultar seleccionada al finalizar el proceso, conforme a las condiciones descritas en el Anexo II.</p>
+        <p><strong>d)</strong> Compromiso de prioridad con Autoclub La Dehesa durante la temporada 2027, limitado a autocross y rallycross, en caso de resultar seleccionada: la piloto se compromete a no competir en pruebas oficiales de <strong>autocross o rallycross</strong> bajo los colores de otra escudería distinta de Autoclub La Dehesa durante dicha temporada, salvo autorización expresa y por escrito del club. Este compromiso está directamente vinculado a la formación, equipamiento, acompañamiento técnico y plaza de competición recibidos como parte del programa y el premio.</p>
+        <p>Este compromiso se limita exclusivamente a las disciplinas de autocross y rallycross y no restringe en ningún caso la participación de la piloto, de forma amateur o profesional, en cualquier otra disciplina del motorsport (rally, circuito, karting, resistencia u otras), ni con Autoclub La Dehesa ni con cualquier otra escudería o equipo.</p>
+        <p>El incumplimiento de este compromiso de prioridad por parte de la piloto seleccionada conllevará una penalización económica de <strong>2.000 € (dos mil euros)</strong>, a cargo de sus progenitores/tutores legales firmantes del presente documento, a abonar a CD Autoclub La Dehesa en concepto de resarcimiento por los costes de formación, equipamiento, acompañamiento técnico y plaza de competición asumidos por la organización como parte del programa y el premio. Esta penalización <strong>no será exigible cuando el incumplimiento se deba a una causa de fuerza mayor debidamente justificada</strong> (entre otras, lesión o enfermedad grave, u otras circunstancias sobrevenidas ajenas a la voluntad de la piloto y su familia).</p>
+        <p><strong>e)</strong> Cumplir con las directrices de la organización durante todo el proceso de selección, con especial atención a las normas de seguridad comunicadas por el personal técnico en cada fase.</p>
+      </div>
+      <details>
+        <summary>Ver Anexo I — Costes del programa de selección, y Anexo II — Costes del premio</summary>
+        <div class="legal-block" style="margin-top:10px">
+          <p><strong>Anexo I — El programa de selección cubre:</strong> mecánicos, vehículos (Yacar de carcross) utilizados durante las pruebas, evaluadores, entrevistadores, instalaciones (Circuito La Dehesa), material necesario para las pruebas, uso del circuito.</p>
+          <p><strong>El programa de selección NO cubre:</strong> desplazamiento de la participante y su familia hasta la sede de las pruebas, manutención y alojamiento durante los días de pruebas, equipamiento personal de la participante (salvo el que la organización decida proporcionar), y cualquier gasto médico no derivado directamente de un incidente ocurrido durante las pruebas y cubierto por el seguro de la organización.</p>
+          <p><strong>Anexo II — El premio cubre:</strong> equipo (mono, casco u otro material específico de competición, según se determine), vehículo de competición, inscripción en la prueba oficial del CERX (Motorland), formación específica previa a la competición, dirección deportiva durante la prueba, y traslado y alojamiento durante la prueba del CERX <strong>para dos personas: la piloto ganadora y un/a acompañante tutor/a</strong>.</p>
+          <p>Traslados y alojamiento de personas adicionales (más allá de la piloto y un/a tutor/a) corren por cuenta de la familia.</p>
+        </div>
+      </details>
+      <div class="check-row {{ 'err' if errores.acepta_compromisos }}" style="margin-top:14px">
+        <input type="checkbox" id="acepta_compromisos" name="acepta_compromisos" value="1" {{ 'checked' if datos.acepta_compromisos }}>
+        <label for="acepta_compromisos" class="txt" style="font-weight:400">Acepto, en representación de la menor, los compromisos y deberes descritos en este punto.</label>
+      </div>
+      {% if errores.acepta_compromisos %}<div class="err-msg">{{ errores.acepta_compromisos }}</div>{% endif %}
+    </div>
+
+    <!-- ── 12. BASES LEGALES ── -->
+    <div class="card">
+      <h2>10. Aceptación de las Bases Legales del concurso</h2>
+      <div class="check-row {{ 'err' if errores.acepta_bases_legales }}">
+        <input type="checkbox" id="acepta_bases_legales" name="acepta_bases_legales" value="1" {{ 'checked' if datos.acepta_bases_legales }}>
+        <label for="acepta_bases_legales" class="txt" style="font-weight:400">
+          Declaro haber leído y acepto en su integridad las
+          <a href="{{ url_for('seleccion_femenina.bases_legales') }}" target="_blank">Bases Legales del concurso "Selección Femenina de Pilotos de Carcross"</a>,
+          en representación de la menor arriba identificada.
+        </label>
+      </div>
+      {% if errores.acepta_bases_legales %}<div class="err-msg">{{ errores.acepta_bases_legales }}</div>{% endif %}
+    </div>
+
+    <div class="card" style="text-align:center">
+      <p style="font-size:.85rem;color:#666">Al enviar este formulario se registrará la dirección IP y la fecha/hora exacta de la firma de cada tutor/a, como prueba de la autorización otorgada.</p>
+      <button type="submit" class="btn">Enviar inscripción y autorización</button>
+    </div>
+  </form>
+</div>
+
+<script>
+(function () {
+  var soloUnTutor = document.getElementById('solo_un_tutor');
+  var tabBtnTutor2 = document.getElementById('tab-btn-tutor2');
+  var panelTutor2 = document.getElementById('tab-tutor2');
+  var docField = document.getElementById('doc-custodia-field');
+  var tabBtns = document.querySelectorAll('.tab-btn');
+  var panels = document.querySelectorAll('.tab-panel');
+
+  function actualizarSoloUnTutor() {
+    var activo = soloUnTutor.checked;
+    docField.style.display = activo ? 'block' : 'none';
+    tabBtnTutor2.style.display = activo ? 'none' : 'inline-block';
+    panelTutor2.querySelectorAll('input, textarea, select').forEach(function (el) {
+      el.disabled = activo;
+    });
+    if (activo) {
+      tabBtns[0].click();
+    }
+  }
+
+  soloUnTutor.addEventListener('change', actualizarSoloUnTutor);
+  actualizarSoloUnTutor();
+
+  tabBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (btn.style.display === 'none') return;
+      tabBtns.forEach(function (b) { b.classList.remove('active'); });
+      panels.forEach(function (p) { p.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ── Firma dibujada a mano (canvas), un pad independiente por tutor ──
+  function initSignaturePad(canvasId) {
+    var canvas = document.getElementById(canvasId);
+    var hidden = document.getElementById(canvasId.replace('_canvas', '_firma_dibujo'));
+    var ctx = canvas.getContext('2d');
+    var dibujando = false;
+    var tieneTrazo = false;
+
+    function ajustarResolucion() {
+      var dpr = window.devicePixelRatio || 1;
+      var rectW = canvas.clientWidth || 600;
+      var rectH = canvas.clientHeight || 180;
+      canvas.width = rectW * dpr;
+      canvas.height = rectH * dpr;
+      ctx.scale(dpr, dpr);
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#111';
+    }
+    ajustarResolucion();
+
+    function posicion(e) {
+      var rect = canvas.getBoundingClientRect();
+      var punto = e.touches ? e.touches[0] : e;
+      return { x: punto.clientX - rect.left, y: punto.clientY - rect.top };
+    }
+
+    function empezar(e) {
+      dibujando = true;
+      var p = posicion(e);
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      e.preventDefault();
+    }
+    function mover(e) {
+      if (!dibujando) return;
+      var p = posicion(e);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      tieneTrazo = true;
+      e.preventDefault();
+    }
+    function terminar() {
+      if (!dibujando) return;
+      dibujando = false;
+      hidden.value = tieneTrazo ? canvas.toDataURL('image/png') : '';
+    }
+
+    canvas.addEventListener('mousedown', empezar);
+    canvas.addEventListener('mousemove', mover);
+    window.addEventListener('mouseup', terminar);
+    canvas.addEventListener('touchstart', empezar, { passive: false });
+    canvas.addEventListener('touchmove', mover, { passive: false });
+    canvas.addEventListener('touchend', terminar);
+
+    document.querySelector('.signature-clear[data-target="' + canvasId + '"]').addEventListener('click', function () {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      tieneTrazo = false;
+      hidden.value = '';
+    });
+  }
+
+  initSignaturePad('tutor1_canvas');
+  initSignaturePad('tutor2_canvas');
+})();
+</script>
+</body>
+</html>

@@ -57,7 +57,7 @@ def test_crear_invitacion_individual_ok(auth_client, auth_csrf_token, app):
     evento_id = _crear_evento_activo(app)
     try:
         with patch("app.services.invitacion_service.requests.post", return_value=_mock_woo_post(6001)) as mock_post, \
-             patch("app.services.invitacion_service._enviar_smtp") as mock_smtp:
+             patch("app.services.invitacion_service.enviar_smtp_prensa") as mock_smtp:
             resp = auth_client.post(
                 "/autoclub/eventos/invitaciones",
                 data={
@@ -122,7 +122,7 @@ def test_duplicado_email_avisa_y_no_crea_otra(auth_client, auth_csrf_token, app)
     _crear_evento_activo(app)
     try:
         with patch("app.services.invitacion_service.requests.post", return_value=_mock_woo_post(6002)), \
-             patch("app.services.invitacion_service._enviar_smtp"):
+             patch("app.services.invitacion_service.enviar_smtp_prensa"):
             auth_client.post(
                 "/autoclub/eventos/invitaciones",
                 data={"csrf_token": auth_csrf_token, "nombre": "Primera", "email": "dup@example.com",
@@ -151,7 +151,7 @@ def test_reenviar_no_crea_pedido_nuevo(auth_client, auth_csrf_token, app):
     _crear_evento_activo(app)
     try:
         with patch("app.services.invitacion_service.requests.post", return_value=_mock_woo_post(6003)), \
-             patch("app.services.invitacion_service._enviar_smtp"):
+             patch("app.services.invitacion_service.enviar_smtp_prensa"):
             auth_client.post(
                 "/autoclub/eventos/invitaciones",
                 data={"csrf_token": auth_csrf_token, "nombre": "Reenvíame", "email": "reenvio@example.com",
@@ -162,7 +162,7 @@ def test_reenviar_no_crea_pedido_nuevo(auth_client, auth_csrf_token, app):
             inv_id = Invitacion.query.filter_by(email="reenvio@example.com").first().id
 
         with patch("app.services.invitacion_service.requests.post") as mock_post_reenvio, \
-             patch("app.services.invitacion_service._enviar_smtp") as mock_smtp_reenvio:
+             patch("app.services.invitacion_service.enviar_smtp_prensa") as mock_smtp_reenvio:
             resp = auth_client.post(
                 f"/autoclub/eventos/invitaciones/{inv_id}/reenviar",
                 data={"csrf_token": auth_csrf_token},
@@ -185,7 +185,7 @@ def test_qr_de_invitacion_es_escaneable_por_el_flujo_existente(auth_client, auth
     evento_id = _crear_evento_activo(app)
     try:
         with patch("app.services.invitacion_service.requests.post", return_value=_mock_woo_post(6004)), \
-             patch("app.services.invitacion_service._enviar_smtp"):
+             patch("app.services.invitacion_service.enviar_smtp_prensa"):
             auth_client.post(
                 "/autoclub/eventos/invitaciones",
                 data={"csrf_token": auth_csrf_token, "nombre": "Invitada VIP", "email": "vip@example.com",
@@ -289,7 +289,7 @@ def test_csv_valido_previsualiza_y_confirmar_crea_invitaciones(auth_client, auth
         filas_json = _html_mod.unescape(m.group(1))
 
         with patch("app.services.invitacion_service.requests.post", side_effect=[_mock_woo_post(7001), _mock_woo_post(7002)]), \
-             patch("app.services.invitacion_service._enviar_smtp"):
+             patch("app.services.invitacion_service.enviar_smtp_prensa"):
             resp2 = auth_client.post(
                 "/autoclub/eventos/invitaciones/lote/confirmar",
                 data={"csrf_token": auth_csrf_token, "filas_json": filas_json},
@@ -335,7 +335,7 @@ def test_csv_fallo_parcial_no_aborta_el_resto_del_lote(auth_client, auth_csrf_to
             return _mock_woo_post(7100)
 
         with patch("app.services.invitacion_service.requests.post", side_effect=_post_side_effect), \
-             patch("app.services.invitacion_service._enviar_smtp"):
+             patch("app.services.invitacion_service.enviar_smtp_prensa"):
             resp2 = auth_client.post(
                 "/autoclub/eventos/invitaciones/lote/confirmar",
                 data={"csrf_token": auth_csrf_token, "filas_json": filas_json},
@@ -354,7 +354,7 @@ def test_csv_marca_duplicados_y_los_excluye_por_defecto(auth_client, auth_csrf_t
     _crear_evento_activo(app)
     try:
         with patch("app.services.invitacion_service.requests.post", return_value=_mock_woo_post(6005)), \
-             patch("app.services.invitacion_service._enviar_smtp"):
+             patch("app.services.invitacion_service.enviar_smtp_prensa"):
             auth_client.post(
                 "/autoclub/eventos/invitaciones",
                 data={"csrf_token": auth_csrf_token, "nombre": "Ya invitado", "email": "yainvitado@example.com",

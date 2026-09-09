@@ -6,8 +6,14 @@
 <a href="{{ url_for('seleccion_femenina.landing') }}" target="_blank" class="btn btn-sm btn-outline-secondary">
   <i class="bi bi-box-arrow-up-right me-1"></i><span class="btn-label">Ver landing pública</span>
 </a>
+<a href="{{ url_for('autoclub.seleccion_femenina_mailing') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-envelope-paper me-1"></i><span class="btn-label">Mailing</span>
+</a>
 <a href="{{ url_for('autoclub.seleccion_femenina_exportar') }}" class="btn btn-sm btn-outline-primary">
   <i class="bi bi-download me-1"></i><span class="btn-label">Exportar CSV</span>
+</a>
+<a href="{{ url_for('autoclub.seleccion_femenina_nueva') }}" class="btn btn-primary btn-sm">
+  <i class="bi bi-plus-lg me-1"></i><span class="btn-label">Nueva preinscripción</span>
 </a>
 {% endblock %}
 
@@ -64,7 +70,7 @@
           <td>
             <form method="POST" action="{{ url_for('autoclub.seleccion_femenina_estado', id=p.id) }}" class="d-inline-flex">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              {% set ec = {'pendiente': ('#6b7280','bi-clock'), 'contactada': ('#1d4ed8','bi-telephone'), 'descartada': ('#dc2626','bi-x-circle'), 'seleccionada': ('#16a34a','bi-star-fill')} %}
+              {% set ec = {'pendiente': ('#6b7280','bi-clock'), 'contactada': ('#1d4ed8','bi-telephone'), 'apta_inscripcion': ('#AD1726','bi-envelope-arrow-up'), 'inscripcion_completada': ('#7c3aed','bi-file-earmark-check'), 'descartada': ('#dc2626','bi-x-circle'), 'seleccionada': ('#16a34a','bi-star-fill')} %}
               {% set c = ec.get(p.estado, ('#6b7280','bi-circle')) %}
               <select name="estado" class="form-select form-select-sm" style="width:auto;font-weight:700;
                       background-color:{{ c[0] }}18;color:{{ c[0] }};border-color:{{ c[0] }}40"
@@ -76,10 +82,25 @@
             </form>
           </td>
           <td class="text-sm text-muted text-nowrap">{{ p.creado_en.strftime('%d/%m/%Y %H:%M') if p.creado_en else '—' }}</td>
-          <td>
+          <td class="text-nowrap">
+            <a href="{{ url_for('autoclub.seleccion_femenina_editar', id=p.id) }}" class="btn btn-xs btn-outline-secondary" title="Editar">
+              <i class="bi bi-pencil"></i>
+            </a>
+            {% if p.inscripcion_autorizacion and p.inscripcion_autorizacion.completo %}
+            <a href="{{ url_for('autoclub.seleccion_femenina_inscripcion_detalle', id=p.id) }}" class="btn btn-xs btn-outline-secondary" title="Ver inscripción y autorización firmada">
+              <i class="bi bi-file-earmark-text"></i>
+            </a>
+            {% endif %}
             <button type="button" class="btn btn-xs btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#notas-{{ p.id }}" title="Notas internas">
-              <i class="bi bi-pencil-square"></i>
+              <i class="bi bi-journal-text"></i>
             </button>
+            <form method="POST" action="{{ url_for('autoclub.seleccion_femenina_eliminar', id=p.id) }}" class="d-inline"
+                  onsubmit="return confirm('¿Eliminar la preinscripción de «{{ p.nombre_completo }}»? Esta acción no se puede deshacer.')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-xs btn-outline-danger" title="Eliminar">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
           </td>
         </tr>
         <tr class="collapse" id="notas-{{ p.id }}">

@@ -1,0 +1,121 @@
+{% extends "autoclub/base.html" %}
+{% block title %}Mailing — Selección Femenina — AutoClub{% endblock %}
+{% block page_title %}Mailing a inscritas{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.seleccion_femenina_lista') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Volver</span>
+</a>
+{% endblock %}
+
+{% block content %}
+
+{% if resultado %}
+<div class="card p-4 mb-3">
+  <h6 class="text-sm fw-bold mb-2"><i class="bi bi-clipboard-check me-1"></i>Resultado del envío</h6>
+  <p class="text-sm">
+    <span style="color:#16a34a;font-weight:700">{{ resultado.enviados | length }} enviados</span>
+    {% if resultado.fallidos %} · <span style="color:#dc2626;font-weight:700">{{ resultado.fallidos | length }} fallidos</span>{% endif %}
+  </p>
+  {% if resultado.fallidos %}
+  <div class="table-responsive">
+    <table class="table table-sm mb-0">
+      <thead><tr><th>Nombre</th><th>Email</th><th>Error</th></tr></thead>
+      <tbody>
+        {% for f in resultado.fallidos %}
+        <tr>
+          <td class="text-sm">{{ f.nombre }}</td>
+          <td class="text-sm text-muted">{{ f.email }}</td>
+          <td class="text-sm text-danger">{{ f.error }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-12 col-lg-6">
+    <div class="card p-4">
+      <h6 class="text-xs text-uppercase text-muted fw-semibold mb-3">Redactar email</h6>
+      <form method="POST" action="{{ url_for('autoclub.seleccion_femenina_mailing') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="accion" value="previsualizar">
+
+        <div class="mb-3">
+          <label class="form-label text-sm fw-semibold">Asunto</label>
+          <input type="text" name="asunto" class="form-control" required value="{{ asunto }}">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label text-sm fw-semibold">Mensaje</label>
+          <textarea name="cuerpo" class="form-control" rows="8" required
+                    placeholder="Escribe aquí el cuerpo del email…">{{ cuerpo }}</textarea>
+          <div class="text-xs text-muted mt-1">Se enviará con el saludo "Hola &lt;nombre&gt;," delante, y con los colores de Selección Femenina.</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label text-sm fw-semibold">Destinatarias</label>
+          <div class="d-flex flex-wrap gap-3">
+            {% for e in estados %}
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="estados" value="{{ e }}" id="est-{{ e }}"
+                     {% if e in estados_sel %}checked{% endif %}>
+              <label class="form-check-label text-sm" for="est-{{ e }}">{{ e | capitalize }}</label>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="text-xs text-muted mt-1">Deja todas sin marcar para enviar a todas las inscritas, sea cual sea su estado.</div>
+        </div>
+
+        <button type="submit" class="btn btn-outline-primary">
+          <i class="bi bi-eye me-1"></i>Previsualizar
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-6">
+    {% if preview_html %}
+    <div class="card p-4 mb-3">
+      <h6 class="text-xs text-uppercase text-muted fw-semibold mb-3">
+        Previsualización — se enviará a {{ destinatarias | length }} destinataria{{ 's' if destinatarias | length != 1 }}
+      </h6>
+      <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;max-height:480px;overflow-y:auto">
+        <iframe srcdoc="{{ preview_html | e }}" style="width:100%;height:480px;border:0" title="Previsualización del email"></iframe>
+      </div>
+
+      <form method="POST" action="{{ url_for('autoclub.seleccion_femenina_mailing_enviar') }}" class="mt-3"
+            onsubmit="return confirm('¿Enviar este email a {{ destinatarias | length }} inscrita{{ 's' if destinatarias | length != 1 }}? No se puede deshacer.')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="asunto" value="{{ asunto }}">
+        <input type="hidden" name="cuerpo" value="{{ cuerpo }}">
+        {% for e in estados_sel %}<input type="hidden" name="estados" value="{{ e }}">{% endfor %}
+        <button type="submit" class="btn btn-primary" {{ 'disabled' if not destinatarias }}>
+          <i class="bi bi-send me-1"></i>Confirmar y enviar a {{ destinatarias | length }}
+        </button>
+      </form>
+
+      {% if destinatarias %}
+      <div class="table-responsive mt-3">
+        <table class="table table-sm mb-0">
+          <tbody>
+            {% for d in destinatarias %}
+            <tr><td class="text-sm">{{ d.nombre_completo }}</td><td class="text-sm text-muted">{{ d.email }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="card p-4 text-center text-muted">
+      <i class="bi bi-envelope-paper d-block mb-2" style="font-size:1.8rem;opacity:.4"></i>
+      <p class="text-sm mb-0">Escribe el email y pulsa "Previsualizar" para ver cómo quedará antes de enviarlo.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,179 @@
+{% extends "autoclub/base.html" %}
+{% block title %}{{ 'Editar' if preinscripcion else 'Nueva' }} preinscripción — AutoClub{% endblock %}
+{% block page_title %}{{ 'Editar' if preinscripcion else 'Nueva' }} preinscripción{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.seleccion_femenina_lista') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Volver</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+<div class="col-12 col-lg-7">
+<div class="card p-4">
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="mb-3">
+      <label class="form-label text-sm fw-semibold">Nombre y apellidos</label>
+      <input type="text" name="nombre_completo" class="form-control {{ 'is-invalid' if errores and errores.nombre_completo }}"
+             value="{{ datos.nombre_completo if datos else '' }}">
+      {% if errores and errores.nombre_completo %}<div class="invalid-feedback">{{ errores.nombre_completo }}</div>{% endif %}
+    </div>
+
+    <div class="row">
+      <div class="col-sm-6 mb-3">
+        <label class="form-label text-sm fw-semibold">Fecha de nacimiento</label>
+        <input type="date" name="fecha_nacimiento" class="form-control {{ 'is-invalid' if errores and errores.fecha_nacimiento }}"
+               value="{{ datos.fecha_nacimiento if datos else '' }}">
+        {% if errores and errores.fecha_nacimiento %}<div class="invalid-feedback">{{ errores.fecha_nacimiento }}</div>{% endif %}
+      </div>
+      <div class="col-sm-6 mb-3">
+        <label class="form-label text-sm fw-semibold">Localidad</label>
+        <input type="text" name="localidad" class="form-control" value="{{ datos.localidad if datos else '' }}">
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-sm-6 mb-3">
+        <label class="form-label text-sm fw-semibold">Email</label>
+        <input type="email" name="email" class="form-control {{ 'is-invalid' if errores and errores.email }}"
+               value="{{ datos.email if datos else '' }}">
+        {% if errores and errores.email %}<div class="invalid-feedback">{{ errores.email }}</div>{% endif %}
+      </div>
+      <div class="col-sm-6 mb-3">
+        <label class="form-label text-sm fw-semibold">Teléfono</label>
+        <input type="text" name="telefono" class="form-control {{ 'is-invalid' if errores and errores.telefono }}"
+               value="{{ datos.telefono if datos else '' }}">
+        {% if errores and errores.telefono %}<div class="invalid-feedback">{{ errores.telefono }}</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-sm-6 mb-3">
+        <label class="form-label text-sm fw-semibold">Experiencia previa</label>
+        <select name="experiencia_previa" class="form-select">
+          {% for k, label in experiencia_opciones %}
+          <option value="{{ k }}" {% if datos and datos.experiencia_previa == k %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-6 mb-3">
+        <label class="form-label text-sm fw-semibold">Estado</label>
+        <select name="estado" class="form-select">
+          {% for e in estados %}
+          <option value="{{ e }}" {% if datos and datos.estado == e %}selected{% endif %}>{{ e | capitalize }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label text-sm fw-semibold">Motivación</label>
+      <textarea name="motivacion" class="form-control" rows="3">{{ datos.motivacion if datos else '' }}</textarea>
+    </div>
+
+    <div class="mb-4">
+      <label class="form-label text-sm fw-semibold">Notas internas <span class="text-muted fw-normal">(no se envían a la candidata)</span></label>
+      <textarea name="notas_internas" class="form-control" rows="2">{{ datos.notas_internas if datos else '' }}</textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">
+      <i class="bi bi-check-lg me-1"></i>{{ 'Guardar cambios' if preinscripcion else 'Crear preinscripción' }}
+    </button>
+  </form>
+</div>
+</div>
+
+{% if preinscripcion %}
+<div class="col-12 col-lg-5">
+  {% set insc = preinscripcion.inscripcion_autorizacion %}
+  <div class="card p-4 mb-3">
+    <h6 class="text-xs text-uppercase text-muted fw-semibold mb-3">
+      <i class="bi bi-file-earmark-check me-1"></i>Inscripción y autorización
+    </h6>
+    {% if not insc %}
+    <p class="text-sm text-muted mb-0">Todavía no se le ha enviado el formulario de inscripción y autorización — cambia su estado a «apta_inscripcion» para disparar el email.</p>
+    {% elif insc.estado == 'pendiente' %}
+    <p class="text-sm">
+      <span class="badge" style="background:#AD172618;color:#AD1726;font-weight:700">Pendiente de firmar</span>
+    </p>
+    <p class="text-xs text-muted">Enviado el {{ insc.token_creado_en.strftime('%d/%m/%Y %H:%M') if insc.token_creado_en else '—' }}.
+    {% if insc.token_expirado %}El enlace ya ha caducado.{% endif %}</p>
+    {% else %}
+    <p class="text-sm mb-2">
+      <span class="badge" style="background:#16a34a18;color:#16a34a;font-weight:700">Completada</span>
+      <span class="text-xs text-muted ms-1">{{ insc.completado_en.strftime('%d/%m/%Y %H:%M') if insc.completado_en else '' }}</span>
+    </p>
+    <a href="{{ url_for('autoclub.seleccion_femenina_inscripcion_detalle', id=preinscripcion.id) }}" class="btn btn-sm btn-outline-primary mb-3">
+      <i class="bi bi-file-earmark-text me-1"></i>Ver todo lo firmado
+    </a>
+    <div class="text-sm mb-2">
+      <strong>DNI/NIE:</strong> {{ insc.dni_nie_participante or '—' }}
+    </div>
+    <div class="text-sm mb-2">
+      <strong>Imagen:</strong>
+      {% if insc.autorizacion_imagen == 'autoriza' %}<span style="color:#16a34a">Autorizada</span>
+      {% elif insc.autorizacion_imagen == 'no_autoriza' %}<span style="color:#dc2626">No autorizada</span>
+      {% else %}—{% endif %}
+    </div>
+    {% if insc.doc_custodia_path %}
+    <div class="text-sm mb-2">
+      <a href="{{ url_for('static', filename=insc.doc_custodia_path) }}" target="_blank"><i class="bi bi-file-earmark-arrow-down me-1"></i>Documento de custodia</a>
+    </div>
+    {% elif insc.necesita_revision_custodia %}
+    <div class="text-sm mb-2">
+      <span class="badge" style="background:#d9770618;color:#d97706;font-weight:700">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>Falta el documento de custodia — pídeselo a la familia
+      </span>
+    </div>
+    {% endif %}
+    <hr>
+    {% for t in insc.tutores %}
+    <div class="text-sm mb-2">
+      <strong>Tutor/a {{ t.numero }}:</strong> {{ t.nombre_completo }} ({{ t.dni_nie }})<br>
+      <span class="text-xs text-muted">{{ t.email }} · {{ t.telefono }} · {{ t.relacion_menor }}</span><br>
+      <span class="text-xs text-muted">Firmado el {{ t.firma_en.strftime('%d/%m/%Y %H:%M') if t.firma_en else '—' }} desde {{ t.firma_ip or '—' }}</span>
+      {% if t.firma_dibujo %}
+      <div class="mt-1"><img src="{{ t.firma_dibujo }}" alt="Firma de {{ t.nombre_completo }}" style="max-width:200px;border:1px solid var(--border);border-radius:6px;background:#fff"></div>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+  </div>
+
+  <div class="card p-4">
+    <h6 class="text-xs text-uppercase text-muted fw-semibold mb-3">
+      <i class="bi bi-envelope-paper me-1"></i>Mails enviados
+    </h6>
+    {% if mailings %}
+    <div class="d-flex flex-column gap-2" style="max-height:520px;overflow-y:auto">
+      {% for m in mailings %}
+      <div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+        <div class="d-flex align-items-start justify-content-between gap-2">
+          <span class="text-sm fw-semibold">{{ m.asunto }}</span>
+          {% if m.enviado_ok %}
+          <span class="badge" style="background:#16a34a18;color:#16a34a;font-weight:700;flex-shrink:0">Enviado</span>
+          {% else %}
+          <span class="badge" style="background:#dc262618;color:#dc2626;font-weight:700;flex-shrink:0" title="{{ m.error }}">Fallido</span>
+          {% endif %}
+        </div>
+        <div class="text-xs text-muted mt-1">{{ m.enviado_en.strftime('%d/%m/%Y %H:%M') if m.enviado_en else '—' }}</div>
+        {% if m.cuerpo %}
+        <div class="text-xs text-muted mt-2" style="white-space:pre-wrap">{{ m.cuerpo[:200] }}{{ '…' if m.cuerpo|length > 200 }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center text-muted py-4">
+      <i class="bi bi-envelope d-block mb-2" style="font-size:1.6rem;opacity:.4"></i>
+      <p class="text-sm mb-0">Todavía no se le ha enviado ningún mailing.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+</div>
+{% endblock %}

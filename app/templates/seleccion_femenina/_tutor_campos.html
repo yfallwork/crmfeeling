@@ -1,0 +1,55 @@
+{# Campos de un progenitor/tutor legal — incluido dos veces desde
+   inscripcion_form.html con `prefix` = "tutor1" o "tutor2". #}
+<div class="field {{ 'err' if errores[prefix ~ '_nombre'] }}">
+  <label>Nombre y apellidos</label>
+  <input type="text" name="{{ prefix }}_nombre" value="{{ datos[prefix ~ '_nombre'] }}">
+  {% if errores[prefix ~ '_nombre'] %}<div class="err-msg">{{ errores[prefix ~ '_nombre'] }}</div>{% endif %}
+</div>
+<div class="row">
+  <div class="field {{ 'err' if errores[prefix ~ '_dni'] }}">
+    <label>DNI/NIE</label>
+    <input type="text" name="{{ prefix }}_dni" value="{{ datos[prefix ~ '_dni'] }}">
+    {% if errores[prefix ~ '_dni'] %}<div class="err-msg">{{ errores[prefix ~ '_dni'] }}</div>{% endif %}
+  </div>
+  <div class="field {{ 'err' if errores[prefix ~ '_relacion'] }}">
+    <label>Relación con la menor</label>
+    <input type="text" name="{{ prefix }}_relacion" value="{{ datos[prefix ~ '_relacion'] }}" placeholder="Madre, padre, tutor/a...">
+    {% if errores[prefix ~ '_relacion'] %}<div class="err-msg">{{ errores[prefix ~ '_relacion'] }}</div>{% endif %}
+  </div>
+</div>
+<div class="row">
+  <div class="field {{ 'err' if errores[prefix ~ '_email'] }}">
+    <label>Email de contacto</label>
+    <input type="email" name="{{ prefix }}_email" value="{{ datos[prefix ~ '_email'] }}">
+    {% if errores[prefix ~ '_email'] %}<div class="err-msg">{{ errores[prefix ~ '_email'] }}</div>{% endif %}
+  </div>
+  <div class="field {{ 'err' if errores[prefix ~ '_telefono'] }}">
+    <label>Teléfono de contacto</label>
+    <input type="tel" name="{{ prefix }}_telefono" value="{{ datos[prefix ~ '_telefono'] }}">
+    {% if errores[prefix ~ '_telefono'] %}<div class="err-msg">{{ errores[prefix ~ '_telefono'] }}</div>{% endif %}
+  </div>
+</div>
+<hr>
+<h3>Declaración y firma</h3>
+<div class="legal-block">
+  <p>Los abajo firmantes declaran ser progenitores/tutores legales de la menor identificada en el punto 1, y otorgan la presente autorización de forma libre, voluntaria e informada.</p>
+</div>
+<div class="check-row {{ 'err' if errores[prefix ~ '_firma'] }}">
+  <input type="checkbox" id="{{ prefix }}_firma" name="{{ prefix }}_firma" value="1" {{ 'checked' if datos[prefix ~ '_firma'] }}>
+  <label for="{{ prefix }}_firma" class="txt" style="font-weight:400">
+    Declaro ser progenitor/tutor legal de la menor y otorgo esta autorización de forma libre, voluntaria e informada.
+  </label>
+</div>
+{% if errores[prefix ~ '_firma'] %}<div class="err-msg">{{ errores[prefix ~ '_firma'] }}</div>{% endif %}
+
+<div class="field {{ 'err' if errores[prefix ~ '_firma_dibujo'] }}" style="margin-top:16px">
+  <label>Firma (dibuja con el dedo o el ratón)</label>
+  <div class="signature-wrap">
+    <canvas class="signature-canvas" id="{{ prefix }}_canvas" width="600" height="180"></canvas>
+    <button type="button" class="signature-clear" data-target="{{ prefix }}_canvas">Borrar firma</button>
+  </div>
+  <input type="hidden" name="{{ prefix }}_firma_dibujo" id="{{ prefix }}_firma_dibujo" value="{{ datos[prefix ~ '_firma_dibujo'] }}">
+  {% if errores[prefix ~ '_firma_dibujo'] %}<div class="err-msg">{{ errores[prefix ~ '_firma_dibujo'] }}</div>{% endif %}
+</div>
+
+<p style="font-size:.78rem;color:#999">Al enviar, se registrará automáticamente la IP, fecha/hora y navegador desde el que se firma esta pestaña.</p>

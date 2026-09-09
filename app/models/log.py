@@ -61,4 +61,5 @@ class Log(db.Model):
             "evento":       "Evento",
             "entrada_evento": "Entrada de evento",
             "invitacion":   "Invitación",
+            "preinscripcion_carcross": "Preinscripción",
         }.get(self.entidad or "", self.entidad or "")

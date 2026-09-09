@@ -78,6 +78,7 @@ def create_app(env="default"):
         from app.models import preinscripcion_carcross  # noqa: F401
         from app.models import evento                   # noqa: F401
         from app.models import invitacion                # noqa: F401
+        from app.models import inscripcion_autorizacion  # noqa: F401
         db.create_all()
         _migrate_columns()
         _migrate_indices()
@@ -262,6 +263,7 @@ def _migrate_columns():
         ("entradas_evento",    "institucion",               "VARCHAR(150) DEFAULT ''"),
         ("entradas_evento",    "cif_institucion",           "VARCHAR(20) DEFAULT ''"),
         ("entradas_evento",    "num_acompanantes",          "INTEGER DEFAULT 0"),
+        ("tutores_legales",    "firma_dibujo",              "TEXT"),
     ]
     with db.engine.connect() as conn:
         for tabla, columna, tipo in nuevas:

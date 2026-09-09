@@ -1,0 +1,153 @@
+{% extends "autoclub/base.html" %}
+{% block title %}Inscripción y autorización — {{ preinscripcion.nombre_completo }} — AutoClub{% endblock %}
+{% block page_title %}Inscripción y autorización de {{ preinscripcion.nombre_completo }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.seleccion_femenina_editar', id=preinscripcion.id) }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Volver a la ficha</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-12 col-lg-8">
+
+    <div class="card p-4 mb-3">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+        <h6 class="text-xs text-uppercase text-muted fw-semibold mb-0">Estado del documento</h6>
+        {% if insc.completo %}
+        <span class="badge" style="background:#16a34a18;color:#16a34a;font-weight:700">Completado el {{ insc.completado_en.strftime('%d/%m/%Y %H:%M') if insc.completado_en else '' }}</span>
+        {% else %}
+        <span class="badge" style="background:#AD172618;color:#AD1726;font-weight:700">Pendiente de firmar</span>
+        {% endif %}
+      </div>
+      {% if insc.necesita_revision_custodia %}
+      <div class="alert alert-warning py-2 px-3 mb-0 text-sm">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>Falta el documento de custodia (solo firmó un tutor) — pídeselo a la familia.
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- 1. Datos de la participante -->
+    <div class="card p-4 mb-3">
+      <h6 class="text-xs text-uppercase text-muted fw-semibold mb-3">1. Datos de la participante</h6>
+      <div class="row">
+        <div class="col-6 col-sm-4"><div class="text-xs text-muted">Nombre y apellidos</div><div class="text-sm fw-semibold">{{ preinscripcion.nombre_completo }}</div></div>
+        <div class="col-6 col-sm-4"><div class="text-xs text-muted">Fecha de nacimiento</div><div class="text-sm fw-semibold">{{ preinscripcion.fecha_nacimiento.strftime('%d/%m/%Y') if preinscripcion.fecha_nacimiento else '—' }}</div></div>
+        <div class="col-6 col-sm-4"><div class="text-xs text-muted">DNI/NIE</div><div class="text-sm fw-semibold">{{ insc.dni_nie_participante or '—' }}</div></div>
+        <div class="col-6 col-sm-4"><div class="text-xs text-muted">Localidad</div><div class="text-sm fw-semibold">{{ preinscripcion.localidad or '—' }}</div></div>
+        <div class="col-6 col-sm-4"><div class="text-xs text-muted">Email</div><div class="text-sm fw-semibold">{{ preinscripcion.email }}</div></div>
+        <div class="col-6 col-sm-4"><div class="text-xs text-muted">Teléfono</div><div class="text-sm fw-semibold">{{ preinscripcion.telefono }}</div></div>
+      </div>
+    </div>
+
+    <!-- 2 y 13. Tutores y firma -->
+    <div class="card p-4 mb-3">
+      <h6 class="text-xs text-uppercase text-muted fw-semibold mb-3">2. Progenitores/tutores legales y firma</h6>
+      {% if insc.solo_un_tutor %}
+      <div class="text-sm mb-3">
+        <span class="badge" style="background:#6b728018;color:#6b7280;font-weight:700">Solo un tutor (custodia exclusiva u otra situación legal)</span>
+        {% if insc.doc_custodia_path %}
+        <a href="{{ url_for('static', filename=insc.doc_custodia_path) }}" target="_blank" class="ms-2"><i class="bi bi-file-earmark-arrow-down me-1"></i>Ver documento acreditativo</a>
+        {% else %}
+        <span class="text-danger ms-2">Sin documento acreditativo todavía</span>
+        {% endif %}
+      </div>
+      {% endif %}
+      {% for t in insc.tutores %}
+      <div class="{{ 'mb-3 pb-3' if not loop.last }}" style="{{ 'border-bottom:1px solid var(--border)' if not loop.last }}">
+        <h6 class="text-sm fw-bold mb-2">Tutor/a {{ t.numero }}</h6>
+        <div class="row mb-2">
+          <div class="col-6 col-sm-4"><div class="text-xs text-muted">Nombre</div><div class="text-sm fw-semibold">{{ t.nombre_completo }}</div></div>
+          <div class="col-6 col-sm-4"><div class="text-xs text-muted">DNI/NIE</div><div class="text-sm fw-semibold">{{ t.dni_nie }}</div></div>
+          <div class="col-6 col-sm-4"><div class="text-xs text-muted">Relación</div><div class="text-sm fw-semibold">{{ t.relacion_menor or '—' }}</div></div>
+          <div class="col-6 col-sm-4"><div class="text-xs text-muted">Email</div><div class="text-sm fw-semibold">{{ t.email }}</div></div>
+          <div class="col-6 col-sm-4"><div class="text-xs text-muted">Teléfono</div><div class="text-sm fw-semibold">{{ t.telefono }}</div></div>
+        </div>
+        <div class="text-xs text-muted mb-2">
+          <i class="bi bi-shield-check me-1"></i>Firma electrónica registrada el
+          <strong>{{ t.firma_en.strftime('%d/%m/%Y %H:%M') if t.firma_en else '—' }}</strong>
+          desde IP <strong>{{ t.firma_ip or '—' }}</strong>
+          {% if t.firma_user_agent %}({{ t.firma_user_agent }}){% endif %}
+        </div>
+        {% if t.firma_dibujo %}
+        <div>
+          <div class="text-xs text-muted mb-1">Firma dibujada</div>
+          <img src="{{ t.firma_dibujo }}" alt="Firma de {{ t.nombre_completo }}" style="max-width:280px;border:1px solid var(--border);border-radius:8px;background:#fff">
+        </div>
+        {% endif %}
+      </div>
+      {% else %}
+      <p class="text-sm text-muted mb-0">Todavía no ha firmado ningún tutor.</p>
+      {% endfor %}
+    </div>
+
+    <!-- 3. Contacto de emergencia -->
+    <div class="card p-4 mb-3">
+      <h6 class="text-xs text-uppercase text-muted fw-semibold mb-3">3. Contacto de emergencia</h6>
+      <div class="row">
+        <div class="col-6 col-sm-4"><div class="text-xs text-muted">Nombre</div><div class="text-sm fw-semibold">{{ insc.emergencia_nombre or '—' }}</div></div>
+        <div class="col-6 col-sm-4"><div class="text-xs text-muted">Teléfono</div><div class="text-sm fw-semibold">{{ insc.emergencia_telefono or '—' }}</div></div>
+        <div class="col-6 col-sm-4"><div class="text-xs text-muted">Relación</div><div class="text-sm fw-semibold">{{ insc.emergencia_relacion or '—' }}</div></div>
+      </div>
+    </div>
+
+    <!-- Experiencia previa -->
+    <div class="card p-4 mb-3">
+      <h6 class="text-xs text-uppercase text-muted fw-semibold mb-3">Experiencia previa de conducción/pilotaje</h6>
+      <div class="row mb-2">
+        <div class="col-12 col-sm-6"><div class="text-xs text-muted">Experiencia con embrague</div><div class="text-sm fw-semibold">{{ insc.experiencia_conduccion or '—' }}</div></div>
+        <div class="col-12 col-sm-6"><div class="text-xs text-muted">Experiencia en competición</div><div class="text-sm fw-semibold">{{ insc.experiencia_competicion or '—' }}</div></div>
+      </div>
+      <div class="text-xs text-muted">Licencia federativa en vigor</div>
+      <div class="text-sm fw-semibold">
+        {% if insc.licencia_federativa %}Sí — {{ insc.licencia_federativa_detalle or '—' }}{% else %}No{% endif %}
+      </div>
+    </div>
+
+    <!-- Consentimientos -->
+    <div class="card p-4 mb-3">
+      <h6 class="text-xs text-uppercase text-muted fw-semibold mb-3">Consentimientos y autorizaciones</h6>
+      <table class="table table-sm mb-0">
+        <tbody>
+          <tr>
+            <td class="text-sm">Autorización de participación en el proceso</td>
+            <td class="text-end">{% if insc.consiente_participacion %}<span class="text-success"><i class="bi bi-check-circle-fill"></i> Sí</span>{% else %}<span class="text-danger"><i class="bi bi-x-circle-fill"></i> No</span>{% endif %}</td>
+          </tr>
+          <tr>
+            <td class="text-sm">Tratamiento de datos personales del proceso</td>
+            <td class="text-end">{% if insc.consiente_datos_personales %}<span class="text-success"><i class="bi bi-check-circle-fill"></i> Sí</span>{% else %}<span class="text-danger"><i class="bi bi-x-circle-fill"></i> No</span>{% endif %}</td>
+          </tr>
+          <tr>
+            <td class="text-sm">Autorización de imagen</td>
+            <td class="text-end">
+              {% if insc.autorizacion_imagen == 'autoriza' %}<span class="text-success"><i class="bi bi-check-circle-fill"></i> Autoriza</span>
+              {% elif insc.autorizacion_imagen == 'no_autoriza' %}<span class="text-danger"><i class="bi bi-x-circle-fill"></i> No autoriza</span>
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td class="text-sm">Aceptación de las Bases Legales</td>
+            <td class="text-end">{% if insc.acepta_bases_legales %}<span class="text-success"><i class="bi bi-check-circle-fill"></i> Sí</span>{% else %}<span class="text-danger"><i class="bi bi-x-circle-fill"></i> No</span>{% endif %}</td>
+          </tr>
+          <tr>
+            <td class="text-sm">Aceptación de compromisos y deberes</td>
+            <td class="text-end">{% if insc.acepta_compromisos %}<span class="text-success"><i class="bi bi-check-circle-fill"></i> Sí</span>{% else %}<span class="text-danger"><i class="bi bi-x-circle-fill"></i> No</span>{% endif %}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <div class="col-12 col-lg-4">
+    <div class="card p-4">
+      <h6 class="text-xs text-uppercase text-muted fw-semibold mb-3">Metadatos</h6>
+      <div class="text-sm mb-2"><strong>Token:</strong> <span class="text-xs text-muted" style="word-break:break-all">{{ insc.token }}</span></div>
+      <div class="text-sm mb-2"><strong>Enlace enviado:</strong> {{ insc.token_creado_en.strftime('%d/%m/%Y %H:%M') if insc.token_creado_en else '—' }}</div>
+      <div class="text-sm mb-2"><strong>Enlace usado:</strong> {{ insc.token_usado_en.strftime('%d/%m/%Y %H:%M') if insc.token_usado_en else 'Todavía no' }}</div>
+      <div class="text-sm mb-0"><strong>Caduca:</strong> {% if insc.token_expirado %}<span class="text-danger">Sí, ha caducado</span>{% else %}No{% endif %}</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,9 +1,6 @@
 import io
 import os
 import secrets
-import smtplib
-import ssl
-import base64 as _b64
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -17,6 +14,7 @@ from app.extensions import db
 from app.models.invitacion import Invitacion
 from app.models.evento import Evento
 from app.services.evento_sync import _woo_eventos_url, _woo_eventos_auth
+from app.services.mail_prensa import remitente_prensa, enviar_smtp_prensa
 
 # Datos del evento para el cuerpo del email — aún no cerrados del todo,
 # se dejan aquí como constantes fáciles de editar sin tocar el resto de
@@ -234,40 +232,6 @@ def _construir_mime_invitacion(invitacion, qr_bytes, sender_user, sender_domain)
     return outer
 
 
-def _enviar_smtp(mime_msg, destinatario):
-    user     = current_app.config.get("MAIL_PRENSA_USERNAME", "")
-    passwd   = current_app.config.get("MAIL_PRENSA_PASSWORD", "")
-    server   = current_app.config.get("MAIL_PRENSA_SERVER", "smtp.arsys.es")
-    port     = current_app.config.get("MAIL_PRENSA_PORT", 587)
-    if not user or not passwd:
-        raise RuntimeError("Falta configurar MAIL_PRENSA_USERNAME / MAIL_PRENSA_PASSWORD en el .env.")
-
-    context = ssl.create_default_context()
-    if port == 465:
-        conn = smtplib.SMTP_SSL(server, port, context=context, timeout=20)
-    else:
-        conn = smtplib.SMTP(server, port, timeout=20)
-        conn.ehlo()
-        conn.starttls(context=context)
-    try:
-        conn.ehlo()
-        creds = _b64.b64encode(f"\x00{user}\x00{passwd}".encode("utf-8")).decode()
-        code, msg = conn.docmd("AUTH PLAIN", creds)
-        if code != 235:
-            raise smtplib.SMTPAuthenticationError(code, msg)
-        # as_bytes(), no as_string(): las partes de texto van en UTF-8 con
-        # Content-Transfer-Encoding 8bit (tildes, "ñ", etc. tal cual). Si se
-        # pasa un str, smtplib intenta un .encode('ascii') antes de enviar y
-        # revienta con cualquier carácter no-ASCII — como bytes ya
-        # codificados, se envían tal cual (el servidor anuncia 8BITMIME).
-        conn.sendmail(user, [destinatario], mime_msg.as_bytes())
-    finally:
-        try:
-            conn.quit()
-        except Exception:
-            pass
-
-
 def enviar_email_invitacion(invitacion):
     """Envía (o reenvía) el email con el QR incrustado. No genera token ni
     pedido nuevo — reutiliza los ya guardados en la invitación."""
@@ -288,10 +252,9 @@ def enviar_email_invitacion(invitacion):
         with open(qr_file, "rb") as f:
             qr_bytes = f.read()
 
-        sender = current_app.config.get("MAIL_PRENSA_SENDER", "") or current_app.config.get("MAIL_PRENSA_USERNAME", "")
-        domain = sender.split("@")[-1] if "@" in sender else "mail.local"
+        sender, domain = remitente_prensa()
         mime_msg = _construir_mime_invitacion(invitacion, qr_bytes, sender, domain)
-        _enviar_smtp(mime_msg, invitacion.email)
+        enviar_smtp_prensa(mime_msg, invitacion.email)
 
         invitacion.email_enviado = True
         invitacion.email_enviado_en = datetime.utcnow()

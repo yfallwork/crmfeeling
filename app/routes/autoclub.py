@@ -22,6 +22,9 @@ from app.models.gasto_inscripcion import GastoInscripcion, CATEGORIAS_GASTO
 from app.models.staff_miembro import StaffMiembro, TIPOS_STAFF
 from app.models.resultado_inscripcion import ResultadoInscripcion
 from app.models.preinscripcion_carcross import PreinscripcionCarcross, ESTADOS_PREINSCRIPCION, EXPERIENCIA_PREVIA_OPCIONES
+from app.models.firmable import SesionFirmables, DocumentoFirmado, FirmaTutorDocumento, MOTIVOS_SOLO_UN_TUTOR, MOTIVOS_SOLO_UN_TUTOR_KEYS
+from app.models.entrevista import EntrevistaPiloto, BLOQUE_1_FAMILIA, BLOQUE_2_CANDIDATA, CLAVES_PREGUNTAS
+from app.services.firmables_textos import TIPOS_FIRMABLE, TIPOS_FIRMABLE_KEYS, TIPOS_FIRMABLE_LABELS, TEXTOS_FIRMABLE, ART156_TEXTO
 from app.services.log_service import registrar_log
 
 autoclub_bp = Blueprint("autoclub", __name__)
@@ -3063,4 +3066,315 @@ def seleccion_femenina_mailing_enviar():
         asunto="", cuerpo="", preview_html=None, destinatarias=None,
         resultado=resultado,
     )
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# FIRMABLES — 3 documentos (aptitud médica, asunción de riesgo, disclaimer
+# de conducción) rellenados presencialmente el día de la entrevista, en un
+# wizard secuencial. Se completan en el propio dispositivo del staff, que
+# se entrega a los progenitores/tutores presentes.
+# ══════════════════════════════════════════════════════════════════════════
+
+def _doc_vigente(preinscripcion_id, tipo):
+    return (DocumentoFirmado.query
+            .filter_by(preinscripcion_id=preinscripcion_id, tipo=tipo, vigente=True)
+            .order_by(DocumentoFirmado.version.desc()).first())
+
+
+@autoclub_bp.route("/seleccion-femenina/<int:id>/firmables")
+@login_required
+def seleccion_femenina_firmables(id):
+    preinscripcion = PreinscripcionCarcross.query.get_or_404(id)
+    estado_docs = [
+        {"tipo": tipo, "label": label, "doc": _doc_vigente(id, tipo)}
+        for tipo, label in TIPOS_FIRMABLE
+    ]
+    sesion_activa = SesionFirmables.query.filter_by(preinscripcion_id=id, estado="en_progreso").first()
+    return render_template(
+        "autoclub/seleccion_femenina/firmables_lista.html",
+        preinscripcion=preinscripcion, estado_docs=estado_docs, sesion_activa=sesion_activa,
+    )
+
+
+def _siguiente_paso_pendiente(sesion):
+    """Primer tipo de documento de la sesión que todavía no se ha creado
+    en ella — para poder pausar y retomar sin perder progreso."""
+    tipos_ya_hechos = {d.tipo for d in sesion.documentos}
+    for i, tipo in enumerate(TIPOS_FIRMABLE_KEYS, start=1):
+        if tipo not in tipos_ya_hechos:
+            return i
+    return len(TIPOS_FIRMABLE_KEYS)  # todos hechos (no debería quedar en_progreso)
+
+
+@autoclub_bp.route("/seleccion-femenina/<int:id>/firmables/iniciar", methods=["GET", "POST"])
+@login_required
+def seleccion_femenina_firmables_iniciar(id):
+    preinscripcion = PreinscripcionCarcross.query.get_or_404(id)
+
+    sesion_activa = SesionFirmables.query.filter_by(preinscripcion_id=id, estado="en_progreso").first()
+    if sesion_activa:
+        return redirect(url_for("autoclub.seleccion_femenina_firmables_paso",
+                                 id=id, sesion_id=sesion_activa.id, paso=_siguiente_paso_pendiente(sesion_activa)))
+
+    errores = {}
+    if request.method == "POST":
+        modo = request.form.get("modo_tutores", "")
+        motivo = request.form.get("motivo_solo_uno", "")
+        archivo = request.files.get("doc_custodia")
+
+        if modo not in ("ambos", "solo_uno"):
+            errores["modo_tutores"] = "Selecciona cuántos tutores van a firmar hoy."
+        if modo == "solo_uno":
+            if motivo not in MOTIVOS_SOLO_UN_TUTOR_KEYS:
+                errores["motivo_solo_uno"] = "Indica el motivo."
+            elif motivo == "custodia_exclusiva" and not (archivo and archivo.filename):
+                errores["doc_custodia"] = "Sube el documento acreditativo (sentencia de custodia u otro) para continuar."
+
+        if not errores:
+            sesion = SesionFirmables(
+                preinscripcion_id=id, modo_tutores=modo,
+                motivo_solo_uno=motivo if modo == "solo_uno" else "",
+                usuario_staff_id=current_user.id, ip=request.remote_addr or "",
+            )
+            if modo == "solo_uno" and motivo == "custodia_exclusiva" and archivo and archivo.filename:
+                ext = archivo.filename.rsplit(".", 1)[-1].lower() if "." in archivo.filename else ""
+                if ext not in DOC_EXTENSIONS:
+                    errores["doc_custodia"] = "Formato no admitido (usa PDF, imagen o Word)."
+                else:
+                    carpeta = os.path.join(current_app.root_path, "static", "uploads", "seleccion_femenina", "custodia_firmables")
+                    os.makedirs(carpeta, exist_ok=True)
+                    filename = secure_filename(f"custodia_{id}_{int(datetime.utcnow().timestamp())}.{ext}")
+                    archivo.save(os.path.join(carpeta, filename))
+                    sesion.doc_custodia_path = f"uploads/seleccion_femenina/custodia_firmables/{filename}"
+
+            if not errores:
+                db.session.add(sesion)
+                db.session.commit()
+                registrar_log("crear", "preinscripcion_carcross", id,
+                              f"Sesión de firmables iniciada ({modo}): {preinscripcion.nombre_completo}")
+                return redirect(url_for("autoclub.seleccion_femenina_firmables_paso", id=id, sesion_id=sesion.id, paso=1))
+
+    return render_template(
+        "autoclub/seleccion_femenina/firmables_iniciar.html",
+        preinscripcion=preinscripcion, errores=errores, motivos=MOTIVOS_SOLO_UN_TUTOR,
+    )
+
+
+@autoclub_bp.route("/seleccion-femenina/<int:id>/firmables/<int:sesion_id>/paso/<int:paso>", methods=["GET", "POST"])
+@login_required
+def seleccion_femenina_firmables_paso(id, sesion_id, paso):
+    preinscripcion = PreinscripcionCarcross.query.get_or_404(id)
+    sesion = SesionFirmables.query.filter_by(id=sesion_id, preinscripcion_id=id).first_or_404()
+    if sesion.estado != "en_progreso":
+        return redirect(url_for("autoclub.seleccion_femenina_firmables", id=id))
+    if paso < 1 or paso > len(TIPOS_FIRMABLE_KEYS):
+        abort(404)
+
+    tipo = TIPOS_FIRMABLE_KEYS[paso - 1]
+    # Si este paso ya se completó en esta sesión (p.ej. se volvió con el
+    # botón atrás del navegador), no se vuelve a pedir: se avanza.
+    ya_hecho = DocumentoFirmado.query.filter_by(sesion_id=sesion.id, tipo=tipo).first()
+    if ya_hecho and request.method == "GET":
+        if paso < len(TIPOS_FIRMABLE_KEYS):
+            return redirect(url_for("autoclub.seleccion_femenina_firmables_paso", id=id, sesion_id=sesion_id, paso=paso + 1))
+        return redirect(url_for("autoclub.seleccion_femenina_firmables_cierre", id=id, sesion_id=sesion_id))
+
+    errores = {}
+    edad = preinscripcion.edad
+    if request.method == "POST":
+        tiene_condicion = request.form.get("tiene_condicion_medica", "")
+        condicion_detalle = request.form.get("condicion_medica_detalle", "").strip()
+        checkbox_1 = bool(request.form.get("checkbox_1"))
+        checkbox_2 = bool(request.form.get("checkbox_2"))
+        checkbox_3 = bool(request.form.get("checkbox_3"))
+        participante_firma = bool(request.form.get("participante_firma"))
+        art156 = bool(request.form.get("art156"))
+
+        if tipo == "aptitud_medica":
+            if tiene_condicion not in ("si", "no"):
+                errores["tiene_condicion_medica"] = "Indica si la participante tiene alguna condición médica relevante."
+            elif tiene_condicion == "si" and not condicion_detalle:
+                errores["condicion_medica_detalle"] = "Describe la condición médica declarada."
+        if tipo == "disclaimer_conduccion":
+            if not (checkbox_1 and checkbox_2 and checkbox_3):
+                errores["checkboxes"] = "Debes marcar las 3 declaraciones para continuar."
+        if sesion.invoca_articulo_156 and not art156:
+            errores["art156"] = "Debes marcar la declaración sobre el artículo 156 del Código Civil."
+
+        def _validar_firma(n):
+            nombre = request.form.get(f"tutor{n}_nombre", "").strip()
+            dni = request.form.get(f"tutor{n}_dni", "").strip()
+            verif = request.form.get(f"tutor{n}_verificacion", "").strip()
+            firma = bool(request.form.get(f"tutor{n}_firma"))
+            if not nombre:
+                errores[f"tutor{n}_nombre"] = "Indica el nombre completo."
+            if not dni:
+                errores[f"tutor{n}_dni"] = "Indica el DNI/NIE."
+            elif verif and not dni.upper().replace("-", "").endswith(verif.upper()):
+                errores[f"tutor{n}_verificacion"] = "Los últimos dígitos no coinciden con el DNI/NIE indicado."
+            if not firma:
+                errores[f"tutor{n}_firma"] = "Falta marcar la declaración de firma."
+            return {"nombre_completo": nombre, "dni_nie": dni, "verificacion_ultimos4": verif}
+
+        datos_t1 = _validar_firma(1)
+        datos_t2 = _validar_firma(2) if sesion.modo_tutores == "ambos" else None
+
+        if not errores:
+            version = (db.session.query(db.func.max(DocumentoFirmado.version))
+                       .filter_by(preinscripcion_id=id, tipo=tipo).scalar() or 0) + 1
+            DocumentoFirmado.query.filter_by(preinscripcion_id=id, tipo=tipo, vigente=True).update({"vigente": False})
+
+            documento = DocumentoFirmado(
+                preinscripcion_id=id, sesion_id=sesion.id, tipo=tipo, version=version, vigente=True,
+                tiene_condicion_medica=(tiene_condicion == "si") if tipo == "aptitud_medica" else None,
+                condicion_medica_detalle=condicion_detalle if (tipo == "aptitud_medica" and tiene_condicion == "si") else "",
+                checkbox_1=checkbox_1 if tipo == "disclaimer_conduccion" else False,
+                checkbox_2=checkbox_2 if tipo == "disclaimer_conduccion" else False,
+                checkbox_3=checkbox_3 if tipo == "disclaimer_conduccion" else False,
+                participante_firma=participante_firma if (tipo == "disclaimer_conduccion" and edad is not None and edad >= 16) else False,
+                art156_invocado=sesion.invoca_articulo_156,
+            )
+            db.session.add(documento)
+            db.session.flush()  # para tener documento.id antes de crear las firmas
+
+            ahora = datetime.utcnow()
+            ip = request.remote_addr or ""
+            db.session.add(FirmaTutorDocumento(
+                documento_id=documento.id, numero=1, usuario_staff_id=current_user.id,
+                firma_en=ahora, ip=ip, **datos_t1,
+            ))
+            if datos_t2:
+                db.session.add(FirmaTutorDocumento(
+                    documento_id=documento.id, numero=2, usuario_staff_id=current_user.id,
+                    firma_en=ahora, ip=ip, **datos_t2,
+                ))
+            db.session.commit()
+            registrar_log("crear", "preinscripcion_carcross", id,
+                          f"Firmado «{TIPOS_FIRMABLE_LABELS[tipo]}» v{version}: {preinscripcion.nombre_completo}")
+
+            if paso < len(TIPOS_FIRMABLE_KEYS):
+                return redirect(url_for("autoclub.seleccion_femenina_firmables_paso", id=id, sesion_id=sesion_id, paso=paso + 1))
+            # Se completa aquí mismo (no solo cuando el navegador llega a la
+            # pantalla de cierre): si se pierde la conexión justo después de
+            # firmar el último documento, el email de copia ya se ha
+            # disparado igualmente — los 3 documentos ya están guardados.
+            _completar_sesion_firmables(sesion, preinscripcion)
+            return redirect(url_for("autoclub.seleccion_femenina_firmables_cierre", id=id, sesion_id=sesion_id))
+
+    return render_template(
+        "autoclub/seleccion_femenina/firmables_paso.html",
+        preinscripcion=preinscripcion, sesion=sesion, paso=paso, total_pasos=len(TIPOS_FIRMABLE_KEYS),
+        tipo=tipo, label=TIPOS_FIRMABLE_LABELS[tipo], texto=TEXTOS_FIRMABLE[tipo],
+        art156_texto=ART156_TEXTO, errores=errores, edad=edad,
+    )
+
+
+def _completar_sesion_firmables(sesion, preinscripcion):
+    """Marca la sesión como completada y envía la copia por email. Es
+    idempotente: si ya estaba completada, no hace nada (para poder llamarla
+    tanto justo tras firmar el paso 3 como, de refuerzo, al cargar la
+    pantalla de cierre)."""
+    if sesion.estado != "en_progreso":
+        return True
+    documentos = DocumentoFirmado.query.filter_by(sesion_id=sesion.id).all()
+    if len(documentos) < len(TIPOS_FIRMABLE_KEYS):
+        return None  # todavía no están los 3 documentos
+    from app.services.firmables_service import enviar_copia_firmables
+    sesion.estado = "completada"
+    sesion.completada_en = datetime.utcnow()
+    db.session.commit()
+    enviado = enviar_copia_firmables(preinscripcion, documentos)
+    registrar_log("cambiar_estado", "preinscripcion_carcross", preinscripcion.id,
+                  f"Firmables completados: {preinscripcion.nombre_completo}")
+    return enviado
+
+
+@autoclub_bp.route("/seleccion-femenina/<int:id>/firmables/<int:sesion_id>/cierre")
+@login_required
+def seleccion_femenina_firmables_cierre(id, sesion_id):
+    preinscripcion = PreinscripcionCarcross.query.get_or_404(id)
+    sesion = SesionFirmables.query.filter_by(id=sesion_id, preinscripcion_id=id).first_or_404()
+
+    if sesion.estado == "en_progreso":
+        resultado = _completar_sesion_firmables(sesion, preinscripcion)
+        if resultado is None:
+            return redirect(url_for("autoclub.seleccion_femenina_firmables_paso",
+                                     id=id, sesion_id=sesion_id, paso=_siguiente_paso_pendiente(sesion)))
+        enviado = resultado
+    else:
+        enviado = True
+
+    return render_template(
+        "autoclub/seleccion_femenina/firmables_cierre.html",
+        preinscripcion=preinscripcion, enviado=enviado,
+    )
+
+
+@autoclub_bp.route("/seleccion-femenina/<int:id>/firmables/historial/<tipo>")
+@login_required
+def seleccion_femenina_firmables_historial(id, tipo):
+    preinscripcion = PreinscripcionCarcross.query.get_or_404(id)
+    if tipo not in TIPOS_FIRMABLE_KEYS:
+        abort(404)
+    versiones = (DocumentoFirmado.query
+                 .filter_by(preinscripcion_id=id, tipo=tipo)
+                 .order_by(DocumentoFirmado.version.desc()).all())
+    return render_template(
+        "autoclub/seleccion_femenina/firmables_historial.html",
+        preinscripcion=preinscripcion, tipo=tipo, label=TIPOS_FIRMABLE_LABELS[tipo], versiones=versiones,
+    )
+
+
+@autoclub_bp.route("/seleccion-femenina/<int:id>/firmables/documento/<int:doc_id>/pdf")
+@login_required
+def seleccion_femenina_firmables_pdf(id, doc_id):
+    from app.services.firmables_pdf import generar_pdf_documento
+    preinscripcion = PreinscripcionCarcross.query.get_or_404(id)
+    documento = DocumentoFirmado.query.filter_by(id=doc_id, preinscripcion_id=id).first_or_404()
+    pdf_bytes = generar_pdf_documento(preinscripcion, documento)
+    return Response(pdf_bytes, mimetype="application/pdf", headers={
+        "Content-Disposition": f"inline; filename={documento.tipo}_v{documento.version}.pdf",
+    })
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# ENTREVISTA — notas de entrevista por piloto, visibles solo para el staff.
+# ══════════════════════════════════════════════════════════════════════════
+
+@autoclub_bp.route("/seleccion-femenina/<int:id>/entrevista")
+@login_required
+def seleccion_femenina_entrevista(id):
+    preinscripcion = PreinscripcionCarcross.query.get_or_404(id)
+    entrevista = preinscripcion.entrevista
+    return render_template(
+        "autoclub/seleccion_femenina/entrevista.html",
+        preinscripcion=preinscripcion, entrevista=entrevista,
+        bloque1=BLOQUE_1_FAMILIA, bloque2=BLOQUE_2_CANDIDATA,
+    )
+
+
+@autoclub_bp.route("/seleccion-femenina/<int:id>/entrevista/autoguardar", methods=["POST"])
+@login_required
+def seleccion_femenina_entrevista_autoguardar(id):
+    preinscripcion = PreinscripcionCarcross.query.get_or_404(id)
+    data = request.get_json(force=True, silent=True) or {}
+    notas_entrantes = data.get("notas", {})
+    if not isinstance(notas_entrantes, dict):
+        return jsonify({"ok": False, "error": "Formato inválido."}), 400
+    notas = {k: str(v)[:5000] for k, v in notas_entrantes.items() if k in CLAVES_PREGUNTAS}
+
+    entrevista = preinscripcion.entrevista
+    if not entrevista:
+        entrevista = EntrevistaPiloto(preinscripcion_id=id)
+        db.session.add(entrevista)
+    entrevista.notas_json = json.dumps(notas, ensure_ascii=False)
+    if data.get("valoracion_bloque1") is not None:
+        entrevista.valoracion_bloque1 = str(data.get("valoracion_bloque1"))[:20]
+    if data.get("valoracion_bloque2") is not None:
+        entrevista.valoracion_bloque2 = str(data.get("valoracion_bloque2"))[:20]
+    if not entrevista.fecha_entrevista:
+        entrevista.fecha_entrevista = datetime.utcnow()
+    entrevista.realizada_por_id = current_user.id
+    db.session.commit()
+    return jsonify({"ok": True, "guardado_en": entrevista.actualizado_en.strftime("%H:%M:%S")})
 

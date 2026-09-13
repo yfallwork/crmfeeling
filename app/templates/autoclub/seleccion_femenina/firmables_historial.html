@@ -1,0 +1,49 @@
+{% extends "autoclub/base.html" %}
+{% block title %}Historial — {{ label }} — {{ preinscripcion.nombre_completo }} — AutoClub{% endblock %}
+{% block page_title %}Historial — {{ label }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.seleccion_femenina_firmables', id=preinscripcion.id) }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Volver</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Versión</th>
+          <th>Fecha</th>
+          <th>Vigente</th>
+          <th>Firmado por</th>
+          <th style="width:60px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in versiones %}
+        <tr>
+          <td class="text-sm fw-semibold">v{{ v.version }}</td>
+          <td class="text-sm text-muted">{{ v.creado_en.strftime('%d/%m/%Y %H:%M') if v.creado_en else '—' }}</td>
+          <td>
+            {% if v.vigente %}<span class="badge" style="background:#16a34a18;color:#16a34a;font-weight:700">Vigente</span>
+            {% else %}<span class="badge" style="background:#6b728018;color:#6b7280;font-weight:700">Sustituida</span>{% endif %}
+          </td>
+          <td class="text-sm text-muted">
+            {% for f in v.firmas | sort(attribute='numero') %}{{ f.nombre_completo }}{{ ', ' if not loop.last }}{% endfor %}
+          </td>
+          <td>
+            <a href="{{ url_for('autoclub.seleccion_femenina_firmables_pdf', id=preinscripcion.id, doc_id=v.id) }}" target="_blank" class="btn btn-xs btn-outline-secondary" title="Ver PDF">
+              <i class="bi bi-file-earmark-pdf"></i>
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5"><div class="empty-state"><i class="bi bi-file-earmark"></i><p>Sin versiones todavía.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

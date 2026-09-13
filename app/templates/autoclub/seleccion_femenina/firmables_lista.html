@@ -1,0 +1,69 @@
+{% extends "autoclub/base.html" %}
+{% block title %}Autorizaciones — {{ preinscripcion.nombre_completo }} — AutoClub{% endblock %}
+{% block page_title %}Autorizaciones y firmables — {{ preinscripcion.nombre_completo }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.seleccion_femenina_editar', id=preinscripcion.id) }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Volver a la ficha</span>
+</a>
+{% if sesion_activa %}
+<a href="{{ url_for('autoclub.seleccion_femenina_firmables_iniciar', id=preinscripcion.id) }}" target="_blank" rel="noopener" class="btn btn-primary btn-sm">
+  <i class="bi bi-play-fill me-1"></i><span class="btn-label">Retomar sesión en curso</span>
+</a>
+{% else %}
+<a href="{{ url_for('autoclub.seleccion_femenina_firmables_iniciar', id=preinscripcion.id) }}" target="_blank" rel="noopener" class="btn btn-primary btn-sm">
+  <i class="bi bi-pencil-square me-1"></i><span class="btn-label">Rellenar autorizaciones</span>
+</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+{% if sesion_activa %}
+<div class="alert alert-warning d-flex align-items-center gap-2 mb-3">
+  <i class="bi bi-hourglass-split"></i>
+  <div>Hay una sesión de firmables sin terminar (iniciada el {{ sesion_activa.iniciada_en.strftime('%d/%m/%Y %H:%M') }}). Pulsa "Retomar sesión en curso" para continuar donde se dejó.</div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Documento</th>
+          <th>Estado</th>
+          <th>Última firma</th>
+          <th style="width:140px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in estado_docs %}
+        <tr>
+          <td class="fw-semibold text-sm">{{ d.label }}</td>
+          <td>
+            {% if d.doc %}
+            <span class="badge" style="background:#16a34a18;color:#16a34a;font-weight:700">Completado (v{{ d.doc.version }})</span>
+            {% else %}
+            <span class="badge" style="background:#6b728018;color:#6b7280;font-weight:700">Pendiente</span>
+            {% endif %}
+          </td>
+          <td class="text-sm text-muted">
+            {{ d.doc.creado_en.strftime('%d/%m/%Y %H:%M') if d.doc and d.doc.creado_en else '—' }}
+          </td>
+          <td class="text-nowrap">
+            {% if d.doc %}
+            <a href="{{ url_for('autoclub.seleccion_femenina_firmables_pdf', id=preinscripcion.id, doc_id=d.doc.id) }}" target="_blank" class="btn btn-xs btn-outline-secondary" title="Ver PDF">
+              <i class="bi bi-file-earmark-pdf"></i>
+            </a>
+            <a href="{{ url_for('autoclub.seleccion_femenina_firmables_historial', id=preinscripcion.id, tipo=d.tipo) }}" class="btn btn-xs btn-outline-secondary" title="Historial de versiones">
+              <i class="bi bi-clock-history"></i>
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

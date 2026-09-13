@@ -6,6 +6,14 @@
 <a href="{{ url_for('autoclub.seleccion_femenina_lista') }}" class="btn btn-sm btn-outline-secondary">
   <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Volver</span>
 </a>
+{% if preinscripcion %}
+<a href="{{ url_for('autoclub.seleccion_femenina_entrevista', id=preinscripcion.id) }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-chat-square-text me-1"></i><span class="btn-label">Entrevista</span>
+</a>
+<a href="{{ url_for('autoclub.seleccion_femenina_firmables', id=preinscripcion.id) }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-file-earmark-check me-1"></i><span class="btn-label">Autorizaciones y firmables</span>
+</a>
+{% endif %}
 {% endblock %}
 
 {% block content %}

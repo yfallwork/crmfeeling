@@ -1,0 +1,29 @@
+{# Bloque de firma de un tutor — incluido una o dos veces desde
+   firmables_paso.html con `n` = 1 o 2. #}
+<div class="border rounded p-3 mb-3">
+  <h6 class="text-sm fw-bold mb-2">Firma del tutor/a {{ n }}</h6>
+  <div class="row">
+    <div class="col-sm-6 mb-2">
+      <label class="form-label text-xs fw-semibold">Nombre y apellidos (lo escribe la propia persona)</label>
+      <input type="text" name="tutor{{ n }}_nombre" class="form-control form-control-sm {{ 'is-invalid' if errores['tutor' ~ n ~ '_nombre'] }}">
+      {% if errores['tutor' ~ n ~ '_nombre'] %}<div class="invalid-feedback">{{ errores['tutor' ~ n ~ '_nombre'] }}</div>{% endif %}
+    </div>
+    <div class="col-sm-6 mb-2">
+      <label class="form-label text-xs fw-semibold">DNI/NIE</label>
+      <input type="text" name="tutor{{ n }}_dni" class="form-control form-control-sm {{ 'is-invalid' if errores['tutor' ~ n ~ '_dni'] }}">
+      {% if errores['tutor' ~ n ~ '_dni'] %}<div class="invalid-feedback">{{ errores['tutor' ~ n ~ '_dni'] }}</div>{% endif %}
+    </div>
+  </div>
+  <div class="mb-2">
+    <label class="form-label text-xs fw-semibold">Verificación: escribe los últimos 4 dígitos de tu DNI/NIE</label>
+    <input type="text" name="tutor{{ n }}_verificacion" maxlength="4" class="form-control form-control-sm {{ 'is-invalid' if errores['tutor' ~ n ~ '_verificacion'] }}" style="max-width:120px">
+    {% if errores['tutor' ~ n ~ '_verificacion'] %}<div class="invalid-feedback">{{ errores['tutor' ~ n ~ '_verificacion'] }}</div>{% endif %}
+  </div>
+  <div class="form-check">
+    <input class="form-check-input" type="checkbox" name="tutor{{ n }}_firma" id="tutor{{ n }}_firma" value="1">
+    <label class="form-check-label text-sm" for="tutor{{ n }}_firma">
+      Declaro ser progenitor/tutor legal de la menor y otorgo esta autorización de forma libre, voluntaria e informada.
+    </label>
+  </div>
+  {% if errores['tutor' ~ n ~ '_firma'] %}<div class="text-danger text-xs mt-1">{{ errores['tutor' ~ n ~ '_firma'] }}</div>{% endif %}
+</div>

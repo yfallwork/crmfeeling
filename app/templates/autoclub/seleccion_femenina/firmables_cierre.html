@@ -1,0 +1,39 @@
+{% extends "autoclub/base_firmables.html" %}
+{% block title %}Autorizaciones completadas — {{ preinscripcion.nombre_completo }} — AutoClub{% endblock %}
+{% block page_title %}Autorizaciones completadas{% endblock %}
+
+{% block content %}
+<div class="card p-4 text-center" style="max-width:480px;margin:0 auto">
+  <div style="width:60px;height:60px;border-radius:50%;background:#dcfce7;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 18px">
+    <i class="bi bi-check-lg"></i>
+  </div>
+  <h5 class="mb-2">Autorizaciones completadas para {{ preinscripcion.nombre_completo }}. Gracias.</h5>
+  {% if enviado %}
+  <p class="text-sm text-muted">Se ha enviado una copia en PDF de los 3 documentos a los tutores registrados.</p>
+  {% else %}
+  <p class="text-sm text-danger">No se pudo enviar la copia por email — revisa el historial de mails de la candidata y reenvíala si hace falta.</p>
+  {% endif %}
+  <button type="button" id="btn-cerrar-ventana" class="btn btn-primary mt-2">
+    <i class="bi bi-check2 me-1"></i>Cerrar esta ventana
+  </button>
+  <a href="{{ url_for('autoclub.seleccion_femenina_editar', id=preinscripcion.id) }}" class="btn btn-link btn-sm mt-2 d-block">
+    o ir a la ficha desde aquí
+  </a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Esta pantalla se abre en una ventana/pestaña aparte (ver botón
+  // "Rellenar autorizaciones") para no dejar el menú del CRM a la vista
+  // mientras se entrega el dispositivo a la familia. Al terminar, se
+  // intenta cerrar esa ventana; si el navegador no lo permite (no fue
+  // abierta por script, p.ej. se recargó la pestaña), se vuelve a la ficha.
+  document.getElementById('btn-cerrar-ventana').addEventListener('click', function () {
+    window.close();
+    setTimeout(function () {
+      window.location.href = {{ url_for('autoclub.seleccion_femenina_editar', id=preinscripcion.id) | tojson }};
+    }, 300);
+  });
+</script>
+{% endblock %}

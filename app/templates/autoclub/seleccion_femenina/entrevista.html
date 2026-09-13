@@ -1,0 +1,114 @@
+{% extends "autoclub/base.html" %}
+{% block title %}Entrevista — {{ preinscripcion.nombre_completo }} — AutoClub{% endblock %}
+{% block page_title %}Entrevista — {{ preinscripcion.nombre_completo }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('autoclub.seleccion_femenina_editar', id=preinscripcion.id) }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Volver a la ficha</span>
+</a>
+<span class="text-xs text-muted d-flex align-items-center" id="estado-autoguardado">
+  {% if entrevista and entrevista.actualizado_en %}Guardado {{ entrevista.actualizado_en.strftime('%d/%m %H:%M') }}{% endif %}
+</span>
+{% endblock %}
+
+{% block content %}
+<div class="alert alert-light border text-sm mb-3">
+  <i class="bi bi-shield-lock me-1"></i>Estas notas son internas — solo las ve el equipo organizador/evaluador, nunca las candidatas ni sus familias. Se guardan automáticamente mientras escribes.
+</div>
+
+<form id="form-entrevista">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="card p-4 mb-3">
+    <h6 class="text-xs text-uppercase text-muted fw-semibold mb-3">Bloque 1 — Núcleo familiar (con padres/tutores presentes)</h6>
+    {% set grupo_actual = [] %}
+    {% for clave, grupo, pregunta in bloque1 %}
+      {% if grupo not in grupo_actual %}
+        {% if not loop.first %}<div class="mb-3"></div>{% endif %}
+        <div class="text-xs text-uppercase fw-bold mb-2" style="color:var(--red,#AD1726)">{{ grupo }}</div>
+        {% set _ = grupo_actual.append(grupo) %}
+      {% endif %}
+      <div class="mb-3">
+        <label class="form-label text-sm fw-semibold">{{ loop.index }}. {{ pregunta }}</label>
+        <textarea class="form-control notas-entrevista" data-clave="{{ clave }}" rows="2">{{ entrevista.nota(clave) if entrevista else '' }}</textarea>
+      </div>
+    {% endfor %}
+    <div class="mb-0">
+      <label class="form-label text-sm fw-semibold">Valoración del bloque 1</label>
+      <select class="form-select form-select-sm" id="valoracion_bloque1" style="max-width:220px">
+        <option value="">Sin valorar</option>
+        <option value="baja" {{ 'selected' if entrevista and entrevista.valoracion_bloque1 == 'baja' }}>Baja</option>
+        <option value="media" {{ 'selected' if entrevista and entrevista.valoracion_bloque1 == 'media' }}>Media</option>
+        <option value="alta" {{ 'selected' if entrevista and entrevista.valoracion_bloque1 == 'alta' }}>Alta</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card p-4 mb-3">
+    <h6 class="text-xs text-uppercase text-muted fw-semibold mb-3">Bloque 2 — Solo la candidata</h6>
+    {% set grupo_actual2 = [] %}
+    {% for clave, grupo, pregunta in bloque2 %}
+      {% if grupo not in grupo_actual2 %}
+        {% if not loop.first %}<div class="mb-3"></div>{% endif %}
+        <div class="text-xs text-uppercase fw-bold mb-2" style="color:var(--red,#AD1726)">{{ grupo }}</div>
+        {% set _ = grupo_actual2.append(grupo) %}
+      {% endif %}
+      <div class="mb-3">
+        <label class="form-label text-sm fw-semibold">{{ loop.index + 7 }}. {{ pregunta }}</label>
+        <textarea class="form-control notas-entrevista" data-clave="{{ clave }}" rows="2">{{ entrevista.nota(clave) if entrevista else '' }}</textarea>
+      </div>
+    {% endfor %}
+    <div class="mb-0">
+      <label class="form-label text-sm fw-semibold">Valoración del bloque 2</label>
+      <select class="form-select form-select-sm" id="valoracion_bloque2" style="max-width:220px">
+        <option value="">Sin valorar</option>
+        <option value="baja" {{ 'selected' if entrevista and entrevista.valoracion_bloque2 == 'baja' }}>Baja</option>
+        <option value="media" {{ 'selected' if entrevista and entrevista.valoracion_bloque2 == 'media' }}>Media</option>
+        <option value="alta" {{ 'selected' if entrevista and entrevista.valoracion_bloque2 == 'alta' }}>Alta</option>
+      </select>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var url = {{ url_for('autoclub.seleccion_femenina_entrevista_autoguardar', id=preinscripcion.id) | tojson }};
+  var textareas = document.querySelectorAll('.notas-entrevista');
+  var selBloque1 = document.getElementById('valoracion_bloque1');
+  var selBloque2 = document.getElementById('valoracion_bloque2');
+  var estado = document.getElementById('estado-autoguardado');
+  var timer = null;
+
+  function guardar() {
+    var notas = {};
+    textareas.forEach(function (t) { notas[t.dataset.clave] = t.value; });
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        notas: notas,
+        valoracion_bloque1: selBloque1.value,
+        valoracion_bloque2: selBloque2.value,
+      }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.ok) estado.textContent = 'Guardado ' + data.guardado_en;
+      })
+      .catch(function () { estado.textContent = 'Error al guardar — reintentando…'; });
+  }
+
+  function programarGuardado() {
+    estado.textContent = 'Guardando…';
+    clearTimeout(timer);
+    timer = setTimeout(guardar, 1200);
+  }
+
+  textareas.forEach(function (t) { t.addEventListener('input', programarGuardado); });
+  selBloque1.addEventListener('change', guardar);
+  selBloque2.addEventListener('change', guardar);
+})();
+</script>
+{% endblock %}

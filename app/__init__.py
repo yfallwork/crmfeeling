@@ -79,6 +79,8 @@ def create_app(env="default"):
         from app.models import evento                   # noqa: F401
         from app.models import invitacion                # noqa: F401
         from app.models import inscripcion_autorizacion  # noqa: F401
+        from app.models import firmable                  # noqa: F401
+        from app.models import entrevista                # noqa: F401
         db.create_all()
         _migrate_columns()
         _migrate_indices()

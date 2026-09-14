@@ -61,7 +61,7 @@ La captación y el uso de imágenes y grabaciones de la participante durante la 
 
 ## Exoneración de responsabilidad de la organización
 
-El progenitor/tutor legal exime a CD Autoclub La Dehesa, Motorsport Ibérica, Feeling Experience y demás entidades colaboradoras e impulsoras del proyecto, así como a sus socios, administradores, representantes, trabajadores y/o colaboradores, de responsabilidad civil o penal derivada de la participación en esta prueba, salvo en los supuestos de dolo o negligencia grave imputable a la organización, y sin perjuicio de la cobertura de la póliza de seguro contratada conforme a lo indicado anteriormente.
+El progenitor/tutor legal exime a CD Autoclub La Dehesa, Feeling Experience y demás entidades colaboradoras e impulsoras del proyecto, así como a sus socios, administradores, representantes, trabajadores y/o colaboradores, de responsabilidad civil o penal derivada de la participación en esta prueba, salvo en los supuestos de dolo o negligencia grave imputable a la organización, y sin perjuicio de la cobertura de la póliza de seguro contratada conforme a lo indicado anteriormente.
 
 ---
 

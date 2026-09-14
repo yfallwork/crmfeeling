@@ -1,18 +1,12 @@
 {% extends "autoclub/base_firmables.html" %}
-{% block title %}Rellenar autorizaciones — {{ preinscripcion.nombre_completo }} — AutoClub{% endblock %}
+{% block title %}Rellenar autorizaciones — {{ preinscripcion.nombre_completo }}{% endblock %}
 {% block page_title %}Rellenar autorizaciones{% endblock %}
-
-{% block topbar_actions %}
-<a href="{{ url_for('autoclub.seleccion_femenina_firmables', id=preinscripcion.id) }}" class="btn btn-sm btn-outline-secondary">
-  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Cancelar</span>
-</a>
-{% endblock %}
 
 {% block content %}
 <div class="card p-4" style="max-width:640px">
   <div class="alert alert-info mb-4">
     Vas a completar las autorizaciones de <strong>{{ preinscripcion.nombre_completo }}</strong>.
-    Por favor, entrega el dispositivo a la madre/padre/tutor/a legal para continuar.
+    Rellénalo con el/la progenitor/a o tutor/a legal presente (si estáis en la entrevista, entregadle el dispositivo).
   </div>
 
   <form method="POST" enctype="multipart/form-data">

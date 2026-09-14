@@ -16,9 +16,11 @@
   <button type="button" id="btn-cerrar-ventana" class="btn btn-primary mt-2">
     <i class="bi bi-check2 me-1"></i>Cerrar esta ventana
   </button>
+  {% if not standalone and current_user.is_authenticated %}
   <a href="{{ url_for('autoclub.seleccion_femenina_editar', id=preinscripcion.id) }}" class="btn btn-link btn-sm mt-2 d-block">
     o ir a la ficha desde aquí
   </a>
+  {% endif %}
 </div>
 {% endblock %}
 
@@ -26,14 +28,13 @@
 <script>
   // Esta pantalla se abre en una ventana/pestaña aparte (ver botón
   // "Rellenar autorizaciones") para no dejar el menú del CRM a la vista
-  // mientras se entrega el dispositivo a la familia. Al terminar, se
-  // intenta cerrar esa ventana; si el navegador no lo permite (no fue
-  // abierta por script, p.ej. se recargó la pestaña), se vuelve a la ficha.
+  // mientras se entrega el dispositivo a la familia — o directamente por
+  // el enlace que recibe la familia por email/WhatsApp. Al terminar, se
+  // intenta cerrar la ventana/pestaña; si el navegador no lo permite (no
+  // fue abierta por script, p.ej. se recargó la pestaña), simplemente no
+  // pasa nada más — ya no hay nada pendiente de firmar en este enlace.
   document.getElementById('btn-cerrar-ventana').addEventListener('click', function () {
     window.close();
-    setTimeout(function () {
-      window.location.href = {{ url_for('autoclub.seleccion_femenina_editar', id=preinscripcion.id) | tojson }};
-    }, 300);
   });
 </script>
 {% endblock %}

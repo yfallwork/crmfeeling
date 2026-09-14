@@ -375,3 +375,39 @@ def test_token_caducado_no_permite_acceder(client, app):
         assert "caducado".encode("utf-8") in resp.data.lower()
     finally:
         _borrar(app, pid)
+
+
+def test_pdf_de_inscripcion_completada_se_descarga(auth_client, auth_csrf_token, app):
+    with app.app_context():
+        p = _crear_preinscripcion(email="qa.pdfinscripcion@example.com", nombre="QA PDF Inscripcion")
+        pid = p.id
+    try:
+        data = {**_COMUNES_OK, **_TUTOR1, **_TUTOR2}
+        with app.app_context():
+            inscripcion = InscripcionAutorizacion(preinscripcion_id=pid, token="tok-pdf-inscripcion")
+            db.session.add(inscripcion)
+            db.session.commit()
+        data["csrf_token"] = _csrf_de(auth_client, "tok-pdf-inscripcion")
+        with patch("app.services.inscripcion_autorizacion_service.enviar_smtp_prensa"):
+            auth_client.post("/seleccion-femenina/inscripcion/tok-pdf-inscripcion", data=data, follow_redirects=True)
+
+        resp = auth_client.get(f"/autoclub/seleccion-femenina/{pid}/inscripcion/pdf")
+        assert resp.status_code == 200
+        assert resp.mimetype == "application/pdf"
+        assert resp.data[:4] == b"%PDF"
+    finally:
+        _borrar(app, pid)
+
+
+def test_pdf_de_inscripcion_no_completada_da_404(auth_client, app):
+    with app.app_context():
+        p = _crear_preinscripcion(email="qa.pdfpendiente@example.com", nombre="QA PDF Pendiente")
+        pid = p.id
+        inscripcion = InscripcionAutorizacion(preinscripcion_id=pid, token="tok-pdf-pendiente")
+        db.session.add(inscripcion)
+        db.session.commit()
+    try:
+        resp = auth_client.get(f"/autoclub/seleccion-femenina/{pid}/inscripcion/pdf")
+        assert resp.status_code == 404
+    finally:
+        _borrar(app, pid)

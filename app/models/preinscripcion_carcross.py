@@ -36,6 +36,14 @@ class PreinscripcionCarcross(db.Model):
     ip                 = db.Column(db.String(45), default="")
     creado_en          = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # Datos físicos para el equipamiento (mono, casco, calzado) — se
+    # recogen normalmente en el primer paso de los firmables, pero también
+    # editables a mano desde la ficha por si hace falta corregirlos.
+    altura_cm          = db.Column(db.Integer, nullable=True)
+    peso_kg            = db.Column(db.Integer, nullable=True)
+    talla_camiseta     = db.Column(db.String(10), default="")
+    talla_zapatillas   = db.Column(db.String(10), default="")
+
     @property
     def edad(self):
         if not self.fecha_nacimiento:

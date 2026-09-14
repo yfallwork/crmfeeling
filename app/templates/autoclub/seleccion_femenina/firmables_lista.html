@@ -6,24 +6,50 @@
 <a href="{{ url_for('autoclub.seleccion_femenina_editar', id=preinscripcion.id) }}" class="btn btn-sm btn-outline-secondary">
   <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Volver a la ficha</span>
 </a>
-{% if sesion_activa %}
-<a href="{{ url_for('autoclub.seleccion_femenina_firmables_iniciar', id=preinscripcion.id) }}" target="_blank" rel="noopener" class="btn btn-primary btn-sm">
-  <i class="bi bi-play-fill me-1"></i><span class="btn-label">Retomar sesión en curso</span>
-</a>
-{% else %}
-<a href="{{ url_for('autoclub.seleccion_femenina_firmables_iniciar', id=preinscripcion.id) }}" target="_blank" rel="noopener" class="btn btn-primary btn-sm">
-  <i class="bi bi-pencil-square me-1"></i><span class="btn-label">Rellenar autorizaciones</span>
-</a>
-{% endif %}
 {% endblock %}
 
 {% block content %}
-{% if sesion_activa %}
-<div class="alert alert-warning d-flex align-items-center gap-2 mb-3">
-  <i class="bi bi-hourglass-split"></i>
-  <div>Hay una sesión de firmables sin terminar (iniciada el {{ sesion_activa.iniciada_en.strftime('%d/%m/%Y %H:%M') }}). Pulsa "Retomar sesión en curso" para continuar donde se dejó.</div>
+
+<!-- ── Enlace del wizard: enviar por email, copiar, o abrir aquí mismo ── -->
+<div class="card p-4 mb-3">
+  <h6 class="text-xs text-uppercase text-muted fw-semibold mb-3">
+    <i class="bi bi-link-45deg me-1"></i>Enlace para firmar las autorizaciones
+  </h6>
+
+  {% if not sesion_activa %}
+  <p class="text-sm text-muted mb-3">Genera un enlace para que la familia firme las 3 autorizaciones — se puede enviar por email, copiar para WhatsApp u otro medio, o abrir aquí mismo si vais a firmarlo presencialmente en este dispositivo.</p>
+  <form method="POST" action="{{ url_for('autoclub.seleccion_femenina_firmables_preparar_enlace', id=preinscripcion.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-primary btn-sm">
+      <i class="bi bi-link me-1"></i>Generar enlace
+    </button>
+  </form>
+  {% else %}
+  <div class="alert alert-warning d-flex align-items-center gap-2 mb-3">
+    <i class="bi bi-hourglass-split"></i>
+    <div>Hay autorizaciones pendientes de firmar (enlace generado el {{ sesion_activa.token_creado_en.strftime('%d/%m/%Y %H:%M') if sesion_activa.token_creado_en else sesion_activa.iniciada_en.strftime('%d/%m/%Y %H:%M') }}).</div>
+  </div>
+
+  <div class="input-group input-group-sm mb-3" style="max-width:520px">
+    <input type="text" class="form-control" id="enlace-firmables" value="{{ enlace }}" readonly>
+    <button type="button" class="btn btn-outline-secondary" id="btn-copiar-enlace" title="Copiar enlace">
+      <i class="bi bi-clipboard"></i>
+    </button>
+  </div>
+
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{{ enlace }}" target="_blank" rel="noopener" class="btn btn-primary btn-sm">
+      <i class="bi bi-pencil-square me-1"></i>Abrir aquí (firma presencial)
+    </a>
+    <form method="POST" action="{{ url_for('autoclub.seleccion_femenina_firmables_enviar_email', id=preinscripcion.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-envelope me-1"></i>Enviar por email
+      </button>
+    </form>
+  </div>
+  {% endif %}
 </div>
-{% endif %}
 
 <div class="card">
   <div class="table-responsive">
@@ -52,7 +78,7 @@
           </td>
           <td class="text-nowrap">
             {% if d.doc %}
-            <a href="{{ url_for('autoclub.seleccion_femenina_firmables_pdf', id=preinscripcion.id, doc_id=d.doc.id) }}" target="_blank" class="btn btn-xs btn-outline-secondary" title="Ver PDF">
+            <a href="{{ url_for('autoclub.seleccion_femenina_firmables_pdf', id=preinscripcion.id, doc_id=d.doc.id) }}" target="_blank" class="btn btn-xs btn-outline-secondary" title="Descargar / ver PDF">
               <i class="bi bi-file-earmark-pdf"></i>
             </a>
             <a href="{{ url_for('autoclub.seleccion_femenina_firmables_historial', id=preinscripcion.id, tipo=d.tipo) }}" class="btn btn-xs btn-outline-secondary" title="Historial de versiones">
@@ -66,4 +92,22 @@
     </table>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var btn = document.getElementById('btn-copiar-enlace');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    var input = document.getElementById('enlace-firmables');
+    input.select();
+    navigator.clipboard.writeText(input.value).then(function () {
+      var icon = btn.querySelector('i');
+      icon.className = 'bi bi-check-lg';
+      setTimeout(function () { icon.className = 'bi bi-clipboard'; }, 1500);
+    });
+  });
+})();
+</script>
 {% endblock %}

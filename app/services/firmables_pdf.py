@@ -63,6 +63,21 @@ def generar_pdf_documento(preinscripcion, documento):
 
     # Campos específicos del tipo de documento
     if documento.tipo == "aptitud_medica":
+        datos_fisicos = [
+            ["Altura", f"{preinscripcion.altura_cm} cm" if preinscripcion.altura_cm else "—"],
+            ["Peso", f"{preinscripcion.peso_kg} kg" if preinscripcion.peso_kg else "—"],
+            ["Talla de camiseta", preinscripcion.talla_camiseta or "—"],
+            ["Talla de zapatillas", preinscripcion.talla_zapatillas or "—"],
+        ]
+        tabla_fisicos = Table(datos_fisicos, colWidths=[110, 320])
+        tabla_fisicos.setStyle(TableStyle([
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ("TEXTCOLOR", (0, 0), (0, -1), colors.HexColor("#555555")),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ]))
+        elementos.append(Paragraph("<b>Datos físicos (para el equipamiento)</b>", hoja["Cuerpo"]))
+        elementos.append(tabla_fisicos)
+        elementos.append(Spacer(1, 8))
         if documento.tiene_condicion_medica:
             elementos.append(Paragraph(
                 "☑ Declara que la participante <b>presenta</b> la(s) siguiente(s) condición(es) médica(s), "
@@ -109,8 +124,9 @@ def generar_pdf_documento(preinscripcion, documento):
     ]))
     elementos.append(tabla_firmas)
     elementos.append(Paragraph(
-        "Firma electrónica simple registrada de forma presencial en un dispositivo del organizador — "
-        "la IP corresponde al dispositivo del organizador, no al firmante.",
+        "Firma electrónica simple registrada mediante enlace personal enviado a la familia (o de forma "
+        "presencial en un dispositivo del organizador) — la IP registrada corresponde al dispositivo "
+        "desde el que se completó la firma.",
         ParagraphStyle("Nota", parent=hoja["Etiqueta"], fontSize=7.5, spaceBefore=4),
     ))
 

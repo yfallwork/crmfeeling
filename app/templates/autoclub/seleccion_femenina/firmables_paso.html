@@ -1,12 +1,6 @@
 {% extends "autoclub/base_firmables.html" %}
-{% block title %}{{ label }} — {{ preinscripcion.nombre_completo }} — AutoClub{% endblock %}
+{% block title %}{{ label }} — {{ preinscripcion.nombre_completo }}{% endblock %}
 {% block page_title %}Paso {{ paso }} de {{ total_pasos }} — {{ label }}{% endblock %}
-
-{% block topbar_actions %}
-<a href="{{ url_for('autoclub.seleccion_femenina_firmables', id=preinscripcion.id) }}" class="btn btn-sm btn-outline-secondary">
-  <i class="bi bi-x-lg me-1"></i><span class="btn-label">Salir (guarda el progreso)</span>
-</a>
-{% endblock %}
 
 {% block content %}
 <div class="mb-3 d-flex gap-2">
@@ -33,6 +27,28 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         {% if tipo == 'aptitud_medica' %}
+        <h6 class="text-xs text-uppercase text-muted fw-semibold mb-2">Datos físicos <span class="text-muted fw-normal" style="text-transform:none">(para el equipamiento)</span></h6>
+        <div class="row">
+          <div class="col-6 mb-2">
+            <label class="form-label text-xs text-muted mb-0">Altura (cm)</label>
+            <input type="number" name="altura_cm" class="form-control form-control-sm {{ 'is-invalid' if errores.altura_cm }}" value="{{ preinscripcion.altura_cm or '' }}">
+            {% if errores.altura_cm %}<div class="invalid-feedback">{{ errores.altura_cm }}</div>{% endif %}
+          </div>
+          <div class="col-6 mb-2">
+            <label class="form-label text-xs text-muted mb-0">Peso (kg)</label>
+            <input type="number" name="peso_kg" class="form-control form-control-sm {{ 'is-invalid' if errores.peso_kg }}" value="{{ preinscripcion.peso_kg or '' }}">
+            {% if errores.peso_kg %}<div class="invalid-feedback">{{ errores.peso_kg }}</div>{% endif %}
+          </div>
+          <div class="col-6 mb-3">
+            <label class="form-label text-xs text-muted mb-0">Talla camiseta</label>
+            <input type="text" name="talla_camiseta" class="form-control form-control-sm" placeholder="S, M, L…" value="{{ preinscripcion.talla_camiseta or '' }}">
+          </div>
+          <div class="col-6 mb-3">
+            <label class="form-label text-xs text-muted mb-0">Talla zapatillas</label>
+            <input type="text" name="talla_zapatillas" class="form-control form-control-sm" placeholder="38, 39…" value="{{ preinscripcion.talla_zapatillas or '' }}">
+          </div>
+        </div>
+        <hr>
         <h6 class="text-xs text-uppercase text-muted fw-semibold mb-2">Declaración</h6>
         <div class="mb-2">
           <div class="form-check">

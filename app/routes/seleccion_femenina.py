@@ -11,6 +11,7 @@ import re
 from datetime import datetime
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, current_app
+from flask_login import current_user
 from werkzeug.utils import secure_filename
 
 from app.extensions import db
@@ -378,3 +379,217 @@ def inscripcion_formulario(token):
         preinscripcion=preinscripcion, inscripcion=inscripcion, token=token,
         errores=errores, datos=datos,
     ), (400 if errores else 200)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# FIRMABLES — los 3 documentos (aptitud médica, asunción de riesgo,
+# disclaimer de conducción), accesibles por el mismo tipo de enlace de un
+# solo uso que la Inscripción y Autorización General: se puede enviar por
+# email, copiar para otro medio, o abrir directamente en el dispositivo
+# del staff para firmar presencialmente con la familia delante.
+# ══════════════════════════════════════════════════════════════════════════
+
+@seleccion_femenina_bp.route("/firmables/<token>", methods=["GET", "POST"])
+def firmables_formulario(token):
+    from app.models.firmable import SesionFirmables, MOTIVOS_SOLO_UN_TUTOR, MOTIVOS_SOLO_UN_TUTOR_KEYS
+    from app.services.firmables_service import siguiente_paso_pendiente
+
+    sesion = SesionFirmables.query.filter_by(token=token).first()
+    if not sesion:
+        abort(404)
+    preinscripcion = sesion.preinscripcion
+
+    if sesion.estado == "completada":
+        return render_template("autoclub/seleccion_femenina/firmables_cierre.html",
+                                preinscripcion=preinscripcion, enviado=True, standalone=True)
+    if sesion.token_expirado:
+        return render_template("seleccion_femenina/firmables_caducado.html", preinscripcion=preinscripcion), 410
+
+    # Modo de tutores ya elegido: saltar directo al siguiente paso pendiente.
+    if sesion.modo_tutores:
+        return redirect(url_for("seleccion_femenina.firmables_paso", token=token,
+                                 paso=siguiente_paso_pendiente(sesion)))
+
+    errores = {}
+    if request.method == "POST":
+        modo = request.form.get("modo_tutores", "")
+        motivo = request.form.get("motivo_solo_uno", "")
+        archivo = request.files.get("doc_custodia")
+
+        if modo not in ("ambos", "solo_uno"):
+            errores["modo_tutores"] = "Selecciona cuántos tutores van a firmar hoy."
+        if modo == "solo_uno":
+            if motivo not in MOTIVOS_SOLO_UN_TUTOR_KEYS:
+                errores["motivo_solo_uno"] = "Indica el motivo."
+            elif motivo == "custodia_exclusiva" and not (archivo and archivo.filename):
+                errores["doc_custodia"] = "Sube el documento acreditativo (sentencia de custodia u otro) para continuar."
+
+        if not errores and modo == "solo_uno" and motivo == "custodia_exclusiva" and archivo and archivo.filename:
+            ext = archivo.filename.rsplit(".", 1)[-1].lower() if "." in archivo.filename else ""
+            if ext not in DOC_CUSTODIA_EXTENSIONS:
+                errores["doc_custodia"] = "Formato no admitido (usa PDF, imagen o Word)."
+            else:
+                carpeta = os.path.join(current_app.root_path, "static", "uploads", "seleccion_femenina", "custodia_firmables")
+                os.makedirs(carpeta, exist_ok=True)
+                filename = secure_filename(f"custodia_{preinscripcion.id}_{int(datetime.utcnow().timestamp())}.{ext}")
+                archivo.save(os.path.join(carpeta, filename))
+                sesion.doc_custodia_path = f"uploads/seleccion_femenina/custodia_firmables/{filename}"
+
+        if not errores:
+            sesion.modo_tutores = modo
+            sesion.motivo_solo_uno = motivo if modo == "solo_uno" else ""
+            db.session.commit()
+            registrar_log("editar", "preinscripcion_carcross", preinscripcion.id,
+                          f"Firmables: modo de tutores elegido ({modo}): {preinscripcion.nombre_completo}",
+                          origen="publico")
+            return redirect(url_for("seleccion_femenina.firmables_paso", token=token, paso=1))
+
+    return render_template(
+        "autoclub/seleccion_femenina/firmables_iniciar.html",
+        preinscripcion=preinscripcion, errores=errores, motivos=MOTIVOS_SOLO_UN_TUTOR, token=token,
+    )
+
+
+@seleccion_femenina_bp.route("/firmables/<token>/paso/<int:paso>", methods=["GET", "POST"])
+def firmables_paso(token, paso):
+    from app.models.firmable import SesionFirmables, DocumentoFirmado, FirmaTutorDocumento
+    from app.services.firmables_textos import TIPOS_FIRMABLE_KEYS, TIPOS_FIRMABLE_LABELS, TEXTOS_FIRMABLE, ART156_TEXTO
+    from app.services.firmables_service import siguiente_paso_pendiente, completar_sesion_firmables
+
+    sesion = SesionFirmables.query.filter_by(token=token).first()
+    if not sesion:
+        abort(404)
+    preinscripcion = sesion.preinscripcion
+    if sesion.estado != "en_progreso" or not sesion.modo_tutores:
+        return redirect(url_for("seleccion_femenina.firmables_formulario", token=token))
+    if sesion.token_expirado:
+        return render_template("seleccion_femenina/firmables_caducado.html", preinscripcion=preinscripcion), 410
+    if paso < 1 or paso > len(TIPOS_FIRMABLE_KEYS):
+        abort(404)
+
+    tipo = TIPOS_FIRMABLE_KEYS[paso - 1]
+    # Si este paso ya se completó en esta sesión (p.ej. se volvió con el
+    # botón atrás del navegador, o se reabre el mismo enlace), no se vuelve
+    # a pedir: se avanza directamente.
+    ya_hecho = DocumentoFirmado.query.filter_by(sesion_id=sesion.id, tipo=tipo).first()
+    if ya_hecho and request.method == "GET":
+        if paso < len(TIPOS_FIRMABLE_KEYS):
+            return redirect(url_for("seleccion_femenina.firmables_paso", token=token, paso=paso + 1))
+        return redirect(url_for("seleccion_femenina.firmables_formulario", token=token))
+
+    errores = {}
+    edad = preinscripcion.edad
+    usuario_staff_id = current_user.id if current_user.is_authenticated else None
+    if request.method == "POST":
+        tiene_condicion = request.form.get("tiene_condicion_medica", "")
+        condicion_detalle = request.form.get("condicion_medica_detalle", "").strip()
+        checkbox_1 = bool(request.form.get("checkbox_1"))
+        checkbox_2 = bool(request.form.get("checkbox_2"))
+        checkbox_3 = bool(request.form.get("checkbox_3"))
+        participante_firma = bool(request.form.get("participante_firma"))
+        art156 = bool(request.form.get("art156"))
+
+        altura_str = request.form.get("altura_cm", "").strip()
+        peso_str = request.form.get("peso_kg", "").strip()
+        talla_camiseta = request.form.get("talla_camiseta", "").strip()
+        talla_zapatillas = request.form.get("talla_zapatillas", "").strip()
+        altura_cm = peso_kg = None
+
+        if tipo == "aptitud_medica":
+            if tiene_condicion not in ("si", "no"):
+                errores["tiene_condicion_medica"] = "Indica si la participante tiene alguna condición médica relevante."
+            elif tiene_condicion == "si" and not condicion_detalle:
+                errores["condicion_medica_detalle"] = "Describe la condición médica declarada."
+            if altura_str:
+                try:
+                    altura_cm = int(altura_str)
+                except ValueError:
+                    errores["altura_cm"] = "Indica la altura en centímetros (solo número)."
+            if peso_str:
+                try:
+                    peso_kg = int(peso_str)
+                except ValueError:
+                    errores["peso_kg"] = "Indica el peso en kilos (solo número)."
+        if tipo == "disclaimer_conduccion":
+            if not (checkbox_1 and checkbox_2 and checkbox_3):
+                errores["checkboxes"] = "Debes marcar las 3 declaraciones para continuar."
+        if sesion.invoca_articulo_156 and not art156:
+            errores["art156"] = "Debes marcar la declaración sobre el artículo 156 del Código Civil."
+
+        def _validar_firma(n):
+            nombre = request.form.get(f"tutor{n}_nombre", "").strip()
+            dni = request.form.get(f"tutor{n}_dni", "").strip()
+            verif = request.form.get(f"tutor{n}_verificacion", "").strip()
+            firma = bool(request.form.get(f"tutor{n}_firma"))
+            if not nombre:
+                errores[f"tutor{n}_nombre"] = "Indica el nombre completo."
+            if not dni:
+                errores[f"tutor{n}_dni"] = "Indica el DNI/NIE."
+            elif verif and not dni.upper().replace("-", "").endswith(verif.upper()):
+                errores[f"tutor{n}_verificacion"] = "Los últimos dígitos no coinciden con el DNI/NIE indicado."
+            if not firma:
+                errores[f"tutor{n}_firma"] = "Falta marcar la declaración de firma."
+            return {"nombre_completo": nombre, "dni_nie": dni, "verificacion_ultimos4": verif}
+
+        datos_t1 = _validar_firma(1)
+        datos_t2 = _validar_firma(2) if sesion.modo_tutores == "ambos" else None
+
+        if not errores:
+            if tipo == "aptitud_medica":
+                if altura_cm is not None:
+                    preinscripcion.altura_cm = altura_cm
+                if peso_kg is not None:
+                    preinscripcion.peso_kg = peso_kg
+                if talla_camiseta:
+                    preinscripcion.talla_camiseta = talla_camiseta
+                if talla_zapatillas:
+                    preinscripcion.talla_zapatillas = talla_zapatillas
+
+            version = (db.session.query(db.func.max(DocumentoFirmado.version))
+                       .filter_by(preinscripcion_id=preinscripcion.id, tipo=tipo).scalar() or 0) + 1
+            DocumentoFirmado.query.filter_by(preinscripcion_id=preinscripcion.id, tipo=tipo, vigente=True).update({"vigente": False})
+
+            documento = DocumentoFirmado(
+                preinscripcion_id=preinscripcion.id, sesion_id=sesion.id, tipo=tipo, version=version, vigente=True,
+                tiene_condicion_medica=(tiene_condicion == "si") if tipo == "aptitud_medica" else None,
+                condicion_medica_detalle=condicion_detalle if (tipo == "aptitud_medica" and tiene_condicion == "si") else "",
+                checkbox_1=checkbox_1 if tipo == "disclaimer_conduccion" else False,
+                checkbox_2=checkbox_2 if tipo == "disclaimer_conduccion" else False,
+                checkbox_3=checkbox_3 if tipo == "disclaimer_conduccion" else False,
+                participante_firma=participante_firma if (tipo == "disclaimer_conduccion" and edad is not None and edad >= 16) else False,
+                art156_invocado=sesion.invoca_articulo_156,
+            )
+            db.session.add(documento)
+            db.session.flush()  # para tener documento.id antes de crear las firmas
+
+            ahora = datetime.utcnow()
+            ip = request.remote_addr or ""
+            db.session.add(FirmaTutorDocumento(
+                documento_id=documento.id, numero=1, usuario_staff_id=usuario_staff_id,
+                firma_en=ahora, ip=ip, **datos_t1,
+            ))
+            if datos_t2:
+                db.session.add(FirmaTutorDocumento(
+                    documento_id=documento.id, numero=2, usuario_staff_id=usuario_staff_id,
+                    firma_en=ahora, ip=ip, **datos_t2,
+                ))
+            db.session.commit()
+            registrar_log("crear", "preinscripcion_carcross", preinscripcion.id,
+                          f"Firmado «{TIPOS_FIRMABLE_LABELS[tipo]}» v{version}: {preinscripcion.nombre_completo}",
+                          origen="publico")
+
+            if paso < len(TIPOS_FIRMABLE_KEYS):
+                return redirect(url_for("seleccion_femenina.firmables_paso", token=token, paso=paso + 1))
+            # Se completa aquí mismo (no solo al recargar la pantalla de
+            # cierre): si se pierde la conexión justo después de firmar el
+            # último documento, el email de copia ya se ha disparado
+            # igualmente — los 3 documentos ya están guardados.
+            completar_sesion_firmables(sesion, preinscripcion)
+            return redirect(url_for("seleccion_femenina.firmables_formulario", token=token))
+
+    return render_template(
+        "autoclub/seleccion_femenina/firmables_paso.html",
+        preinscripcion=preinscripcion, sesion=sesion, paso=paso, total_pasos=len(TIPOS_FIRMABLE_KEYS),
+        tipo=tipo, label=TIPOS_FIRMABLE_LABELS[tipo], texto=TEXTOS_FIRMABLE[tipo],
+        art156_texto=ART156_TEXTO, errores=errores, edad=edad, token=token,
+    )

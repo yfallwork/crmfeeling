@@ -1,5 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.extensions import db
+
+# Días de validez del enlace de firmables antes de caducar por sí solo,
+# igual que el enlace de Inscripción y Autorización General.
+DIAS_VALIDEZ_TOKEN_FIRMABLES = 30
 
 MOTIVOS_SOLO_UN_TUTOR = [
     ("custodia_exclusiva", "Custodia exclusiva o tutela única"),
@@ -9,22 +13,36 @@ MOTIVOS_SOLO_UN_TUTOR_KEYS = [m[0] for m in MOTIVOS_SOLO_UN_TUTOR]
 
 
 class SesionFirmables(db.Model):
-    """Una sesión = una visita presencial en la que se rellenan (o se
-    corrigen) los 3 documentos firmables de una piloto. Agrupa las 3
-    versiones de documento creadas en esa misma sesión para poder enviar
-    la copia por email de una sola vez al terminar."""
+    """Una sesión agrupa los 3 documentos firmables (o su corrección) de
+    una piloto, rellenados a través del mismo enlace de un solo uso —
+    presencialmente (el staff lo abre y entrega el dispositivo) o en
+    remoto (por email o copiando el enlace). Agrupa las versiones creadas
+    en la sesión para poder enviar la copia por email de una sola vez al
+    terminar."""
     __tablename__ = "sesiones_firmables"
 
     id                = db.Column(db.Integer, primary_key=True)
     preinscripcion_id = db.Column(db.Integer, db.ForeignKey("preinscripciones_carcross.id", ondelete="CASCADE"),
                                    nullable=False, index=True)
 
-    modo_tutores      = db.Column(db.String(20), default="ambos", nullable=False)  # ambos | solo_uno
+    # "" hasta que se elige (no None: la columna ya existía como NOT NULL
+    # en bases de datos desplegadas antes de que el enlace se pudiera crear
+    # sin conocer el modo de antemano — usar cadena vacía evita tener que
+    # alterar esa restricción, SQLite no admite quitar NOT NULL sin recrear
+    # la tabla). "" | "ambos" | "solo_uno".
+    modo_tutores      = db.Column(db.String(20), default="", nullable=False)
     motivo_solo_uno   = db.Column(db.String(40), default="")  # ver MOTIVOS_SOLO_UN_TUTOR
     doc_custodia_path = db.Column(db.String(300), nullable=True)
 
+    # Enlace de un solo uso, igual que el de Inscripción y Autorización
+    # General: permite completar el wizard tanto presencialmente (el staff
+    # lo abre en el dispositivo y se lo entrega a la familia) como en
+    # remoto (se envía por email o se copia el enlace para WhatsApp, etc.).
+    token           = db.Column(db.String(64), unique=True, nullable=True, index=True)
+    token_creado_en = db.Column(db.DateTime, nullable=True)
+
     usuario_staff_id  = db.Column(db.Integer, db.ForeignKey("usuarios.id", ondelete="SET NULL"), nullable=True)
-    ip                = db.Column(db.String(45), default="")  # dispositivo del organizador, no del firmante
+    ip                = db.Column(db.String(45), default="")  # dispositivo desde el que se firmó
 
     estado            = db.Column(db.String(20), default="en_progreso", nullable=False)  # en_progreso | completada
     iniciada_en       = db.Column(db.DateTime, default=datetime.utcnow)
@@ -36,6 +54,16 @@ class SesionFirmables(db.Model):
     ))
     usuario_staff = db.relationship("Usuario", foreign_keys=[usuario_staff_id])
     documentos = db.relationship("DocumentoFirmado", backref="sesion", cascade="all, delete-orphan")
+
+    @property
+    def token_expirado(self):
+        if not self.token_creado_en:
+            return False
+        return datetime.utcnow() > self.token_creado_en + timedelta(days=DIAS_VALIDEZ_TOKEN_FIRMABLES)
+
+    @property
+    def token_valido(self):
+        return self.estado == "en_progreso" and not self.token_expirado
 
     @property
     def requiere_documento_custodia(self):

@@ -77,6 +77,34 @@
       </div>
     </div>
 
+    <div class="mb-2">
+      <label class="form-label text-sm fw-semibold mb-1">Datos físicos <span class="text-muted fw-normal">(para el equipamiento: mono, casco, calzado)</span></label>
+      <div class="row">
+        <div class="col-6 col-sm-3 mb-3">
+          <label class="form-label text-xs text-muted">Altura (cm)</label>
+          <input type="number" name="altura_cm" class="form-control {{ 'is-invalid' if errores and errores.altura_cm }}"
+                 value="{{ datos.altura_cm if datos else '' }}">
+          {% if errores and errores.altura_cm %}<div class="invalid-feedback">{{ errores.altura_cm }}</div>{% endif %}
+        </div>
+        <div class="col-6 col-sm-3 mb-3">
+          <label class="form-label text-xs text-muted">Peso (kg)</label>
+          <input type="number" name="peso_kg" class="form-control {{ 'is-invalid' if errores and errores.peso_kg }}"
+                 value="{{ datos.peso_kg if datos else '' }}">
+          {% if errores and errores.peso_kg %}<div class="invalid-feedback">{{ errores.peso_kg }}</div>{% endif %}
+        </div>
+        <div class="col-6 col-sm-3 mb-3">
+          <label class="form-label text-xs text-muted">Talla camiseta</label>
+          <input type="text" name="talla_camiseta" class="form-control" placeholder="S, M, L…"
+                 value="{{ datos.talla_camiseta if datos else '' }}">
+        </div>
+        <div class="col-6 col-sm-3 mb-3">
+          <label class="form-label text-xs text-muted">Talla zapatillas</label>
+          <input type="text" name="talla_zapatillas" class="form-control" placeholder="38, 39…"
+                 value="{{ datos.talla_zapatillas if datos else '' }}">
+        </div>
+      </div>
+    </div>
+
     <div class="mb-3">
       <label class="form-label text-sm fw-semibold">Motivación</label>
       <textarea name="motivacion" class="form-control" rows="3">{{ datos.motivacion if datos else '' }}</textarea>

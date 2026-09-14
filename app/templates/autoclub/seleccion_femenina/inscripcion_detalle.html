@@ -3,6 +3,11 @@
 {% block page_title %}Inscripción y autorización de {{ preinscripcion.nombre_completo }}{% endblock %}
 
 {% block topbar_actions %}
+{% if insc.completo %}
+<a href="{{ url_for('autoclub.seleccion_femenina_inscripcion_pdf', id=preinscripcion.id) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+  <i class="bi bi-file-earmark-pdf me-1"></i><span class="btn-label">Descargar PDF</span>
+</a>
+{% endif %}
 <a href="{{ url_for('autoclub.seleccion_femenina_editar', id=preinscripcion.id) }}" class="btn btn-sm btn-outline-secondary">
   <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Volver a la ficha</span>
 </a>

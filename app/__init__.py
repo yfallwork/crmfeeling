@@ -266,6 +266,12 @@ def _migrate_columns():
         ("entradas_evento",    "cif_institucion",           "VARCHAR(20) DEFAULT ''"),
         ("entradas_evento",    "num_acompanantes",          "INTEGER DEFAULT 0"),
         ("tutores_legales",    "firma_dibujo",              "TEXT"),
+        ("sesiones_firmables", "token",                     "VARCHAR(64)"),
+        ("sesiones_firmables", "token_creado_en",            "DATETIME"),
+        ("preinscripciones_carcross", "altura_cm",           "INTEGER"),
+        ("preinscripciones_carcross", "peso_kg",             "INTEGER"),
+        ("preinscripciones_carcross", "talla_camiseta",      "VARCHAR(10) DEFAULT ''"),
+        ("preinscripciones_carcross", "talla_zapatillas",    "VARCHAR(10) DEFAULT ''"),
     ]
     with db.engine.connect() as conn:
         for tabla, columna, tipo in nuevas:

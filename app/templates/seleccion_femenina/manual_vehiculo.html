@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0D0D0D" />
+<meta name="robots" content="noindex" />
+<title>Manual del vehículo · Selección Femenina de Pilotos de Carcross</title>
+<link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='img/seleccion_femenina/favicon-32.png') }}" />
+<link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='img/seleccion_femenina/favicon-192.png') }}" />
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='img/seleccion_femenina/favicon-192.png') }}" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+:root {
+  --pink:       #AD1726;
+  --pink-dark:  #8B1020;
+  --black:      #0D0D0D;
+  --gray-900:   #1F2937;
+  --gray-600:   #4B5563;
+  --gray-100:   #F3F4F6;
+  --border:     #E5E7EB;
+
+  --text-xs:   clamp(.78rem, .75rem + .15vw, .85rem);
+  --text-sm:   clamp(.88rem, .84rem + .18vw, .95rem);
+  --text-base: clamp(1rem, .95rem + .22vw, 1.08rem);
+  --text-lg:   clamp(1.15rem, 1.05rem + .45vw, 1.4rem);
+  --text-xl:   clamp(1.4rem, 1.25rem + .7vw, 1.9rem);
+
+  --space-s:   clamp(.75rem, .7rem + .2vw, 1rem);
+  --space-m:   clamp(1.25rem, 1.1rem + .6vw, 1.75rem);
+  --space-l:   clamp(2rem, 1.7rem + 1.2vw, 3rem);
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: var(--gray-900);
+  background: var(--gray-100);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+
+.wrap-narrow { max-width: min(760px, calc(100% - 2.5rem)); margin-inline: auto; }
+
+header {
+  background: var(--black); color: #fff;
+  padding: calc(var(--space-l) + env(safe-area-inset-top)) 0 var(--space-l);
+}
+.back-link {
+  display: inline-flex; align-items: center; gap: .5em;
+  color: rgba(255,255,255,.7); text-decoration: none; font-size: var(--text-sm); font-weight: 700;
+  margin-bottom: var(--space-m);
+}
+.back-link:hover { color: #fff; }
+header h1 { font-size: var(--text-xl); font-weight: 800; letter-spacing: -.02em; margin-bottom: .3em; }
+header p { color: rgba(255,255,255,.65); font-size: var(--text-sm); }
+
+main { padding-block: var(--space-l); }
+.doc {
+  background: #fff; border-radius: 18px; padding: var(--space-l) var(--space-m);
+  box-shadow: 0 2px 10px rgba(0,0,0,.05);
+}
+.doc h2 {
+  font-size: var(--text-lg); color: var(--black); font-weight: 800; letter-spacing: -.01em;
+  margin: var(--space-m) 0 .6em;
+}
+.doc h2:first-child { margin-top: 0; }
+.doc h3 {
+  font-size: var(--text-base); color: var(--black); font-weight: 800;
+  margin: var(--space-s) 0 .5em;
+}
+.doc p { font-size: var(--text-base); color: var(--gray-600); margin-bottom: .8em; }
+.doc ul, .doc ol { padding-left: 1.3em; margin-bottom: .8em; }
+.doc li { font-size: var(--text-base); color: var(--gray-600); margin-bottom: .4em; }
+.doc strong { color: var(--gray-900); }
+.doc hr { border: none; border-top: 1px solid var(--border); margin: var(--space-m) 0; }
+.doc a { color: var(--pink); font-weight: 700; }
+
+.glosario dt { font-weight: 800; color: var(--black); margin-top: .6em; }
+.glosario dd { color: var(--gray-600); margin-bottom: .4em; }
+
+.reglamentos-grid {
+  display: grid; grid-template-columns: 1fr; gap: var(--space-s); margin-top: var(--space-s);
+}
+@media (min-width: 560px) {
+  .reglamentos-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.reglamento-card {
+  display: flex; align-items: center; gap: .8em; text-decoration: none;
+  background: var(--black); color: #fff; border-radius: 14px; padding: 1.1em 1.3em;
+  transition: transform .2s ease;
+}
+.reglamento-card:hover { transform: translateY(-2px); }
+.reglamento-card .ico { font-size: 1.5em; color: var(--pink); flex-shrink: 0; }
+.reglamento-card > div { min-width: 0; }
+.reglamento-card strong { display: block; color: #fff; font-size: var(--text-sm); }
+.reglamento-card span { display: block; font-size: var(--text-xs); color: rgba(255,255,255,.6); }
+.reglamento-card .ext { margin-left: auto; color: rgba(255,255,255,.4); flex-shrink: 0; }
+
+footer { text-align: center; padding-block: var(--space-l); }
+footer a {
+  display: inline-flex; align-items: center; gap: .5em; min-height: 44px;
+  padding: .7em 1.4em; border-radius: 100px; background: var(--black); color: #fff;
+  text-decoration: none; font-weight: 700; font-size: var(--text-sm);
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap-narrow">
+    <a class="back-link" href="{{ url_for('seleccion_femenina.landing') }}"><i class="bi bi-arrow-left"></i>Volver a la página</a>
+    <h1>Manual del vehículo</h1>
+    <p>Mecánica básica del carcross — léelo con calma antes del día de la prueba práctica</p>
+  </div>
+</header>
+
+<main>
+  <div class="wrap-narrow">
+    <div class="doc">
+
+      <h2>1. Qué es un carcross</h2>
+      <p>Un carcross (también llamado kart-cross o buggy cross) es un vehículo ligero, sin carrocería cerrada, construido sobre un <strong>chasis tubular de acero</strong>, pensado para circular en circuitos de tierra o mixtos, con gran capacidad de encaje en curva y una relación peso-potencia muy alta. A diferencia de un coche de calle, casi todos sus componentes están a la vista: motor, suspensión, frenos y transmisión se ven directamente desde fuera, lo cual es una ventaja para aprender mecánica, porque puedes identificar cada pieza físicamente.</p>
+      <p>Los vehículos que vas a conducir en este proyecto (modelos Yacar) comparten esta misma filosofía de construcción: chasis tubular, suspensión independiente y motor de motocicleta. Este manual explica la mecánica general que comparten, sea cual sea el vehículo concreto que te toque; si hay algún detalle distinto, el equipo técnico te lo señalará antes de subir.</p>
+
+      <hr>
+
+      <h2>2. Mecánica general: de qué se compone el vehículo</h2>
+      <p>De forma esquemática, un carcross se compone de:</p>
+      <ol>
+        <li><strong>Chasis:</strong> la estructura tubular que sujeta todo lo demás y protege a la piloto en caso de vuelco (jaula antivuelco).</li>
+        <li><strong>Motor y embrague:</strong> generan y transmiten la fuerza.</li>
+        <li><strong>Caja de cambios:</strong> adapta esa fuerza a distintas velocidades.</li>
+        <li><strong>Transmisión final:</strong> lleva la fuerza desde la caja de cambios hasta las ruedas motrices.</li>
+        <li><strong>Suspensión:</strong> absorbe las irregularidades del terreno y mantiene el contacto de las ruedas con el suelo.</li>
+        <li><strong>Ruedas y neumáticos:</strong> el único punto de contacto real con la pista.</li>
+        <li><strong>Sistema de frenos:</strong> permite reducir la velocidad y detener el vehículo.</li>
+        <li><strong>Sistemas de seguridad pasiva y activa:</strong> protegen a la piloto antes, durante y después de un posible incidente.</li>
+      </ol>
+      <p>Vamos a ver cada uno con más detalle.</p>
+
+      <hr>
+
+      <h2>3. Motor y embrague (resumen)</h2>
+      <ul>
+        <li>El motor procede de una motocicleta (habitualmente de 2 o 4 cilindros, según el modelo), montado en posición central-trasera o trasera.</li>
+        <li>Embrague multidisco en baño de aceite, accionado mediante <strong>pedal</strong> en lugar de maneta manual.</li>
+        <li>El motor va anclado al chasis mediante silentblocks o soportes rígidos, para absorber vibraciones.</li>
+      </ul>
+      <hr>
+
+      <h2>4. Caja de cambios: el sistema secuencial adaptado</h2>
+      <p>En una moto de calle, la caja de cambios es secuencial y se acciona con el pie, subiendo o bajando de marcha una a una. <strong>En el carcross, este sistema secuencial se traslada a una palanca de cambio en el habitáculo</strong>, que la piloto mueve con la mano, pero que por dentro sigue funcionando igual que en la moto: no se puede saltar de 2ª a 5ª directamente, hay que pasar por todas las marchas intermedias.</p>
+      <p><strong>Cómo se traduce la palanca:</strong></p>
+      <ul>
+        <li>Mover la palanca <strong>hacia atrás</strong> suele subir una marcha.</li>
+        <li>Mover la palanca <strong>hacia adelante</strong> suele bajar una marcha.</li>
+        <li>Cada movimiento de la palanca equivale a un solo «clic» secuencial — no es como la palanca de un coche automático, donde eliges directamente la marcha.</li>
+      </ul>
+      <p>El recorrido y la dureza exacta de la palanca pueden variar ligeramente de un vehículo a otro; el equipo técnico te indicará el punto exacto de cada cambio antes de subir por primera vez.</p>
+      <hr>
+
+      <h2>5. Suspensión</h2>
+      <p>La suspensión conecta las ruedas al chasis y tiene dos misiones: <strong>absorber los baches e irregularidades del terreno</strong>, y <strong>mantener el neumático pegado al suelo</strong> para que no se pierda tracción ni frenada.</p>
+      <h3>Componentes principales</h3>
+      <ul>
+        <li><strong>Amortiguador:</strong> cilindro con un resorte (muelle) y un sistema hidráulico interno que controla la velocidad a la que se comprime y se extiende.</li>
+        <li><strong>Muelle:</strong> almacena y libera energía cuando la rueda sube o baja.</li>
+        <li><strong>Brazos de suspensión (trapecios):</strong> conectan la rueda al chasis, permitiendo su movimiento vertical de forma controlada.</li>
+      </ul>
+      <h3>Suspensión independiente</h3>
+      <p>Los carcross llevan <strong>suspensión independiente en las 4 ruedas</strong>: cada rueda se mueve de forma autónoma respecto a las demás, lo que mejora muchísimo el agarre en terrenos irregulares, a diferencia de un eje rígido donde las dos ruedas de un mismo eje se mueven siempre juntas.</p>
+      <p><strong>Qué notarás al conducir:</strong></p>
+      <ul>
+        <li>En baches o zonas irregulares, el vehículo «absorbe» el terreno sin que se pierda el control.</li>
+        <li>Una suspensión más dura transmite más el terreno pero da más precisión; una más blanda es más cómoda pero puede generar más balanceo en curva.</li>
+        <li>El equipo técnico ajusta la dureza (precarga) según el terreno y el peso de cada piloto — no es algo que tengas que tocar tú, pero sí es bueno que sepas que existe ese ajuste.</li>
+      </ul>
+      <hr>
+
+      <h2>6. Ruedas y neumáticos</h2>
+      <h3>Por qué son la pieza más importante</h3>
+      <p>Por muy bien preparado que esté el motor o la suspensión, <strong>todo lo que el vehículo hace pasa, en último término, por el contacto entre el neumático y el suelo</strong>. Es la única conexión real con la pista.</p>
+      <h3>Elementos a tener en cuenta</h3>
+      <ul>
+        <li><strong>Presión de neumáticos:</strong> una presión demasiado alta reduce la superficie de contacto (menos agarre); una demasiado baja puede sobrecalentar el neumático o dañar la llanta en un bache fuerte. El equipo técnico ajusta la presión antes de cada tanda según las condiciones del circuito.</li>
+        <li><strong>Dibujo del neumático (tacos):</strong> en tierra, los carcross usan neumáticos con tacos pronunciados, diseñados para «morder» el terreno suelto, muy distintos a los neumáticos lisos de un coche de asfalto.</li>
+        <li><strong>Desgaste:</strong> un neumático con los tacos gastados pierde agarre, especialmente en curva y frenada; el equipo revisa el estado antes de cada sesión.</li>
+      </ul>
+      <hr>
+
+      <h2>7. Sistema de frenos</h2>
+      <h3>Cómo funciona una frenada</h3>
+      <p>Al pisar el pedal de freno, un pistón empuja líquido de frenos a través de un circuito cerrado hasta unas <strong>pinzas de freno</strong>, situadas en cada rueda, que aprietan un <strong>disco de freno</strong> solidario a la rueda. Esa fricción entre pinza (con sus pastillas) y disco es lo que transforma la energía del movimiento en calor, frenando el vehículo.</p>
+      <h3>Componentes</h3>
+      <ul>
+        <li><strong>Pedal de freno:</strong> acciona el sistema hidráulico.</li>
+        <li><strong>Bomba de freno:</strong> genera la presión hidráulica.</li>
+        <li><strong>Líquido de frenos:</strong> transmite esa presión por el circuito.</li>
+        <li><strong>Discos y pinzas:</strong> en las 4 ruedas, generan la fricción real que frena el vehículo.</li>
+      </ul>
+      <h3>Reparto de frenada</h3>
+      <p>En un carcross, al ser un vehículo ligero con el peso repartido de forma particular (motor trasero o central-trasero), el reparto de frenada entre el eje delantero y el trasero está ajustado por el equipo técnico para evitar que las ruedas se bloqueen antes de tiempo. <strong>Bloquear una rueda al frenar significa perder agarre y, por tanto, capacidad de dirección</strong> — por eso es tan importante frenar de forma progresiva, no de golpe.</p>
+      <hr>
+
+      <h2>8. Sistemas de seguridad pasiva</h2>
+      <p>La seguridad pasiva es todo lo que <strong>protege a la piloto en caso de que ya se haya producido un incidente</strong> (salida de pista, vuelco, colisión).</p>
+      <ul>
+        <li><strong>Jaula antivuelco (roll cage):</strong> estructura tubular reforzada alrededor del habitáculo, diseñada para mantener un espacio de supervivencia si el vehículo vuelca.</li>
+        <li><strong>Arnés de seguridad:</strong> sistema de cinturones de varios puntos (normalmente 4 o 5) que sujeta a la piloto firmemente al asiento, mucho más eficaz que un cinturón de coche normal en caso de impacto.</li>
+        <li><strong>Asiento envolvente (baquet):</strong> sujeta el cuerpo lateralmente, reduciendo el movimiento en curvas fuertes o impactos laterales.</li>
+        <li><strong>Equipamiento personal:</strong> casco, mono y guantes (ya tratado en el disclaimer de la prueba de conducción) son también seguridad pasiva — protegen el cuerpo de la piloto directamente.</li>
+      </ul>
+      <hr>
+
+      <h2>9. Sistemas de seguridad activa</h2>
+      <p>La seguridad activa es todo lo que <strong>ayuda a evitar que el incidente llegue a producirse</strong>.</p>
+      <ul>
+        <li><strong>Frenos eficaces y bien mantenidos:</strong> la primera línea de seguridad activa es poder frenar cuando y cuánto se necesita.</li>
+        <li><strong>Suspensión bien ajustada:</strong> un vehículo que mantiene el contacto con el suelo es un vehículo más controlable, y por tanto más seguro.</li>
+        <li><strong>Neumáticos en buen estado:</strong> como ya vimos, el agarre depende directamente de ellos.</li>
+        <li><strong>Visibilidad:</strong> la disposición abierta del carcross da a la piloto una visión muy amplia de la pista, lo cual es en sí mismo un elemento de seguridad activa.</li>
+        <li><strong>Comunicación con el personal de pista:</strong> banderas y señales (bandera amarilla, por ejemplo) forman parte del sistema de seguridad activa del evento, no solo del vehículo — como ya se explicó en el disclaimer de la prueba de conducción.</li>
+      </ul>
+
+      <hr>
+
+      <h2>10. Glosario rápido</h2>
+      <dl class="glosario">
+        <dt>Chasis tubular</dt>
+        <dd>Estructura de tubos de acero soldados que forma el esqueleto del vehículo.</dd>
+        <dt>Jaula antivuelco</dt>
+        <dd>Refuerzo estructural que protege el habitáculo en caso de vuelco.</dd>
+        <dt>Suspensión independiente</dt>
+        <dd>Sistema en el que cada rueda se mueve por separado de las demás.</dd>
+        <dt>Amortiguador</dt>
+        <dd>Componente que controla el movimiento de la suspensión.</dd>
+        <dt>Pinza y disco de freno</dt>
+        <dd>Elementos que generan la fricción para frenar cada rueda.</dd>
+        <dt>Reparto de frenada</dt>
+        <dd>Cómo se distribuye la fuerza de frenado entre el eje delantero y el trasero.</dd>
+        <dt>Arnés de varios puntos</dt>
+        <dd>Sistema de cinturones de seguridad reforzado, típico de vehículos de competición.</dd>
+        <dt>Baquet</dt>
+        <dd>Asiento envolvente que sujeta el cuerpo lateralmente.</dd>
+      </dl>
+
+      <hr>
+
+      <h2>11. Reglamentos oficiales</h2>
+      <p>Documentos oficiales de la RFEDA que regulan la competición a la que optas si resultas seleccionada:</p>
+      <div class="reglamentos-grid">
+        <a class="reglamento-card" href="https://www.rfeda.es/docs/2026/reglamentos/08_CEAX/09.04%20CEAX%202026%20RT%20Car%20Cross_02.10.25.pdf" target="_blank" rel="noopener">
+          <i class="bi bi-file-earmark-pdf ico"></i>
+          <div><strong>Reglamento CEAX</strong><span>Reglamento técnico de Car Cross</span></div>
+          <i class="bi bi-box-arrow-up-right ext"></i>
+        </a>
+        <a class="reglamento-card" href="https://cerx.rfeda.es/docs/2026/reglamentos/00.CERX%202026-REG-DEP%2013.03.2026.pdf" target="_blank" rel="noopener">
+          <i class="bi bi-file-earmark-pdf ico"></i>
+          <div><strong>Reglamento CERX</strong><span>Reglamento deportivo del CERX</span></div>
+          <i class="bi bi-box-arrow-up-right ext"></i>
+        </a>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<footer>
+  <a href="{{ url_for('seleccion_femenina.landing') }}"><i class="bi bi-arrow-left"></i>Volver a la página</a>
+</footer>
+
+</body>
+</html>

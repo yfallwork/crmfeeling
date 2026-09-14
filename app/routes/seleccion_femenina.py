@@ -32,6 +32,10 @@ DOC_CUSTODIA_EXTENSIONS = {"pdf", "jpg", "jpeg", "png", "doc", "docx"}
 # tiene sentido contar los días para esa fecha — generaba confusión sobre
 # si tenían que acudir ese día.
 FECHA_LIMITE_PREINSCRIPCION = datetime(2026, 9, 13).date()
+# El plazo de preinscripción ya se ha cerrado — se deja este interruptor
+# manual (en vez de basarlo solo en la fecha límite) para poder reabrirlo
+# explícitamente si el proyecto lo requiriera en el futuro.
+PREINSCRIPCION_ABIERTA = False
 
 
 @seleccion_femenina_bp.route("/")
@@ -43,11 +47,14 @@ def landing():
         datos=None, errores=None,
         dias_preinscripcion=dias_preinscripcion if dias_preinscripcion >= 0 else None,
         hoy=datetime.utcnow().date().isoformat(),
+        preinscripcion_abierta=PREINSCRIPCION_ABIERTA,
     )
 
 
 @seleccion_femenina_bp.route("/preinscripcion", methods=["POST"])
 def preinscripcion():
+    if not PREINSCRIPCION_ABIERTA:
+        abort(404)
     form = request.form
     nombre = form.get("nombre_completo", "").strip()
     fnac_str = form.get("fecha_nacimiento", "").strip()
@@ -92,6 +99,7 @@ def preinscripcion():
             datos=form, errores=errores,
             dias_preinscripcion=dias_preinscripcion if dias_preinscripcion >= 0 else None,
             hoy=datetime.utcnow().date().isoformat(),
+            preinscripcion_abierta=PREINSCRIPCION_ABIERTA,
         ), 400
 
     preinscripcion = PreinscripcionCarcross(
@@ -130,6 +138,11 @@ def privacidad():
 @seleccion_femenina_bp.route("/bases-legales")
 def bases_legales():
     return render_template("seleccion_femenina/bases_legales.html")
+
+
+@seleccion_femenina_bp.route("/manual-vehiculo")
+def manual_vehiculo():
+    return render_template("seleccion_femenina/manual_vehiculo.html")
 
 
 # ══════════════════════════════════════════════════════════════════════════

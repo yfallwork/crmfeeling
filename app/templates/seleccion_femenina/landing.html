@@ -270,6 +270,21 @@ a { color: var(--pink); }
 .premio-card strong { position: relative; display: block; color: #fff; font-size: var(--text-base); margin-bottom: .2em; }
 .premio-card span { position: relative; font-size: var(--text-sm); color: rgba(255,255,255,.7); }
 
+/* ── RECURSOS (manual + reglamentos) ─────────────────────── */
+.recursos-grid {
+  display: grid; grid-template-columns: 1fr; gap: var(--space-s); margin-top: var(--space-m);
+}
+@media (min-width: 640px) {
+  .recursos-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.recurso-card {
+  text-decoration: none; cursor: pointer;
+}
+.recurso-card .ext {
+  position: absolute; top: var(--space-m); right: var(--space-m);
+  color: rgba(255,255,255,.4); font-size: .9em;
+}
+
 /* ── TIMELINE ─────────────────────────────────────────── */
 .timeline { margin-top: var(--space-l); display: grid; gap: var(--space-m); position: relative; }
 .tl-step { display: flex; gap: 1.1em; position: relative; }
@@ -475,6 +490,7 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
       Selección Femenina de Pilotos de Carcross, a nivel nacional. Tu oportunidad de subirte a un coche de
       carreras y conseguir una plaza en una carrera oficial del Campeonato de España de Rallycross.
     </p>
+    {% if preinscripcion_abierta %}
     <a href="#preinscripcion" class="btn btn-primary"><i class="bi bi-flag-fill"></i>Quiero inscribirme</a>
     <p class="hero-cta-note">Sin experiencia en competición ni licencia federativa. Solo motivación y ganas de subirte a un coche de carreras.</p>
 
@@ -486,6 +502,12 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
       {% else %}
         <strong>¡Último día!</strong> Hoy termina el plazo de preinscripción
       {% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="hero-countdown">
+      <i class="bi bi-info-circle-fill"></i>
+      Proceso de preinscripciones finalizado
     </div>
     {% endif %}
 
@@ -620,6 +642,31 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
   </div>
 </section>
 
+<!-- ══════════════ RECURSOS: MANUAL Y REGLAMENTOS ══════════════ -->
+<section id="recursos">
+  <div class="wrap-narrow reveal">
+    <span class="eyebrow">Antes de la prueba</span>
+    <h2>Manual del vehículo y <span class="accent">reglamentos oficiales</span></h2>
+    <p>Échale un vistazo con calma antes del día de la prueba práctica — así llegarás con las ideas claras sobre el vehículo y las normas de la competición.</p>
+    <div class="recursos-grid">
+      <a class="premio-card recurso-card" href="{{ url_for('seleccion_femenina.manual_vehiculo') }}" target="_blank" rel="noopener">
+        <div class="ico"><i class="bi bi-book-half"></i></div>
+        <div><strong>Manual del vehículo</strong><span>Mecánica básica del carcross explicada para pilotos sin experiencia previa.</span></div>
+      </a>
+      <a class="premio-card recurso-card" href="https://www.rfeda.es/docs/2026/reglamentos/08_CEAX/09.04%20CEAX%202026%20RT%20Car%20Cross_02.10.25.pdf" target="_blank" rel="noopener">
+        <div class="ico"><i class="bi bi-file-earmark-pdf"></i></div>
+        <div><strong>Reglamento CEAX</strong><span>Reglamento técnico oficial de Car Cross (RFEDA).</span></div>
+        <i class="bi bi-box-arrow-up-right ext"></i>
+      </a>
+      <a class="premio-card recurso-card" href="https://cerx.rfeda.es/docs/2026/reglamentos/00.CERX%202026-REG-DEP%2013.03.2026.pdf" target="_blank" rel="noopener">
+        <div class="ico"><i class="bi bi-file-earmark-pdf"></i></div>
+        <div><strong>Reglamento CERX</strong><span>Reglamento deportivo oficial del Campeonato de España de Rallycross.</span></div>
+        <i class="bi bi-box-arrow-up-right ext"></i>
+      </a>
+    </div>
+  </div>
+</section>
+
 <!-- ══════════════ UBICACIÓN ══════════════ -->
 <section id="ubicacion" style="background:var(--gray-100)">
   <div class="wrap reveal">
@@ -726,6 +773,16 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
 <!-- ══════════════ FORMULARIO ══════════════ -->
 <section class="form-section" id="preinscripcion">
   <div class="wrap-narrow reveal">
+    {% if not preinscripcion_abierta %}
+    <span class="eyebrow">Preinscripciones</span>
+    <h2 style="color:#fff">Proceso de preinscripciones <span class="accent">finalizado</span></h2>
+    <div class="form-card">
+      <div class="form-alert" style="background:rgba(255,255,255,.06);color:rgba(255,255,255,.85);border-color:rgba(255,255,255,.15)">
+        <i class="bi bi-info-circle-fill"></i>
+        El plazo de preinscripción de la Selección Femenina de Pilotos de Carcross ya se ha cerrado. Gracias por vuestro interés — seguid la web y nuestras redes para conocer los próximos pasos del proceso.
+      </div>
+    </div>
+    {% else %}
     <span class="eyebrow">Último paso</span>
     <h2 style="color:#fff">Preinscríbete <span class="accent">ahora</span></h2>
     <p style="color:rgba(255,255,255,.7)">Es rápido y solo es el primer paso. Si tu perfil encaja, te contactaremos con toda la información sobre las entrevistas.</p>
@@ -814,6 +871,7 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
         </button>
       </form>
     </div>
+    {% endif %}
   </div>
 </section>
 
@@ -830,6 +888,7 @@ footer { background: var(--black-2); color: rgba(255,255,255,.7); padding-block:
       <div class="logo-chip"><img src="{{ url_for('static', filename='img/seleccion_femenina/logo_yacar.png') }}" alt="Yacar Racing"></div>
     </div>
     <div class="footer-links">
+      <a href="{{ url_for('seleccion_femenina.manual_vehiculo') }}" target="_blank" rel="noopener">Manual del vehículo</a>
       <a href="{{ url_for('seleccion_femenina.privacidad') }}" target="_blank" rel="noopener">Política de privacidad</a>
       <a href="{{ url_for('seleccion_femenina.bases_legales') }}" target="_blank" rel="noopener">Bases legales</a>
     </div>

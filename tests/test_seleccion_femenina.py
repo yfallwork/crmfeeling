@@ -31,28 +31,53 @@ def test_landing_publica_accesible_sin_login(app):
     resp = client.get("/seleccion-femenina/")
     assert resp.status_code == 200
     assert "Selección Femenina".encode("utf-8") in resp.data
-    assert b'action="/seleccion-femenina/preinscripcion"' in resp.data
+    # El plazo de preinscripción está cerrado: no se muestra el formulario,
+    # sino el mensaje de proceso finalizado.
+    assert b'action="/seleccion-femenina/preinscripcion"' not in resp.data
+    assert "Proceso de preinscripciones".encode("utf-8") in resp.data
+    assert "finalizado".encode("utf-8") in resp.data
+
+
+def test_preinscripcion_cerrada_rechaza_envios(app):
+    client = app.test_client()
+    # Sin token CSRF (la landing cerrada ya no renderiza el formulario, así
+    # que no hay token que extraer) la petición ya se rechaza por CSRF antes
+    # de llegar a la vista — igualmente válido como "no se puede enviar".
+    resp = client.post(
+        "/seleccion-femenina/preinscripcion",
+        data={
+            "nombre_completo": "QA Fuera De Plazo",
+            "fecha_nacimiento": "2010-01-15",
+            "email": "qa.fueradeplazo@example.com",
+            "telefono": "600111222",
+            "acepta_privacidad": "1",
+        },
+    )
+    assert resp.status_code in (400, 404)
+    with app.app_context():
+        assert PreinscripcionCarcross.query.filter_by(email="qa.fueradeplazo@example.com").first() is None
 
 
 def test_preinscripcion_exitosa_sin_login(app):
     client = app.test_client()
-    token = _extraer_csrf(client.get("/seleccion-femenina/").get_data(as_text=True))
+    with patch("app.routes.seleccion_femenina.PREINSCRIPCION_ABIERTA", True):
+        token = _extraer_csrf(client.get("/seleccion-femenina/").get_data(as_text=True))
 
-    resp = client.post(
-        "/seleccion-femenina/preinscripcion",
-        data={
-            "nombre_completo": "Lucía QA Pérez",
-            "fecha_nacimiento": "2010-01-15",  # ~16 años
-            "localidad": "Guadalajara",
-            "email": "lucia.qa@example.com",
-            "telefono": "600111222",
-            "experiencia_previa": "conduccion_embrague",
-            "motivacion": "Quiero ser piloto",
-            "acepta_privacidad": "1",
-            "csrf_token": token,
-        },
-        follow_redirects=True,
-    )
+        resp = client.post(
+            "/seleccion-femenina/preinscripcion",
+            data={
+                "nombre_completo": "Lucía QA Pérez",
+                "fecha_nacimiento": "2010-01-15",  # ~16 años
+                "localidad": "Guadalajara",
+                "email": "lucia.qa@example.com",
+                "telefono": "600111222",
+                "experiencia_previa": "conduccion_embrague",
+                "motivacion": "Quiero ser piloto",
+                "acepta_privacidad": "1",
+                "csrf_token": token,
+            },
+            follow_redirects=True,
+        )
     assert resp.status_code == 200
     assert "Preinscripción recibida".encode("utf-8") in resp.data
 
@@ -68,19 +93,20 @@ def test_preinscripcion_exitosa_sin_login(app):
 
 def test_preinscripcion_rechaza_fuera_de_rango_de_edad(app):
     client = app.test_client()
-    token = _extraer_csrf(client.get("/seleccion-femenina/").get_data(as_text=True))
+    with patch("app.routes.seleccion_femenina.PREINSCRIPCION_ABIERTA", True):
+        token = _extraer_csrf(client.get("/seleccion-femenina/").get_data(as_text=True))
 
-    resp = client.post(
-        "/seleccion-femenina/preinscripcion",
-        data={
-            "nombre_completo": "QA Mayor De Edad",
-            "fecha_nacimiento": "1990-01-01",  # demasiado mayor
-            "email": "qa.mayor@example.com",
-            "telefono": "600111222",
-            "acepta_privacidad": "1",
-            "csrf_token": token,
-        },
-    )
+        resp = client.post(
+            "/seleccion-femenina/preinscripcion",
+            data={
+                "nombre_completo": "QA Mayor De Edad",
+                "fecha_nacimiento": "1990-01-01",  # demasiado mayor
+                "email": "qa.mayor@example.com",
+                "telefono": "600111222",
+                "acepta_privacidad": "1",
+                "csrf_token": token,
+            },
+        )
     assert resp.status_code == 400
     assert "14 a 18".encode("utf-8") in resp.data
     with app.app_context():
@@ -89,12 +115,13 @@ def test_preinscripcion_rechaza_fuera_de_rango_de_edad(app):
 
 def test_preinscripcion_exige_privacidad_y_campos_obligatorios(app):
     client = app.test_client()
-    token = _extraer_csrf(client.get("/seleccion-femenina/").get_data(as_text=True))
+    with patch("app.routes.seleccion_femenina.PREINSCRIPCION_ABIERTA", True):
+        token = _extraer_csrf(client.get("/seleccion-femenina/").get_data(as_text=True))
 
-    resp = client.post(
-        "/seleccion-femenina/preinscripcion",
-        data={"nombre_completo": "QA Incompleta", "csrf_token": token},
-    )
+        resp = client.post(
+            "/seleccion-femenina/preinscripcion",
+            data={"nombre_completo": "QA Incompleta", "csrf_token": token},
+        )
     assert resp.status_code == 400
     with app.app_context():
         assert PreinscripcionCarcross.query.filter_by(nombre_completo="QA Incompleta").first() is None
@@ -107,18 +134,19 @@ def test_panel_admin_requiere_login_y_permite_gestionar(auth_client, auth_csrf_t
     assert resp.status_code in (302, 401, 403)
 
     # Crear una preinscripción real vía la ruta pública
-    token = _extraer_csrf(anon.get("/seleccion-femenina/").get_data(as_text=True))
-    anon.post(
-        "/seleccion-femenina/preinscripcion",
-        data={
-            "nombre_completo": "QA Panel Admin",
-            "fecha_nacimiento": "2009-06-01",
-            "email": "qa.paneladmin@example.com",
-            "telefono": "600333444",
-            "acepta_privacidad": "1",
-            "csrf_token": token,
-        },
-    )
+    with patch("app.routes.seleccion_femenina.PREINSCRIPCION_ABIERTA", True):
+        token = _extraer_csrf(anon.get("/seleccion-femenina/").get_data(as_text=True))
+        anon.post(
+            "/seleccion-femenina/preinscripcion",
+            data={
+                "nombre_completo": "QA Panel Admin",
+                "fecha_nacimiento": "2009-06-01",
+                "email": "qa.paneladmin@example.com",
+                "telefono": "600333444",
+                "acepta_privacidad": "1",
+                "csrf_token": token,
+            },
+        )
     with app.app_context():
         p = PreinscripcionCarcross.query.filter_by(email="qa.paneladmin@example.com").first()
         assert p is not None

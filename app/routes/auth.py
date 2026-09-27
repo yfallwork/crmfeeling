@@ -27,6 +27,8 @@ def login():
                           detalle=f"Inicio de sesión: {usuario.nombre}")
             if usuario.rol == "vista":
                 return redirect(url_for("vista.index"))
+            if usuario.rol == "eventos":
+                return redirect(url_for("autoclub.eventos_lista"))
             next_page = safe_next_url(request.args.get("next"))
             return redirect(next_page or url_for("dashboard.index"))
 

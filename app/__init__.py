@@ -137,6 +137,23 @@ def create_app(env="default"):
                 return
         return _redir("/vista/")
 
+    # Rol dedicado para el personal que solo gestiona el acceso a un evento
+    # (ver escaneo de entradas): no debe ver el dashboard general del CRM ni
+    # ninguna otra sección, ni siquiera las de AutoClub — solo Eventos.
+    _EVENTOS_ALLOWED = ("/autoclub/eventos", "/static/", "/login", "/logout")
+
+    @app.before_request
+    def _restrict_eventos_role():
+        if not current_user.is_authenticated:
+            return
+        if current_user.rol != "eventos":
+            return
+        path = _req.path
+        for allowed in _EVENTOS_ALLOWED:
+            if path.startswith(allowed):
+                return
+        return _redir("/autoclub/eventos")
+
     # Blueprints siempre accesibles para cualquier usuario autenticado,
     # independientemente de sus permisos por módulo.
     _SIN_RESTRICCION = ("auth", "dashboard", "static", "api", "vista")

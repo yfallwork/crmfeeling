@@ -29,11 +29,13 @@
   <nav class="sidebar-nav">
     <div class="nav-section-label">AutoClub</div>
 
+    {% if current_user.rol != 'eventos' %}
     <a href="{{ url_for('autoclub.dashboard') }}"
        class="nav-item {% if request.endpoint == 'autoclub.dashboard' %}active{% endif %}"
        data-tooltip="Dashboard">
       <i class="bi bi-speedometer2"></i><span>Dashboard</span>
     </a>
+    {% endif %}
 
     {% if current_user.puede_acceder_autoclub('socios') %}
     <a href="{{ url_for('autoclub.lista') }}"
@@ -158,11 +160,13 @@
     </a>
     {% endif %}
 
+    {% if current_user.rol != 'eventos' %}
     <div class="nav-divider"></div>
 
     <a href="{{ url_for('dashboard.index') }}" class="nav-item nav-item-back" data-tooltip="Volver al CRM">
       <i class="bi bi-arrow-left-circle"></i><span>Volver al CRM</span>
     </a>
+    {% endif %}
   </nav>
 
   <!-- Usuario -->

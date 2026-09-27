@@ -45,6 +45,8 @@
                 <span class="badge rounded-pill" style="background:#fee2e2;color:#dc2626"><i class="bi bi-shield-lock-fill me-1"></i>Admin</span>
               {% elif u.rol == 'vista' %}
                 <span class="badge rounded-pill" style="background:#f3e8ff;color:#7c3aed"><i class="bi bi-eye me-1"></i>Vista</span>
+              {% elif u.rol == 'eventos' %}
+                <span class="badge rounded-pill" style="background:#fef3c7;color:#b45309"><i class="bi bi-qr-code-scan me-1"></i>Entradas</span>
               {% else %}
                 <span class="badge rounded-pill" style="background:#eff6ff;color:#1d4ed8"><i class="bi bi-person-badge me-1"></i>Gestor</span>
               {% endif %}

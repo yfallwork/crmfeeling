@@ -133,15 +133,11 @@ def _si_no(valor):
     return "—"
 
 
-def generar_pdf_inscripcion(preinscripcion, inscripcion):
-    """inscripcion: InscripcionAutorizacion ya completada, con .tutores
-    cargados. Devuelve los bytes del PDF."""
-    hoja = _estilos()
-    buf = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buf, pagesize=A4,
-        topMargin=18 * mm, bottomMargin=16 * mm, leftMargin=18 * mm, rightMargin=18 * mm,
-    )
+def elementos_inscripcion(preinscripcion, inscripcion, hoja):
+    """Construye la lista de elementos (platypus) de la Inscripción y
+    Autorización ya firmada. Extraído de generar_pdf_inscripcion() para
+    poder reutilizarlo al componer el dossier completo de una piloto con
+    varios documentos en un único PDF."""
     elementos = []
 
     elementos.append(Paragraph("Inscripción y Autorización General del Proceso de Selección", hoja["TituloDoc"]))
@@ -238,5 +234,17 @@ def generar_pdf_inscripcion(preinscripcion, inscripcion):
                 pass
         elementos.append(Spacer(1, 6))
 
-    doc.build(elementos)
+    return elementos
+
+
+def generar_pdf_inscripcion(preinscripcion, inscripcion):
+    """inscripcion: InscripcionAutorizacion ya completada, con .tutores
+    cargados. Devuelve los bytes del PDF."""
+    hoja = _estilos()
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        topMargin=18 * mm, bottomMargin=16 * mm, leftMargin=18 * mm, rightMargin=18 * mm,
+    )
+    doc.build(elementos_inscripcion(preinscripcion, inscripcion, hoja))
     return buf.getvalue()

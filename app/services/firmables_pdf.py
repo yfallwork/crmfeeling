@@ -25,15 +25,11 @@ def _estilos():
     return hoja
 
 
-def generar_pdf_documento(preinscripcion, documento):
-    """documento: instancia de DocumentoFirmado ya guardada, con .firmas
-    cargadas. Devuelve los bytes del PDF."""
-    hoja = _estilos()
-    buf = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buf, pagesize=A4,
-        topMargin=18 * mm, bottomMargin=16 * mm, leftMargin=18 * mm, rightMargin=18 * mm,
-    )
+def elementos_documento(preinscripcion, documento, hoja):
+    """Construye la lista de elementos (platypus) de un documento firmado —
+    texto íntegro, datos y firmas. Extraído de generar_pdf_documento() para
+    poder reutilizarlo al componer el dossier completo de una piloto con
+    varios documentos en un único PDF."""
     elementos = []
 
     titulo = TIPOS_FIRMABLE_LABELS.get(documento.tipo, documento.tipo)
@@ -107,18 +103,24 @@ def generar_pdf_documento(preinscripcion, documento):
 
     elementos.append(Spacer(1, 10))
     elementos.append(Paragraph("<b>Firmas</b>", hoja["Cuerpo"]))
-    filas_firmas = [["Tutor/a", "DNI/NIE", "Fecha y hora", "Supervisado por"]]
+    # Celdas envueltas en Paragraph (no texto plano): un nombre o firmante
+    # largo debe partirse en varias líneas dentro de su columna, nunca
+    # desbordar visualmente encima de la columna del DNI/NIE.
+    celda = ParagraphStyle("CeldaFirma", parent=hoja["Cuerpo"], fontSize=8.5, leading=10.5, spaceAfter=0)
+    celda_cab = ParagraphStyle("CeldaFirmaCab", parent=celda, fontName="Helvetica-Bold")
+    filas_firmas = [[Paragraph(t, celda_cab) for t in ("Tutor/a", "DNI/NIE", "Fecha y hora", "Supervisado por")]]
     for f in sorted(documento.firmas, key=lambda x: x.numero):
         filas_firmas.append([
-            f.nombre_completo, f.dni_nie,
-            f.firma_en.strftime("%d/%m/%Y %H:%M") if f.firma_en else "—",
-            f.usuario_staff.nombre if f.usuario_staff else "—",
+            Paragraph(escape(f.nombre_completo), celda),
+            Paragraph(escape(f.dni_nie), celda),
+            Paragraph(f.firma_en.strftime("%d/%m/%Y %H:%M") if f.firma_en else "—", celda),
+            Paragraph(escape(f.usuario_staff.nombre) if f.usuario_staff else "—", celda),
         ])
-    tabla_firmas = Table(filas_firmas, colWidths=[140, 90, 100, 100])
+    tabla_firmas = Table(filas_firmas, colWidths=[150, 80, 90, 110])
     tabla_firmas.setStyle(TableStyle([
-        ("FONTSIZE", (0, 0), (-1, -1), 8.5),
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F3F4F6")),
         ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#E5E7EB")),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
         ("TOPPADDING", (0, 0), (-1, -1), 4),
     ]))
@@ -138,5 +140,17 @@ def generar_pdf_documento(preinscripcion, documento):
         if parrafo:
             elementos.append(Paragraph(escape(parrafo).replace("\n", "<br/>"), hoja["Cuerpo"]))
 
-    doc.build(elementos)
+    return elementos
+
+
+def generar_pdf_documento(preinscripcion, documento):
+    """documento: instancia de DocumentoFirmado ya guardada, con .firmas
+    cargadas. Devuelve los bytes del PDF."""
+    hoja = _estilos()
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        topMargin=18 * mm, bottomMargin=16 * mm, leftMargin=18 * mm, rightMargin=18 * mm,
+    )
+    doc.build(elementos_documento(preinscripcion, documento, hoja))
     return buf.getvalue()

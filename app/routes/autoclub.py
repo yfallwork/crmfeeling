@@ -2980,6 +2980,10 @@ def seleccion_femenina_nueva():
 @login_required
 def seleccion_femenina_editar(id):
     preinscripcion = PreinscripcionCarcross.query.get_or_404(id)
+    tiene_documentos_firmados = bool(
+        (preinscripcion.inscripcion_autorizacion and preinscripcion.inscripcion_autorizacion.completo)
+        or any(_doc_vigente(id, tipo) for tipo in TIPOS_FIRMABLE_KEYS)
+    )
     if request.method == "POST":
         errores = {}
         datos = _leer_form_preinscripcion(request.form, errores)
@@ -2989,7 +2993,7 @@ def seleccion_femenina_editar(id):
                 "autoclub/seleccion_femenina/form.html", preinscripcion=preinscripcion,
                 datos=_datos_form_repoblar(request.form), errores=errores,
                 experiencia_opciones=EXPERIENCIA_PREVIA_OPCIONES, estados=ESTADOS_PREINSCRIPCION,
-                mailings=preinscripcion.mailings.all(),
+                mailings=preinscripcion.mailings.all(), tiene_documentos_firmados=tiene_documentos_firmados,
             ), 400
 
         for campo, valor in datos.items():
@@ -3004,7 +3008,7 @@ def seleccion_femenina_editar(id):
         "autoclub/seleccion_femenina/form.html", preinscripcion=preinscripcion,
         datos=_datos_desde_preinscripcion(preinscripcion), errores=None,
         experiencia_opciones=EXPERIENCIA_PREVIA_OPCIONES, estados=ESTADOS_PREINSCRIPCION,
-        mailings=preinscripcion.mailings.all(),
+        mailings=preinscripcion.mailings.all(), tiene_documentos_firmados=tiene_documentos_firmados,
     )
 
 
@@ -3030,6 +3034,17 @@ def seleccion_femenina_inscripcion_pdf(id):
     pdf_bytes = generar_pdf_inscripcion(preinscripcion, preinscripcion.inscripcion_autorizacion)
     return Response(pdf_bytes, mimetype="application/pdf", headers={
         "Content-Disposition": f"inline; filename=inscripcion_autorizacion_{preinscripcion.id}.pdf",
+    })
+
+
+@autoclub_bp.route("/seleccion-femenina/<int:id>/dossier.pdf")
+@login_required
+def seleccion_femenina_dossier_pdf(id):
+    from app.services.dossier_pdf import generar_pdf_dossier
+    preinscripcion = PreinscripcionCarcross.query.get_or_404(id)
+    pdf_bytes = generar_pdf_dossier(preinscripcion)
+    return Response(pdf_bytes, mimetype="application/pdf", headers={
+        "Content-Disposition": f"inline; filename=dossier_{preinscripcion.id}.pdf",
     })
 
 

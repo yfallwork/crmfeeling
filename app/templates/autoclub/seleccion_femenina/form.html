@@ -13,6 +13,11 @@
 <a href="{{ url_for('autoclub.seleccion_femenina_firmables', id=preinscripcion.id) }}" class="btn btn-sm btn-outline-secondary">
   <i class="bi bi-file-earmark-check me-1"></i><span class="btn-label">Autorizaciones y firmables</span>
 </a>
+{% if tiene_documentos_firmados %}
+<a href="{{ url_for('autoclub.seleccion_femenina_dossier_pdf', id=preinscripcion.id) }}" target="_blank" class="btn btn-sm btn-primary">
+  <i class="bi bi-file-earmark-pdf me-1"></i><span class="btn-label">Descargar todo lo firmado (PDF)</span>
+</a>
+{% endif %}
 {% endif %}
 {% endblock %}
 

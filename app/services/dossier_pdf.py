@@ -41,7 +41,7 @@ def generar_pdf_dossier(preinscripcion):
     inscripcion = preinscripcion.inscripcion_autorizacion
     if inscripcion and inscripcion.completo:
         elementos.append(PageBreak())
-        elementos.extend(elementos_inscripcion(preinscripcion, inscripcion, hoja))
+        elementos.extend(elementos_inscripcion(preinscripcion, inscripcion, hoja, incluir_nota_custodia=False))
         hay_contenido = True
 
     from app.models.firmable import DocumentoFirmado

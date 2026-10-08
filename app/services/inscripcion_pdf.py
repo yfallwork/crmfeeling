@@ -133,11 +133,16 @@ def _si_no(valor):
     return "—"
 
 
-def elementos_inscripcion(preinscripcion, inscripcion, hoja):
+def elementos_inscripcion(preinscripcion, inscripcion, hoja, incluir_nota_custodia=True):
     """Construye la lista de elementos (platypus) de la Inscripción y
     Autorización ya firmada. Extraído de generar_pdf_inscripcion() para
     poder reutilizarlo al componer el dossier completo de una piloto con
-    varios documentos en un único PDF."""
+    varios documentos en un único PDF.
+
+    incluir_nota_custodia: la nota sobre si falta el documento acreditativo
+    de custodia exclusiva es un aviso operativo para el staff del CRM, no
+    parte de lo que la familia firmó — se omite en el dossier que se le
+    pueda entregar o archivar como constancia de las firmas."""
     elementos = []
 
     elementos.append(Paragraph("Inscripción y Autorización General del Proceso de Selección", hoja["TituloDoc"]))
@@ -200,7 +205,7 @@ def elementos_inscripcion(preinscripcion, inscripcion, hoja):
     ]))
     elementos.append(tabla_consent)
 
-    if inscripcion.solo_un_tutor:
+    if inscripcion.solo_un_tutor and incluir_nota_custodia:
         elementos.append(Spacer(1, 6))
         elementos.append(Paragraph(
             "Firma un único progenitor/tutor legal (custodia exclusiva u otra situación legal)"

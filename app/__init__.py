@@ -39,6 +39,7 @@ def create_app(env="default"):
     from app.routes.autoclub import autoclub_bp
     from app.routes import eventos as _eventos_routes  # noqa: F401  # registra rutas de eventos/invitaciones en autoclub_bp
     from app.routes.mecanica import mecanica_bp
+    from app.routes import reglajes as _reglajes_routes  # noqa: F401  # registra rutas en mecanica_bp
     from app.routes import publicaciones as _publicaciones_routes  # noqa: F401  # registra rutas en marketing_bp
     from app.routes.teambuilding import teambuilding_bp
     from app.routes.marketing import marketing_bp
@@ -99,6 +100,7 @@ def create_app(env="default"):
         from app.models import entrevista                # noqa: F401
         from app.models import mantenimiento_vehiculo    # noqa: F401
         from app.models import publicacion_rrss          # noqa: F401
+        from app.models import reglaje                   # noqa: F401
         db.create_all()
         _migrate_columns()
         _migrate_indices()
@@ -243,6 +245,26 @@ def create_app(env="default"):
             from flask import jsonify
             return jsonify({"ok": False, "error": "Recurso no encontrado"}), 404
         return render_template("errors/404.html"), 404
+
+    from flask_wtf.csrf import CSRFError
+
+    @app.errorhandler(CSRFError)
+    def _handle_csrf(err):
+        # Token caducado (página abierta mucho rato) o ausente: en vez de un
+        # "400 Bad Request" en blanco, volver a la página con un aviso.
+        from urllib.parse import urlparse
+        from flask import flash, jsonify, redirect
+        enviado = _req.form.get("csrf_token") or _req.headers.get("X-CSRFToken") or _req.headers.get("X-CSRF-Token")
+        if not enviado:
+            return err  # sin token: rechazo normal (400)
+        if _req.headers.get("X-Requested-With") or _req.path.startswith("/api/"):
+            return jsonify({"ok": False, "error": "CSRF: la sesión de la página ha caducado"}), 400
+        ref = urlparse(_req.referrer or "")
+        destino = "/"
+        if ref.path.startswith("/") and (not ref.netloc or ref.netloc == _req.host):
+            destino = ref.path + (("?" + ref.query) if ref.query else "")
+        flash("La página llevaba mucho tiempo abierta y ha caducado. Vuelve a intentarlo.", "warning")
+        return redirect(destino)
 
     @app.errorhandler(500)
     def _handle_500(err):

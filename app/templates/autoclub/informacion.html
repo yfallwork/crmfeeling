@@ -193,14 +193,15 @@
             {{ cred.notas or '' }}
           </td>
           <td style="padding:12px 16px;vertical-align:middle;text-align:right">
-            <button class="btn btn-link btn-sm p-0 text-muted me-2"
-                    onclick="abrirEditarCred({{ cred.id }}, {{ cred.nombre|tojson }}, {{ cred.url|tojson }}, {{ cred.usuario|tojson }}, {{ cred.password|tojson }}, {{ cred.notas|tojson }})"
+            <button type="button" class="btn btn-link btn-sm p-0 text-muted me-2 editar-cred"
+                    data-id="{{ cred.id }}" data-nombre="{{ cred.nombre or '' }}" data-url="{{ cred.url or '' }}"
+                    data-usuario="{{ cred.usuario or '' }}" data-password="{{ cred.password or '' }}" data-notas="{{ cred.notas or '' }}"
                     title="Editar">
               <i class="bi bi-pencil" style="font-size:.8rem"></i>
             </button>
             <form method="POST" action="{{ url_for('autoclub.credencial_eliminar', id=cred.id) }}"
                   style="display:inline"
-                  onsubmit="return confirm('¿Eliminar la credencial «{{ cred.nombre }}»?')">
+                  class="form-eliminar-cred" data-nombre="{{ cred.nombre }}">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit" class="btn btn-link btn-sm p-0 text-danger" title="Eliminar">
                 <i class="bi bi-trash" style="font-size:.8rem"></i>
@@ -325,16 +326,22 @@ function toggleEdit() {
 }
 
 /* ── Modal editar credencial ────────────────── */
-function abrirEditarCred(id, nombre, url, usuario, password, notas) {
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.editar-cred');
+  if (!btn) return;
+  const d = btn.dataset;
   const f = document.getElementById('formEditarCred');
-  f.action = '/autoclub/informacion/credencial/' + id + '/editar';
-  f.querySelector('[name="nombre"]').value   = nombre   || '';
-  f.querySelector('[name="url"]').value      = url      || '';
-  f.querySelector('[name="usuario"]').value  = usuario  || '';
-  f.querySelector('[name="password"]').value = password || '';
-  f.querySelector('[name="notas"]').value    = notas    || '';
-  new bootstrap.Modal(document.getElementById('modalEditarCred')).show();
-}
+  f.action = '{{ url_for("autoclub.credencial_editar", id=0) }}'.replace('/0/', '/' + d.id + '/');
+  ['nombre', 'url', 'usuario', 'password', 'notas'].forEach(function(k) {
+    f.querySelector('[name="' + k + '"]').value = d[k] || '';
+  });
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditarCred')).show();
+});
+
+document.addEventListener('submit', function(e) {
+  const f = e.target.closest('.form-eliminar-cred');
+  if (f && !confirm('¿Eliminar la credencial «' + f.dataset.nombre + '»?')) e.preventDefault();
+});
 
 /* ── Mostrar/ocultar contraseñas ────────────── */
 document.addEventListener('click', function(e) {

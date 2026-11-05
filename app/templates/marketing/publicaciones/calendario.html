@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Publicaciones · {{ titulo_mes }} — Marketing{% endblock %}
+{% block page_title %}Calendario de publicaciones{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('marketing.publicaciones_avisos') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-bell me-1"></i><span class="btn-label">Avisos</span>
+</a>
+<a href="{{ url_for('marketing.publicaciones_campanas') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-flag me-1"></i><span class="btn-label">Campañas</span>
+</a>
+<a href="{{ url_for('marketing.publicaciones_nueva') }}" class="btn btn-sm btn-primary">
+  <i class="bi bi-plus-lg me-1"></i><span class="btn-label">Nueva publicación</span>
+</a>
+{% endblock %}
+
+{% block head %}
+<style>
+.pc-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+.pc-head h2 { font-size:1.4rem; font-weight:800; margin:0; letter-spacing:-.02em; min-width:190px; }
+.pc-legend { display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; font-size:.72rem; margin-bottom:14px; }
+.pc-chip-cat { border-radius:20px; padding:2px 9px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
+.pc-grid { display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); border:1px solid var(--border); border-radius:10px; overflow:hidden; background:#fff; }
+.pc-dow { background:var(--gray-50,#f9fafb); font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--gray-600); padding:7px 8px; border-bottom:1px solid var(--border); }
+.pc-day { min-height:118px; border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:5px 5px 7px; position:relative; }
+.pc-day:nth-child(7n) { border-right:none; }
+.pc-day.fuera { background:#fafafa; }
+.pc-day.fuera .pc-num { color:#c5c5c5; }
+.pc-day.hoy .pc-num { background:var(--red); color:#fff; border-radius:50%; width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; }
+.pc-num { font-size:.75rem; font-weight:700; color:var(--gray-600); }
+.pc-add { position:absolute; top:3px; right:4px; opacity:0; font-size:.85rem; color:var(--gray-500); text-decoration:none; padding:0 4px; }
+.pc-day:hover .pc-add { opacity:1; }
+.pc-item { display:block; margin-top:4px; padding:3px 6px; border-radius:6px; font-size:.7rem; line-height:1.25; text-decoration:none; border-left:3px solid transparent; overflow:hidden; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; }
+.pc-item:hover { filter:brightness(.96); }
+.pc-item.publicado { text-decoration:line-through; opacity:.55; }
+.pc-item.atrasada { box-shadow:inset 0 0 0 1px #DC2626; }
+.pc-item.tipo-evento { font-weight:700; }
+.pc-item.tipo-anuncio, .pc-item.tipo-tarea { border:1px dashed currentColor; border-left-width:3px; border-left-style:solid; }
+.pc-camp-name { font-size:.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-top:2px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.pc-lista { display:none; }
+@media (max-width: 991.98px) {
+  .pc-grid { display:none; }
+  .pc-lista { display:block; }
+}
+.pc-lista-dia { padding:10px 0; border-bottom:1px solid var(--border); }
+.pc-lista-dia h6 { font-size:.8rem; font-weight:800; margin-bottom:6px; }
+.pc-lista .pc-item { -webkit-line-clamp:unset; font-size:.82rem; padding:6px 9px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-xl-9">
+    <div class="pc-head">
+      <a href="{{ url_for('marketing.publicaciones_calendario', mes=mes_anterior) }}" class="btn btn-sm btn-outline-secondary" title="Mes anterior"><i class="bi bi-chevron-left"></i></a>
+      <h2>{{ titulo_mes }}</h2>
+      <a href="{{ url_for('marketing.publicaciones_calendario', mes=mes_siguiente) }}" class="btn btn-sm btn-outline-secondary" title="Mes siguiente"><i class="bi bi-chevron-right"></i></a>
+      {% if primero.strftime('%Y-%m') != mes_actual %}
+      <a href="{{ url_for('marketing.publicaciones_calendario', mes=mes_actual) }}" class="btn btn-sm btn-outline-secondary">Hoy</a>
+      {% endif %}
+      <span class="text-xs text-muted ms-auto">{{ pubs_mes | length }} publicaciones este mes · {{ pubs_mes | selectattr('estado', 'equalto', 'pendiente') | list | length }} pendientes</span>
+    </div>
+
+    <div class="pc-legend">
+      {% for key, (label, color, fondo) in categorias.items() %}
+      <span class="pc-chip-cat" style="color:{{ color }};background:{{ fondo }}">{{ label }}</span>
+      {% endfor %}
+      <span class="text-muted ms-1">
+        {% for key, (label, icono) in tipos.items() %}<i class="bi {{ icono }} ms-2 me-1"></i>{{ label }}{% endfor %}
+        · <s>Tachado</s>: publicado · <i class="bi bi-check-circle-fill ms-1" style="color:#1D4ED8"></i> contenido listo · <span style="box-shadow:inset 0 0 0 1px #DC2626;border-radius:4px;padding:0 4px">rojo</span>: atrasado
+      </span>
+    </div>
+
+    {% if campanas %}
+    <div class="d-flex flex-wrap gap-2 mb-2">
+      {% for c in campanas %}
+      <span class="text-xs fw-semibold" style="border-left:4px solid {{ c.color }};background:{{ c.color }}14;padding:3px 8px;border-radius:4px">
+        {{ c.nombre }} · {{ c.fecha_inicio.strftime('%d/%m') }}–{{ c.fecha_fin.strftime('%d/%m/%y') }}
+      </span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% macro chip(p, hoy) -%}
+    {%- set cat = p.categoria_info -%}
+    <a href="{{ url_for('marketing.publicaciones_detalle', id=p.id) }}"
+       class="pc-item tipo-{{ p.tipo }} {{ 'publicado' if p.estado == 'publicado' }} {{ 'atrasada' if p.atrasada }}"
+       style="color:{{ cat[1] }};background:{{ cat[2] }};border-left-color:{{ cat[1] }}"
+       title="{{ cat[0] }} · {{ p.tipo_info[0] }}{% if p.formato %} · {{ p.formato }}{% endif %} — {{ p.estado_info[0] }}">
+      <i class="bi {{ p.tipo_info[1] }}" style="font-size:.6rem"></i>
+      {% if p.estado == 'listo' %}<i class="bi bi-check-circle-fill" style="color:#1D4ED8"></i>{% endif %}
+      {% if p.archivos %}<i class="bi bi-paperclip"></i>{% endif %}
+      {{ p.titulo }}
+    </a>
+    {%- endmacro %}
+
+    <div class="pc-grid">
+      {% for d in ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] %}<div class="pc-dow">{{ d }}</div>{% endfor %}
+      {% for semana in semanas %}
+        {% for dia in semana %}
+          {% set ns = namespace(camp=none) %}
+          {% for c in campanas %}{% if ns.camp is none and c.incluye(dia) %}{% set ns.camp = c %}{% endif %}{% endfor %}
+          <div class="pc-day {{ 'fuera' if dia.month != primero.month }} {{ 'hoy' if dia == hoy }}"
+               {% if ns.camp and dia.month == primero.month %}style="background:{{ ns.camp.color }}12;box-shadow:inset 0 3px 0 {{ ns.camp.color }}"{% endif %}>
+            <span class="pc-num">{{ dia.day }}</span>
+            <a class="pc-add" href="{{ url_for('marketing.publicaciones_nueva', fecha=dia.isoformat()) }}" title="Añadir publicación el {{ dia.strftime('%d/%m') }}"><i class="bi bi-plus-lg"></i></a>
+            {% if ns.camp and dia == ns.camp.fecha_inicio %}<div class="pc-camp-name" style="color:{{ ns.camp.color }}">{{ ns.camp.nombre }}</div>{% endif %}
+            {% for p in por_dia.get(dia, []) %}{{ chip(p, hoy) }}{% endfor %}
+          </div>
+        {% endfor %}
+      {% endfor %}
+    </div>
+
+    <div class="pc-lista card px-3">
+      {% set ns2 = namespace(hay=false) %}
+      {% for semana in semanas %}{% for dia in semana %}
+        {% if dia.month == primero.month and por_dia.get(dia) %}
+        {% set ns2.hay = true %}
+        <div class="pc-lista-dia">
+          <h6 {% if dia == hoy %}style="color:var(--red)"{% endif %}>{{ ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'][dia.weekday()] }} {{ dia.day }}{% if dia == hoy %} · hoy{% endif %}</h6>
+          {% for p in por_dia[dia] %}{{ chip(p, hoy) }}{% endfor %}
+        </div>
+        {% endif %}
+      {% endfor %}{% endfor %}
+      {% if not ns2.hay %}<p class="text-muted text-sm py-3 mb-0">No hay publicaciones este mes.</p>{% endif %}
+    </div>
+  </div>
+
+  <div class="col-xl-3">
+    <div class="card">
+      <div class="card-header bg-white border-bottom py-2">
+        <span class="fw-semibold text-sm"><i class="bi bi-cloud-upload me-2"></i>Por subir (próximos 7 días)</span>
+      </div>
+      <div class="card-body p-0">
+        {% if pendientes_proximas %}
+        <ul class="list-group list-group-flush">
+          {% for p in pendientes_proximas %}
+          <li class="list-group-item px-3 py-2">
+            <a href="{{ url_for('marketing.publicaciones_detalle', id=p.id) }}" class="text-decoration-none" style="color:var(--black)">
+              <div class="text-xs fw-semibold" style="color:{{ '#DC2626' if p.atrasada else ('#C2410C' if p.fecha == hoy else 'var(--gray-600)') }}">
+                {% if p.atrasada %}Atrasada · {% elif p.fecha == hoy %}Hoy · {% endif %}{{ p.fecha.strftime('%d/%m') }} · {{ p.tipo_info[0] }}
+              </div>
+              <div class="text-sm">{{ p.titulo }}</div>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted text-sm p-3 mb-0">Nada pendiente para esta semana.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

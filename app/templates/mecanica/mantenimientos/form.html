@@ -1,0 +1,174 @@
+{% extends "mecanica/base.html" %}
+{% block title %}{{ 'Editar' if mantenimiento else 'Nuevo' }} mantenimiento — {{ vehiculo.nombre_display }}{% endblock %}
+{% block page_title %}{{ 'Editar' if mantenimiento else 'Nuevo' }} mantenimiento — {{ vehiculo.nombre_display }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('mecanica.vehiculos_detalle', id=vehiculo.id) }}#mantenimientos" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Volver al vehículo</span>
+</a>
+{% endblock %}
+
+{% block content %}
+{% set marcadas = datos.get('operaciones') or [] %}
+<div class="row justify-content-center">
+  <div class="col-xl-9 col-lg-11">
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="card mb-3">
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-sm-4">
+              <label class="form-label fw-semibold">Fecha <span class="text-danger">*</span></label>
+              <input type="date" name="fecha" class="form-control {{ 'is-invalid' if errores.fecha }}"
+                     value="{{ datos.get('fecha', '') }}" required>
+              {% if errores.fecha %}<div class="invalid-feedback">{{ errores.fecha }}</div>{% endif %}
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label fw-semibold">Nº de vueltas</label>
+              <input type="text" inputmode="numeric" name="vueltas" class="form-control {{ 'is-invalid' if errores.vueltas }}"
+                     placeholder="Contador del vehículo" value="{{ datos.get('vueltas', '') }}">
+              {% if errores.vueltas %}<div class="invalid-feedback">{{ errores.vueltas }}</div>
+              {% elif ultimas_vueltas is not none %}<div class="form-text">Último registro: {{ '{:,}'.format(ultimas_vueltas).replace(',', '.') }} vueltas</div>{% endif %}
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label fw-semibold">Realizado por</label>
+              <input type="text" name="realizado_por" class="form-control" value="{{ datos.get('realizado_por', '') }}">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Operaciones -->
+      <div class="card mb-3">
+        <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between gap-2 flex-wrap">
+          <h6 class="mb-0 fw-semibold">
+            <i class="bi bi-list-check me-2"></i>Operaciones realizadas <span class="text-danger">*</span>
+            <span class="badge rounded-pill ms-1" id="contador-ops" style="background:var(--red-light);color:var(--red)">{{ marcadas | length }}</span>
+          </h6>
+          <div class="input-group input-group-sm" style="max-width:260px">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="search" id="buscar-op" class="form-control" placeholder="Buscar operación…" autocomplete="off">
+          </div>
+        </div>
+        <div class="card-body">
+          {% if errores.operaciones %}<div class="alert alert-danger py-2 text-sm">{{ errores.operaciones }}</div>{% endif %}
+          {% for categoria, ops in catalogo %}
+          {% set n_marcadas = ops | selectattr(0, 'in', marcadas) | list | length %}
+          <details class="op-grupo mb-2" {% if n_marcadas %}open{% endif %}>
+            <summary class="fw-semibold text-sm py-2">
+              {{ categoria }}
+              <span class="text-muted fw-normal op-grupo-n">{% if n_marcadas %}· {{ n_marcadas }} marcada{{ 's' if n_marcadas != 1 }}{% endif %}</span>
+            </summary>
+            <div class="row g-1 pt-1 pb-2">
+              {% for key, label in ops %}
+              <div class="col-md-6 op-item" data-texto="{{ (categoria ~ ' ' ~ label) | lower }}">
+                <div class="form-check">
+                  <input class="form-check-input op-check" type="checkbox" name="operaciones" value="{{ key }}"
+                         id="op_{{ key }}" {% if key in marcadas %}checked{% endif %}>
+                  <label class="form-check-label text-sm" for="op_{{ key }}">{{ label }}</label>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </details>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold">Resumen <span class="text-muted fw-normal">(opcional)</span></label>
+              <input type="text" name="titulo" class="form-control" placeholder="Si lo dejas vacío se usa la primera operación"
+                     value="{{ datos.get('titulo', '') }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Observaciones</label>
+              <textarea name="descripcion" class="form-control {{ 'is-invalid' if errores.descripcion }}" rows="3">{{ datos.get('descripcion', '') }}</textarea>
+              {% if errores.descripcion %}<div class="invalid-feedback">{{ errores.descripcion }}</div>{% endif %}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Piezas y consumibles</label>
+              <textarea name="piezas" class="form-control" rows="2"
+                        placeholder="Ej. Filtro de aceite HF138, 2,5 L aceite 10W40">{{ datos.get('piezas', '') }}</textarea>
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label fw-semibold">Coste (€)</label>
+              <input type="text" inputmode="decimal" name="coste" class="form-control {{ 'is-invalid' if errores.coste }}"
+                     value="{{ datos.get('coste', '') }}">
+              {% if errores.coste %}<div class="invalid-feedback">{{ errores.coste }}</div>{% endif %}
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label fw-semibold">Próximo: fecha prevista</label>
+              <input type="date" name="proxima_fecha" class="form-control" value="{{ datos.get('proxima_fecha', '') }}">
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label fw-semibold">Próximo: a las vueltas</label>
+              <input type="text" inputmode="numeric" name="proximas_vueltas" class="form-control {{ 'is-invalid' if errores.proximas_vueltas }}"
+                     value="{{ datos.get('proximas_vueltas', '') }}">
+              {% if errores.proximas_vueltas %}<div class="invalid-feedback">{{ errores.proximas_vueltas }}</div>{% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check-lg me-1"></i>{{ 'Guardar cambios' if mantenimiento else 'Registrar mantenimiento' }}
+        </button>
+        <a href="{{ url_for('mecanica.vehiculos_detalle', id=vehiculo.id) }}#mantenimientos" class="btn btn-outline-secondary">Cancelar</a>
+      </div>
+    </form>
+
+    {% if mantenimiento %}
+    <form method="POST" action="{{ url_for('mecanica.mantenimiento_eliminar', id=vehiculo.id, mid=mantenimiento.id) }}"
+          class="mt-3 text-end" onsubmit="return confirm('¿Eliminar este mantenimiento del registro?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash me-1"></i>Eliminar</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+.op-grupo { border: 1px solid var(--border, #e5e7eb); border-radius: 10px; padding: 0 12px; }
+.op-grupo summary { cursor: pointer; list-style: revert; }
+.op-item .form-check { min-height: 32px; display: flex; align-items: center; gap: .4rem; }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var checks = document.querySelectorAll('.op-check');
+  var contador = document.getElementById('contador-ops');
+  function actualizar() {
+    var total = 0;
+    document.querySelectorAll('.op-grupo').forEach(function (g) {
+      var n = g.querySelectorAll('.op-check:checked').length;
+      total += n;
+      g.querySelector('.op-grupo-n').textContent = n ? '· ' + n + ' marcada' + (n !== 1 ? 's' : '') : '';
+    });
+    contador.textContent = total;
+  }
+  checks.forEach(function (c) { c.addEventListener('change', actualizar); });
+
+  var buscar = document.getElementById('buscar-op');
+  buscar.addEventListener('input', function () {
+    var q = buscar.value.trim().toLowerCase();
+    document.querySelectorAll('.op-grupo').forEach(function (g) {
+      var visibles = 0;
+      g.querySelectorAll('.op-item').forEach(function (it) {
+        var ok = !q || it.dataset.texto.indexOf(q) !== -1;
+        it.style.display = ok ? '' : 'none';
+        if (ok) visibles++;
+      });
+      g.style.display = visibles ? '' : 'none';
+      if (q && visibles) g.open = true;
+    });
+  });
+})();
+</script>
+{% endblock %}

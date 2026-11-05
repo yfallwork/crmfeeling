@@ -84,6 +84,14 @@ def init_scheduler(app):
     )
 
     _scheduler.add_job(
+        func=lambda: _job_avisos_publicaciones(app),
+        trigger=CronTrigger(hour=9, minute=20),
+        id="avisos_publicaciones",
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
+
+    _scheduler.add_job(
         func=lambda: _job_plazo_inscripciones(app),
         trigger=CronTrigger(hour=8, minute=0),
         id="plazo_inscripciones",
@@ -307,6 +315,20 @@ def _job_eventos_woo_sync(app):
                          f"{stats['actualizadas']} actualizadas, {stats['errores']} errores")
         except Exception as e:
             log.error(f"Error en job eventos_woo_sync: {e}")
+
+
+def _job_avisos_publicaciones(app):
+    """Resumen diario por email del contenido de redes pendiente de subir."""
+    with app.app_context():
+        try:
+            from app.services.publicaciones_aviso import enviar_resumen
+            n, nd, error = enviar_resumen()
+            if error:
+                log.warning(f"Avisos publicaciones: {error}")
+            elif n:
+                log.info(f"Avisos publicaciones: {n} pendientes enviados a {nd} correos")
+        except Exception as e:
+            log.error(f"Error en job avisos publicaciones: {e}")
 
 
 def _job_campanas(app):

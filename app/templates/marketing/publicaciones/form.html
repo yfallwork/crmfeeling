@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if publicacion else 'Nueva' }} publicación — Marketing{% endblock %}
+{% block page_title %}{{ 'Editar' if publicacion else 'Nueva' }} publicación{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('marketing.publicaciones_detalle', id=publicacion.id) if publicacion else url_for('marketing.publicaciones_calendario') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Volver</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-xl-8 col-lg-10">
+    <div class="card"><div class="card-body">
+      <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="row g-3">
+          <div class="col-sm-4">
+            <label class="form-label fw-semibold">Fecha <span class="text-danger">*</span></label>
+            <input type="date" name="fecha" class="form-control {{ 'is-invalid' if errores.fecha }}" value="{{ datos.get('fecha', '') }}" required>
+            {% if errores.fecha %}<div class="invalid-feedback">{{ errores.fecha }}</div>{% endif %}
+          </div>
+          <div class="col-sm-8">
+            <label class="form-label fw-semibold">Título <span class="text-danger">*</span></label>
+            <input type="text" name="titulo" class="form-control {{ 'is-invalid' if errores.titulo }}" value="{{ datos.get('titulo', '') }}" required maxlength="200">
+            {% if errores.titulo %}<div class="invalid-feedback">{{ errores.titulo }}</div>{% endif %}
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label fw-semibold">Categoría</label>
+            <select name="categoria" class="form-select">
+              {% for key, (label, c, f) in categorias.items() %}<option value="{{ key }}" {% if datos.get('categoria') == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label fw-semibold">Tipo</label>
+            <select name="tipo" class="form-select">
+              {% for key, (label, icono) in tipos.items() %}<option value="{{ key }}" {% if datos.get('tipo') == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label fw-semibold">Estado</label>
+            <select name="estado" class="form-select">
+              {% for key, (label, c, f) in estados.items() %}<option value="{{ key }}" {% if datos.get('estado') == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Formato</label>
+            <input type="text" name="formato" class="form-control" placeholder="Ej. Reel, Carrusel de 8 fotos, 3 historias" value="{{ datos.get('formato', '') }}">
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Producción</label>
+            <select name="produccion" class="form-select">
+              {% for key, label in producciones.items() %}<option value="{{ key }}" {% if (datos.get('produccion') or '') == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Campaña</label>
+            <select name="campana_id" class="form-select">
+              <option value="">— Ninguna —</option>
+              {% for c in campanas %}<option value="{{ c.id }}" {% if datos.get('campana_id') | string == c.id | string %}selected{% endif %}>{{ c.nombre }} ({{ c.fecha_inicio.strftime('%d/%m') }}–{{ c.fecha_fin.strftime('%d/%m/%y') }})</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Indicaciones</label>
+            <textarea name="indicaciones" class="form-control" rows="4" placeholder="Qué hay que grabar o montar, llamada a la acción, etiquetas…">{{ datos.get('indicaciones', '') }}</textarea>
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Descripción para publicar</label>
+            <textarea name="descripcion" class="form-control" rows="5" maxlength="2200" placeholder="Texto del post, hashtags, menciones…">{{ datos.get('descripcion', '') }}</textarea>
+          </div>
+        </div>
+        <div class="d-flex gap-2 mt-4">
+          <button class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Guardar cambios' if publicacion else 'Crear publicación' }}</button>
+          <a href="{{ url_for('marketing.publicaciones_detalle', id=publicacion.id) if publicacion else url_for('marketing.publicaciones_calendario') }}" class="btn btn-outline-secondary">Cancelar</a>
+        </div>
+      </form>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

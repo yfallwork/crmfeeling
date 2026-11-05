@@ -1,11 +1,24 @@
 ﻿import os
-from flask import Flask, render_template
+from flask import Flask, Request, render_template
 from config import config
 from app.extensions import db, login_manager, mail, csrf
 
 
+class _CRMRequest(Request):
+    """Permite subidas grandes (vídeos de reels) solo en la subida de
+    archivos de publicaciones; el resto de rutas mantiene MAX_CONTENT_LENGTH."""
+    @property
+    def max_content_length(self):
+        limite = super().max_content_length
+        if self.method == "POST" and self.path.startswith("/marketing/publicaciones/") and self.path.endswith("/archivos"):
+            from app.routes.publicaciones import MAX_SUBIDA_MB
+            return MAX_SUBIDA_MB * 1024 * 1024
+        return limite
+
+
 def create_app(env="default"):
     app = Flask(__name__)
+    app.request_class = _CRMRequest
     app.config.from_object(config[env])
 
     db.init_app(app)
@@ -25,6 +38,8 @@ def create_app(env="default"):
     from app.routes.agenda import agenda_bp
     from app.routes.autoclub import autoclub_bp
     from app.routes import eventos as _eventos_routes  # noqa: F401  # registra rutas de eventos/invitaciones en autoclub_bp
+    from app.routes.mecanica import mecanica_bp
+    from app.routes import publicaciones as _publicaciones_routes  # noqa: F401  # registra rutas en marketing_bp
     from app.routes.teambuilding import teambuilding_bp
     from app.routes.marketing import marketing_bp
     from app.routes.vista import vista_bp
@@ -43,6 +58,7 @@ def create_app(env="default"):
     app.register_blueprint(logs_bp)
     app.register_blueprint(agenda_bp, url_prefix="/agenda")
     app.register_blueprint(autoclub_bp, url_prefix="/autoclub")
+    app.register_blueprint(mecanica_bp, url_prefix="/mecanica")
     app.register_blueprint(teambuilding_bp, url_prefix="/teambuilding")
     app.register_blueprint(marketing_bp, url_prefix="/marketing")
     app.register_blueprint(vista_bp, url_prefix="/vista")
@@ -81,6 +97,8 @@ def create_app(env="default"):
         from app.models import inscripcion_autorizacion  # noqa: F401
         from app.models import firmable                  # noqa: F401
         from app.models import entrevista                # noqa: F401
+        from app.models import mantenimiento_vehiculo    # noqa: F401
+        from app.models import publicacion_rrss          # noqa: F401
         db.create_all()
         _migrate_columns()
         _migrate_indices()
@@ -103,6 +121,8 @@ def create_app(env="default"):
         _seed_campanas()
         _seed_marketing_logs_ejemplo()
         _seed_empresa_notas()
+        from app.services.publicaciones_seed import seed_publicaciones
+        seed_publicaciones()
 
     import json as _json
     app.jinja_env.filters['from_json'] = lambda s: _json.loads(s) if s else []
@@ -276,6 +296,9 @@ def _migrate_columns():
         ("reservas",           "token_seguro",            "VARCHAR(64)"),
         ("configuracion",      "seguro_recordatorio_activo", "BOOLEAN DEFAULT 1"),
         ("configuracion",      "seguro_recordatorio_dias",   "INTEGER DEFAULT 7"),
+        ("configuracion",      "rrss_aviso_activo",          "BOOLEAN DEFAULT 1"),
+        ("configuracion",      "rrss_aviso_dias",            "INTEGER DEFAULT 1"),
+        ("configuracion",      "rrss_ultimo_resumen",        "DATE"),
         ("eventos",            "woo_producto_ids",          "TEXT DEFAULT ''"),
         ("entradas_evento",    "fecha_pedido",              "DATETIME"),
         ("entradas_evento",    "cargo_institucional",       "VARCHAR(100) DEFAULT ''"),

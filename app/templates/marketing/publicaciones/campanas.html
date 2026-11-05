@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Campañas de redes — Marketing{% endblock %}
+{% block page_title %}Campañas de redes{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('marketing.publicaciones_calendario') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Calendario</span>
+</a>
+{% endblock %}
+
+
+{% block content %}
+{% macro campana_form(c=None) %}
+<form method="POST" class="row g-2 align-items-end">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if c %}<input type="hidden" name="id" value="{{ c.id }}">{% endif %}
+  <div class="col-md-4"><label class="form-label text-xs fw-semibold mb-1">Nombre</label>
+    <input type="text" name="nombre" class="form-control form-control-sm" value="{{ c.nombre if c else '' }}" required></div>
+  <div class="col-6 col-md-2"><label class="form-label text-xs fw-semibold mb-1">Desde</label>
+    <input type="date" name="fecha_inicio" class="form-control form-control-sm" value="{{ c.fecha_inicio.isoformat() if c else '' }}" required></div>
+  <div class="col-6 col-md-2"><label class="form-label text-xs fw-semibold mb-1">Hasta</label>
+    <input type="date" name="fecha_fin" class="form-control form-control-sm" value="{{ c.fecha_fin.isoformat() if c else '' }}" required></div>
+  <div class="col-3 col-md-1"><label class="form-label text-xs fw-semibold mb-1">Color</label>
+    <input type="color" name="color" class="form-control form-control-sm form-control-color w-100" value="{{ c.color if c else '#A16207' }}"></div>
+  <div class="col-9 col-md-3"><button class="btn btn-sm btn-primary w-100"><i class="bi bi-check-lg me-1"></i>{{ 'Guardar' if c else 'Crear campaña' }}</button></div>
+  <div class="col-12"><input type="text" name="descripcion" class="form-control form-control-sm" placeholder="Descripción (opcional)" value="{{ c.descripcion if c else '' }}"></div>
+</form>
+{% endmacro %}
+<div class="card mb-3"><div class="card-body">
+  <h6 class="fw-semibold mb-3">Nueva campaña</h6>
+  {{ campana_form() }}
+</div></div>
+
+{% for c in campanas %}
+<div class="card mb-2" style="border-left:4px solid {{ c.color }}"><div class="card-body">
+  <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+    <div>
+      <a href="{{ url_for('marketing.publicaciones_calendario', mes=c.fecha_inicio.strftime('%Y-%m')) }}" class="fw-semibold text-decoration-none" style="color:var(--black)">{{ c.nombre }}</a>
+      <span class="text-xs text-muted ms-1">{{ c.publicaciones.count() }} publicaciones</span>
+    </div>
+    <form method="POST" action="{{ url_for('marketing.publicaciones_campana_eliminar', cid=c.id) }}" class="m-0" onsubmit="return confirm('¿Eliminar la campaña? Las publicaciones se mantienen.')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-xs btn-outline-danger"><i class="bi bi-trash"></i></button>
+    </form>
+  </div>
+  {{ campana_form(c) }}
+</div></div>
+{% else %}
+<p class="text-muted text-sm">Todavía no hay campañas.</p>
+{% endfor %}
+{% endblock %}

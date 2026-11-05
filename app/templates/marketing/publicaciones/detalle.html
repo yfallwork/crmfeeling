@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}{{ p.titulo }} — Publicaciones{% endblock %}
+{% block page_title %}{{ p.titulo }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('marketing.publicaciones_calendario', mes=p.fecha.strftime('%Y-%m')) }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Calendario</span>
+</a>
+<a href="{{ url_for('marketing.publicaciones_editar', id=p.id) }}" class="btn btn-sm btn-outline-primary">
+  <i class="bi bi-pencil me-1"></i><span class="btn-label">Editar</span>
+</a>
+{% endblock %}
+
+{% block content %}
+{% set cat = p.categoria_info %}
+{% set est = p.estado_info %}
+<div class="row g-3">
+  <div class="col-lg-7">
+
+    <div class="card mb-3">
+      <div class="card-body">
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+          <span class="badge rounded-pill" style="color:{{ cat[1] }};background:{{ cat[2] }};font-weight:700">{{ cat[0] }}</span>
+          <span class="badge rounded-pill" style="background:var(--gray-100);color:var(--gray-700)"><i class="bi {{ p.tipo_info[1] }} me-1"></i>{{ p.tipo_info[0] }}</span>
+          <span class="badge rounded-pill" style="color:{{ est[1] }};background:{{ est[2] }};font-weight:700">{{ est[0] }}</span>
+          {% if p.atrasada %}<span class="badge rounded-pill" style="background:#FEE2E2;color:#DC2626;font-weight:700">Atrasada</span>{% endif %}
+        </div>
+        <div class="text-sm text-muted">
+          <i class="bi bi-calendar3 me-1"></i>{{ ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'][p.fecha.weekday()] }} {{ p.fecha.strftime('%d/%m/%Y') }}
+          {% if p.formato %} · {{ p.formato }}{% endif %}
+          {% if p.produccion %} · <strong>{{ p.produccion_label }}</strong>{% endif %}
+          {% if p.campana %} · <span style="border-left:3px solid {{ p.campana.color }};padding-left:6px">{{ p.campana.nombre }}</span>{% endif %}
+        </div>
+        {% if p.indicaciones %}
+        <div class="mt-3 p-3 text-sm" style="background:var(--gray-50,#f9fafb);border-radius:8px;white-space:pre-wrap"><strong class="d-block text-xs text-uppercase text-muted mb-1">Indicaciones</strong>{{ p.indicaciones }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Archivos -->
+    <div class="card mb-3" id="archivos">
+      <div class="card-header bg-white border-bottom py-2">
+        <span class="fw-semibold text-sm"><i class="bi bi-camera-reels me-2"></i>Vídeos y fotos ({{ p.archivos | length }})</span>
+      </div>
+      <div class="card-body">
+        {% if p.archivos %}
+        <div class="row g-2 mb-3">
+          {% for a in p.archivos %}
+          <div class="col-sm-6">
+            <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#000">
+              {% if a.es_video %}
+              <video src="{{ url_for('marketing.publicaciones_archivo', aid=a.id) }}" controls preload="metadata" style="width:100%;max-height:340px;display:block"></video>
+              {% elif a.es_imagen %}
+              <a href="{{ url_for('marketing.publicaciones_archivo', aid=a.id) }}" target="_blank">
+                <img src="{{ url_for('marketing.publicaciones_archivo', aid=a.id) }}" alt="{{ a.nombre_original }}" style="width:100%;max-height:340px;object-fit:contain;display:block">
+              </a>
+              {% else %}
+              <div class="text-white text-center p-4"><i class="bi bi-file-earmark" style="font-size:2rem"></i></div>
+              {% endif %}
+            </div>
+            <div class="d-flex align-items-center gap-2 mt-1">
+              <span class="text-xs text-muted text-truncate" style="min-width:0;flex:1" title="{{ a.nombre_original }}">
+                {{ a.nombre_original }} · {{ a.tamano_legible }}{% if a.subido_por %} · {{ a.subido_por.nombre }}{% endif %}
+              </span>
+              <a href="{{ url_for('marketing.publicaciones_archivo', aid=a.id, descargar=1) }}" class="btn btn-xs btn-outline-secondary" title="Descargar"><i class="bi bi-download"></i></a>
+              <form method="POST" action="{{ url_for('marketing.publicaciones_archivo_eliminar', aid=a.id) }}" onsubmit="return confirm('¿Eliminar este archivo?')" class="m-0">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-xs btn-outline-danger" title="Eliminar"><i class="bi bi-trash"></i></button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('marketing.publicaciones_subir', id=p.id) }}" enctype="multipart/form-data" id="form-subida">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="form-label fw-semibold text-sm">Subir vídeo o foto</label>
+          <input type="file" name="archivos" class="form-control" multiple accept="image/*,video/*" required>
+          <div class="form-text">Puedes seleccionar varios. Formatos: {{ extensiones }} · máximo {{ max_mb }} MB por subida.{% if p.estado == 'pendiente' %} Al subir, la publicación pasa a «Contenido listo» y deja de avisarse.{% endif %}</div>
+          <div class="progress mt-2 d-none" id="subida-progreso" style="height:8px"><div class="progress-bar" style="width:0%"></div></div>
+          <button type="submit" class="btn btn-primary btn-sm mt-2" id="btn-subir"><i class="bi bi-cloud-upload me-1"></i>Subir</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <!-- Descripción -->
+    <div class="card mb-3" id="descripcion">
+      <div class="card-header bg-white border-bottom py-2 d-flex align-items-center justify-content-between">
+        <span class="fw-semibold text-sm"><i class="bi bi-chat-text me-2"></i>Descripción para publicar</span>
+        <button type="button" class="btn btn-xs btn-outline-secondary" id="btn-copiar" title="Copiar"><i class="bi bi-clipboard"></i></button>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('marketing.publicaciones_descripcion', id=p.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <textarea name="descripcion" id="txt-descripcion" class="form-control" rows="9" maxlength="2200"
+                    placeholder="Texto del post, hashtags, menciones…">{{ p.descripcion or '' }}</textarea>
+          <div class="d-flex justify-content-between align-items-center mt-2">
+            <span class="text-xs text-muted"><span id="contador-desc">{{ (p.descripcion or '') | length }}</span>/2200</span>
+            <button class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Guardar descripción</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Estado y avisos -->
+    <div class="card mb-3">
+      <div class="card-header bg-white border-bottom py-2"><span class="fw-semibold text-sm"><i class="bi bi-flag me-2"></i>Estado</span></div>
+      <div class="card-body">
+        <div class="d-flex flex-wrap gap-2">
+          {% for key, (label, color, fondo) in estados.items() %}
+          <form method="POST" action="{{ url_for('marketing.publicaciones_estado', id=p.id) }}" class="m-0">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="estado" value="{{ key }}">
+            <button class="btn btn-sm" {% if p.estado == key %}disabled{% endif %}
+                    style="color:{{ color }};background:{{ fondo if p.estado == key else '#fff' }};border:1px solid {{ color }}">
+              {% if p.estado == key %}<i class="bi bi-check-lg me-1"></i>{% endif %}{{ label }}
+            </button>
+          </form>
+          {% endfor %}
+        </div>
+        <hr>
+        <form method="POST" action="{{ url_for('marketing.publicaciones_avisar', id=p.id) }}" class="d-flex align-items-center gap-2 flex-wrap">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-sm btn-outline-secondary" {% if not n_destinatarios %}disabled{% endif %}>
+            <i class="bi bi-envelope me-1"></i>Avisar ahora por email
+          </button>
+          <span class="text-xs text-muted">
+            {% if n_destinatarios %}A {{ n_destinatarios }} correo{{ 's' if n_destinatarios != 1 }}.{% else %}<a href="{{ url_for('marketing.publicaciones_avisos') }}">Añade correos</a> para poder avisar.{% endif %}
+            {% if p.ultimo_aviso_en %}Último aviso: {{ p.ultimo_aviso_en.strftime('%d/%m %H:%M') }} (UTC).{% endif %}
+          </span>
+        </form>
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('marketing.publicaciones_eliminar', id=p.id) }}" class="text-end"
+          onsubmit="return confirm('¿Eliminar esta publicación y sus archivos?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash me-1"></i>Eliminar publicación</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var txt = document.getElementById('txt-descripcion');
+  var cont = document.getElementById('contador-desc');
+  txt.addEventListener('input', function () { cont.textContent = txt.value.length; });
+  document.getElementById('btn-copiar').addEventListener('click', function () {
+    var btn = this;
+    navigator.clipboard.writeText(txt.value).then(function () {
+      btn.innerHTML = '<i class="bi bi-check-lg"></i>';
+      setTimeout(function () { btn.innerHTML = '<i class="bi bi-clipboard"></i>'; }, 1500);
+    });
+  });
+
+  // Subida con barra de progreso: los vídeos pueden tardar.
+  var form = document.getElementById('form-subida');
+  form.addEventListener('submit', function (e) {
+    if (!window.XMLHttpRequest || !window.FormData) return;
+    e.preventDefault();
+    var barra = document.getElementById('subida-progreso');
+    var btn = document.getElementById('btn-subir');
+    barra.classList.remove('d-none');
+    btn.disabled = true;
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', form.action);
+    xhr.upload.addEventListener('progress', function (ev) {
+      if (ev.lengthComputable) barra.firstElementChild.style.width = (ev.loaded / ev.total * 100) + '%';
+    });
+    xhr.onload = function () {
+      if (xhr.status === 413) { alert('El archivo es demasiado grande.'); btn.disabled = false; return; }
+      window.location = xhr.responseURL || window.location.href;
+    };
+    xhr.onerror = function () { alert('No se pudo subir el archivo.'); btn.disabled = false; };
+    xhr.send(new FormData(form));
+  });
+})();
+</script>
+{% endblock %}

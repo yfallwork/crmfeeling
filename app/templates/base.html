@@ -93,7 +93,7 @@
     <div class="nav-section-label">Marketing</div>
 
     <a href="{{ url_for('marketing.index') }}"
-       class="nav-item {% if request.endpoint and 'marketing' in request.endpoint and request.endpoint not in ('marketing.trazabilidad','marketing.logs_lista','marketing.logs_limpiar','marketing.campanas_calendario','marketing.campanas_calendario_eventos') %}active{% endif %}"
+       class="nav-item {% if request.endpoint and 'marketing' in request.endpoint and not request.endpoint.startswith('marketing.publicaciones') and request.endpoint not in ('marketing.trazabilidad','marketing.logs_lista','marketing.logs_limpiar','marketing.campanas_calendario','marketing.campanas_calendario_eventos') %}active{% endif %}"
        data-tooltip="Marketing">
       <i class="bi bi-bullseye"></i><span>Marketing</span>
     </a>
@@ -104,6 +104,12 @@
       <i class="bi bi-calendar3"></i><span>Calendario</span>
     </a>
 
+    <a href="{{ url_for('marketing.publicaciones_calendario') }}"
+       class="nav-item {% if request.endpoint and request.endpoint.startswith('marketing.publicaciones') %}active{% endif %}"
+       data-tooltip="Publicaciones en redes">
+      <i class="bi bi-instagram"></i><span>Publicaciones</span>
+    </a>
+
     <a href="{{ url_for('marketing.trazabilidad') }}"
        class="nav-item {% if request.endpoint in ('marketing.trazabilidad','marketing.logs_lista','marketing.logs_limpiar') %}active{% endif %}"
        data-tooltip="Logs">
@@ -111,7 +117,7 @@
     </a>
     {% endif %}
 
-    {% if current_user.puede_acceder('autoclub') or current_user.puede_acceder('woocommerce') or current_user.puede_acceder('logs') %}
+    {% if current_user.puede_acceder('autoclub') or current_user.puede_acceder('mecanica') or current_user.puede_acceder('woocommerce') or current_user.puede_acceder('logs') %}
     <div class="nav-section-label">Integración</div>
 
     {% if current_user.puede_acceder('autoclub') %}
@@ -119,6 +125,14 @@
        class="nav-item {% if 'autoclub' in (request.endpoint or '') %}active{% endif %}"
        data-tooltip="AutoClub">
       <i class="bi bi-shield-check"></i><span>AutoClub</span>
+    </a>
+    {% endif %}
+
+    {% if current_user.puede_acceder('mecanica') %}
+    <a href="{{ url_for('mecanica.vehiculos_lista') }}"
+       class="nav-item {% if 'mecanica' in (request.endpoint or '') %}active{% endif %}"
+       data-tooltip="Mecánica">
+      <i class="bi bi-wrench-adjustable-circle-fill"></i><span>Mecánica</span>
     </a>
     {% endif %}
 

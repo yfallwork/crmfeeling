@@ -16,6 +16,7 @@ MODULOS = [
     ("teambuilding", "Team Building",  "bi-buildings"),
     ("marketing",    "Marketing",      "bi-bullseye"),
     ("autoclub",     "AutoClub",       "bi-shield-check"),
+    ("mecanica",     "Mecánica",       "bi-wrench-adjustable-circle-fill"),
     ("woocommerce",  "WooCommerce",    "bi-shop"),
     ("logs",         "Actividad",      "bi-journal-text"),
     ("configuracion", "Configuración", "bi-gear"),

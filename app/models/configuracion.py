@@ -14,6 +14,10 @@ class Configuracion(db.Model):
     # todavía no los ha rellenado.
     seguro_recordatorio_activo = db.Column(db.Boolean, default=True, nullable=False)
     seguro_recordatorio_dias   = db.Column(db.Integer, default=7, nullable=False)
+    # Aviso diario por email del contenido de redes pendiente de subir.
+    rrss_aviso_activo = db.Column(db.Boolean, default=True, nullable=False)
+    rrss_aviso_dias   = db.Column(db.Integer, default=1, nullable=False)
+    rrss_ultimo_resumen = db.Column(db.Date, nullable=True)
     actualizado_en   = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     @classmethod

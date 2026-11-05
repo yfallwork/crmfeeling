@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Avisos de publicaciones — Marketing{% endblock %}
+{% block page_title %}Avisos de contenido pendiente{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('marketing.publicaciones_calendario') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Calendario</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card mb-3"><div class="card-body">
+      <h6 class="fw-semibold mb-1"><i class="bi bi-envelope me-2"></i>Correos que reciben el aviso</h6>
+      <p class="text-xs text-muted">Cada mañana (9:20) se envía un resumen con el contenido que hay que subir. Las publicaciones con vídeo/foto ya subidos o publicadas no se avisan.</p>
+      <form method="POST" class="row g-2 mb-3">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="accion" value="anadir">
+        <div class="col-sm-6"><input type="email" name="email" class="form-control form-control-sm" placeholder="correo@ejemplo.com" required></div>
+        <div class="col-sm-4"><input type="text" name="nombre" class="form-control form-control-sm" placeholder="Nombre (opcional)"></div>
+        <div class="col-sm-2"><button class="btn btn-sm btn-primary w-100">Añadir</button></div>
+      </form>
+      {% if destinatarios %}
+      <ul class="list-group">
+        {% for d in destinatarios %}
+        <li class="list-group-item d-flex align-items-center gap-2 py-2">
+          <div class="flex-grow-1" style="min-width:0">
+            <div class="text-sm text-truncate {{ 'text-muted text-decoration-line-through' if not d.activo }}">{{ d.email }}</div>
+            {% if d.nombre %}<div class="text-xs text-muted">{{ d.nombre }}</div>{% endif %}
+          </div>
+          <form method="POST" class="m-0">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="accion" value="alternar"><input type="hidden" name="id" value="{{ d.id }}">
+            <button class="btn btn-xs btn-outline-secondary">{{ 'Pausar' if d.activo else 'Activar' }}</button>
+          </form>
+          <form method="POST" class="m-0" onsubmit="return confirm('¿Quitar {{ d.email }}?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="accion" value="quitar"><input type="hidden" name="id" value="{{ d.id }}">
+            <button class="btn btn-xs btn-outline-danger"><i class="bi bi-trash"></i></button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-sm text-muted mb-0">Todavía no hay ningún correo: añade al menos uno para que lleguen los avisos.</p>
+      {% endif %}
+    </div></div>
+
+    <div class="card"><div class="card-body">
+      <h6 class="fw-semibold mb-3"><i class="bi bi-gear me-2"></i>Configuración</h6>
+      <form method="POST" class="row g-2 align-items-end">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="accion" value="config">
+        <div class="col-12">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" name="activo" id="aviso-activo" {% if config.rrss_aviso_activo %}checked{% endif %}>
+            <label class="form-check-label text-sm" for="aviso-activo">Enviar el resumen diario automáticamente</label>
+          </div>
+        </div>
+        <div class="col-sm-7">
+          <label class="form-label text-xs fw-semibold mb-1">Avisar con antelación de</label>
+          <div class="input-group input-group-sm">
+            <input type="number" name="dias" min="0" max="14" class="form-control" value="{{ config.rrss_aviso_dias }}">
+            <span class="input-group-text">días</span>
+          </div>
+          <div class="form-text">0 = solo lo del mismo día. Lo atrasado se sigue avisando hasta 7 días.</div>
+        </div>
+        <div class="col-sm-5"><button class="btn btn-sm btn-primary w-100">Guardar</button></div>
+      </form>
+      {% if config.rrss_ultimo_resumen %}<p class="text-xs text-muted mt-2 mb-0">Último resumen enviado: {{ config.rrss_ultimo_resumen.strftime('%d/%m/%Y') }}</p>{% endif %}
+    </div></div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card"><div class="card-body">
+      <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-2">
+        <h6 class="fw-semibold mb-0"><i class="bi bi-list-check me-2"></i>Lo que incluiría el aviso de hoy ({{ pendientes | length }})</h6>
+        <form method="POST" class="m-0">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="accion" value="enviar_ahora">
+          <button class="btn btn-sm btn-outline-primary" {% if not destinatarios or not pendientes %}disabled{% endif %}><i class="bi bi-send me-1"></i>Enviar ahora</button>
+        </form>
+      </div>
+      {% if pendientes %}
+      <ul class="list-group list-group-flush">
+        {% for p in pendientes %}
+        <li class="list-group-item px-0 py-2">
+          <a href="{{ url_for('marketing.publicaciones_detalle', id=p.id) }}" class="text-decoration-none" style="color:var(--black)">
+            <span class="text-xs fw-semibold" style="color:{{ '#DC2626' if p.fecha < hoy else ('#C2410C' if p.fecha == hoy else 'var(--gray-600)') }}">
+              {% if p.fecha < hoy %}Atrasada · {% elif p.fecha == hoy %}Hoy · {% endif %}{{ p.fecha.strftime('%d/%m') }}
+            </span>
+            <span class="text-sm d-block">{{ p.titulo }}</span>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-sm text-muted mb-0">No hay contenido pendiente en el periodo de aviso.</p>
+      {% endif %}
+    </div></div>
+  </div>
+</div>
+{% endblock %}

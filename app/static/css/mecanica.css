@@ -1,0 +1,13 @@
+/* ======================================================
+   Mecánica — Tema naranja/negro
+   Sobrescribe las variables de acento de crm.css
+   ====================================================== */
+
+body.mecanica-theme {
+  --red:        #C2410C;
+  --red-dark:   #9A3412;
+  --red-darker: #7C2D12;
+  --red-light:  rgba(194, 65, 12, .12);
+  --red-soft:   rgba(194, 65, 12, .06);
+  --shadow-red: 0 4px 20px rgba(194, 65, 12, .22);
+}

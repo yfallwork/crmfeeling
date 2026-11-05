@@ -54,6 +54,15 @@
             </select>
           </div>
           <div class="col-12">
+            <div class="form-check form-switch p-3 ps-5" style="background:var(--gray-50,#f9fafb);border-radius:8px">
+              <input class="form-check-input" type="checkbox" name="en_directo" id="en_directo" value="1" {% if datos.get('en_directo') %}checked{% endif %}>
+              <label class="form-check-label" for="en_directo">
+                <strong>Se graba y publica en el momento</strong>
+                <span class="d-block text-xs text-muted">Historias o reels del mismo día: no hace falta subir nada antes, así que no se avisa como pendiente de subir. Solo se recuerda ese mismo día.</span>
+              </label>
+            </div>
+          </div>
+          <div class="col-12">
             <label class="form-label fw-semibold">Campaña</label>
             <select name="campana_id" class="form-select">
               <option value="">— Ninguna —</option>

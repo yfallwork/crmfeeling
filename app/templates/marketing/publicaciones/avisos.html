@@ -13,7 +13,7 @@
   <div class="col-lg-6">
     <div class="card mb-3"><div class="card-body">
       <h6 class="fw-semibold mb-1"><i class="bi bi-envelope me-2"></i>Correos que reciben el aviso</h6>
-      <p class="text-xs text-muted">Cada mañana (9:20) se envía un resumen con el contenido que hay que subir. Las publicaciones con vídeo/foto ya subidos o publicadas no se avisan.</p>
+      <p class="text-xs text-muted">Cada mañana (9:20) se envía un resumen con el contenido que hay que subir. Las publicaciones con vídeo/foto ya subidos o publicadas no se avisan, y las marcadas «en el momento» solo se recuerdan su mismo día.</p>
       <form method="POST" class="row g-2 mb-3">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="accion" value="anadir">
@@ -79,7 +79,7 @@
         <form method="POST" class="m-0">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="accion" value="enviar_ahora">
-          <button class="btn btn-sm btn-outline-primary" {% if not destinatarios or not pendientes %}disabled{% endif %}><i class="bi bi-send me-1"></i>Enviar ahora</button>
+          <button class="btn btn-sm btn-outline-primary" {% if not destinatarios or not (pendientes or directo_hoy) %}disabled{% endif %}><i class="bi bi-send me-1"></i>Enviar ahora</button>
         </form>
       </div>
       {% if pendientes %}
@@ -96,7 +96,17 @@
         {% endfor %}
       </ul>
       {% else %}
-      <p class="text-sm text-muted mb-0">No hay contenido pendiente en el periodo de aviso.</p>
+      <p class="text-sm text-muted mb-0">No hay contenido pendiente de subir en el periodo de aviso.</p>
+      {% endif %}
+      {% if directo_hoy %}
+      <h6 class="fw-semibold mt-3 mb-1 text-sm"><i class="bi bi-broadcast me-1"></i>Para grabar y publicar hoy ({{ directo_hoy | length }})</h6>
+      <ul class="list-group list-group-flush">
+        {% for p in directo_hoy %}
+        <li class="list-group-item px-0 py-2">
+          <a href="{{ url_for('marketing.publicaciones_detalle', id=p.id) }}" class="text-decoration-none text-sm" style="color:var(--black)">{{ p.titulo }}</a>
+        </li>
+        {% endfor %}
+      </ul>
       {% endif %}
     </div></div>
   </div>

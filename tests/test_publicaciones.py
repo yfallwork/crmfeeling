@@ -161,3 +161,35 @@ def test_gestion_de_destinatarios(app, auth_client):
     auth_client.post("/marketing/publicaciones/avisos", data={"csrf_token": token, "accion": "quitar", "id": did})
     with app.app_context():
         assert db.session.get(DestinatarioAvisoRRSS, did) is None
+
+
+def test_en_el_momento_no_avisa_antes_solo_su_mismo_dia(app, auth_client):
+    from app.services import publicaciones_aviso
+    hoy = date(2030, 6, 10)
+    manana = _nueva(app, fecha=hoy + timedelta(days=1), titulo="QA directo mañana", en_directo=True)
+    hoy_id = _nueva(app, fecha=hoy, titulo="QA directo hoy", en_directo=True)
+    with app.app_context():
+        db.session.add(DestinatarioAvisoRRSS(email="qa.directo@example.com"))
+        config = Configuracion.get()
+        config.rrss_aviso_activo, config.rrss_aviso_dias = True, 1
+        db.session.commit()
+    try:
+        with app.test_request_context(), patch.object(publicaciones_aviso, "_enviar") as enviar:
+            assert [p.titulo for p in publicaciones_aviso.pendientes_para_aviso(1, hoy)
+                    if p.titulo.startswith("QA directo")] == []
+            n, _, error = publicaciones_aviso.enviar_resumen(forzar=True, hoy=hoy)
+            assert error is None and n == 1
+            _, asunto, html = enviar.call_args.args
+            assert "para grabar y publicar hoy" in asunto
+            assert "QA directo hoy" in html and "QA directo mañana" not in html
+
+        # El interruptor de la ficha lo activa y desactiva
+        token = _csrf(auth_client, f"/marketing/publicaciones/{manana}")
+        auth_client.post(f"/marketing/publicaciones/{manana}/en-directo", data={"csrf_token": token})
+        with app.app_context():
+            assert db.session.get(PublicacionRRSS, manana).en_directo is False
+    finally:
+        _borrar(app, manana, hoy_id)
+        with app.app_context():
+            DestinatarioAvisoRRSS.query.filter_by(email="qa.directo@example.com").delete()
+            db.session.commit()

@@ -67,7 +67,7 @@
       {% endfor %}
       <span class="text-muted ms-1">
         {% for key, (label, icono) in tipos.items() %}<i class="bi {{ icono }} ms-2 me-1"></i>{{ label }}{% endfor %}
-        · <s>Tachado</s>: publicado · <i class="bi bi-check-circle-fill ms-1" style="color:#1D4ED8"></i> contenido listo · <span style="box-shadow:inset 0 0 0 1px #DC2626;border-radius:4px;padding:0 4px">rojo</span>: atrasado
+        · <s>Tachado</s>: publicado · <i class="bi bi-check-circle-fill ms-1" style="color:#1D4ED8"></i> contenido listo · <i class="bi bi-broadcast ms-1"></i> en el momento (no se sube antes) · <span style="box-shadow:inset 0 0 0 1px #DC2626;border-radius:4px;padding:0 4px">rojo</span>: atrasado
       </span>
     </div>
 
@@ -89,6 +89,7 @@
        title="{{ cat[0] }} · {{ p.tipo_info[0] }}{% if p.formato %} · {{ p.formato }}{% endif %} — {{ p.estado_info[0] }}">
       <i class="bi {{ p.tipo_info[1] }}" style="font-size:.6rem"></i>
       {% if p.estado == 'listo' %}<i class="bi bi-check-circle-fill" style="color:#1D4ED8"></i>{% endif %}
+      {% if p.en_directo %}<i class="bi bi-broadcast" title="Se graba y publica en el momento"></i>{% endif %}
       {% if p.archivos %}<i class="bi bi-paperclip"></i>{% endif %}
       {{ p.titulo }}
     </a>

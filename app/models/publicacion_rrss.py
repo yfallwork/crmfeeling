@@ -71,6 +71,9 @@ class PublicacionRRSS(db.Model):
     indicaciones  = db.Column(db.Text, default="")
     descripcion   = db.Column(db.Text, default="")   # texto/caption a publicar
     estado        = db.Column(db.String(20), nullable=False, default="pendiente", index=True)
+    # Se graba y publica el mismo día (historias en directo, reels del
+    # momento): no hay que subir nada antes, así que no genera avisos previos.
+    en_directo    = db.Column(db.Boolean, nullable=False, default=False)
     campana_id    = db.Column(db.Integer, db.ForeignKey("campanas_rrss.id", ondelete="SET NULL"), nullable=True)
     ultimo_aviso_en = db.Column(db.DateTime, nullable=True)
     creado_en     = db.Column(db.DateTime, default=datetime.utcnow)
@@ -99,6 +102,11 @@ class PublicacionRRSS(db.Model):
     @property
     def atrasada(self):
         return self.estado == "pendiente" and self.fecha < date.today()
+
+    @property
+    def requiere_subida(self):
+        """Hay que subir el contenido antes de su fecha (lo que se avisa)."""
+        return self.estado == "pendiente" and not self.en_directo
 
 
 class ArchivoPublicacion(db.Model):

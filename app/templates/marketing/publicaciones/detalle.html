@@ -23,6 +23,7 @@
           <span class="badge rounded-pill" style="color:{{ cat[1] }};background:{{ cat[2] }};font-weight:700">{{ cat[0] }}</span>
           <span class="badge rounded-pill" style="background:var(--gray-100);color:var(--gray-700)"><i class="bi {{ p.tipo_info[1] }} me-1"></i>{{ p.tipo_info[0] }}</span>
           <span class="badge rounded-pill" style="color:{{ est[1] }};background:{{ est[2] }};font-weight:700">{{ est[0] }}</span>
+          {% if p.en_directo %}<span class="badge rounded-pill" style="background:#FFEDD5;color:#C2410C;font-weight:700"><i class="bi bi-broadcast me-1"></i>En el momento</span>{% endif %}
           {% if p.atrasada %}<span class="badge rounded-pill" style="background:#FEE2E2;color:#DC2626;font-weight:700">Atrasada</span>{% endif %}
         </div>
         <div class="text-sm text-muted">
@@ -76,8 +77,9 @@
         <form method="POST" action="{{ url_for('marketing.publicaciones_subir', id=p.id) }}" enctype="multipart/form-data" id="form-subida">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <label class="form-label fw-semibold text-sm">Subir vídeo o foto</label>
+          {% if p.en_directo %}<div class="alert alert-light border text-xs py-2 mb-2"><i class="bi bi-broadcast me-1"></i>Esta publicación se graba y publica en el momento: no hace falta subir nada antes. Si quieres, puedes subirlo después para tenerlo archivado.</div>{% endif %}
           <input type="file" name="archivos" class="form-control" multiple accept="image/*,video/*" required>
-          <div class="form-text">Puedes seleccionar varios. Formatos: {{ extensiones }} · máximo {{ max_mb }} MB por subida.{% if p.estado == 'pendiente' %} Al subir, la publicación pasa a «Contenido listo» y deja de avisarse.{% endif %}</div>
+          <div class="form-text">Puedes seleccionar varios. Formatos: {{ extensiones }} · máximo {{ max_mb }} MB por subida.{% if p.estado == 'pendiente' and not p.en_directo %} Al subir, la publicación pasa a «Contenido listo» y deja de avisarse.{% endif %}</div>
           <div class="progress mt-2 d-none" id="subida-progreso" style="height:8px"><div class="progress-bar" style="width:0%"></div></div>
           <button type="submit" class="btn btn-primary btn-sm mt-2" id="btn-subir"><i class="bi bi-cloud-upload me-1"></i>Subir</button>
         </form>
@@ -122,6 +124,14 @@
           {% endfor %}
         </div>
         <hr>
+        <form method="POST" action="{{ url_for('marketing.publicaciones_en_directo', id=p.id) }}" class="d-flex align-items-center gap-2 flex-wrap mb-3">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="form-check form-switch m-0">
+            <input class="form-check-input" type="checkbox" role="switch" id="sw-directo" {% if p.en_directo %}checked{% endif %} onchange="this.form.submit()">
+            <label class="form-check-label text-sm" for="sw-directo">Se graba y publica en el momento</label>
+          </div>
+          <span class="text-xs text-muted">{{ 'No se avisa de subirlo antes.' if p.en_directo else 'Se avisa hasta que se suba el contenido.' }}</span>
+        </form>
         <form method="POST" action="{{ url_for('marketing.publicaciones_avisar', id=p.id) }}" class="d-flex align-items-center gap-2 flex-wrap">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="btn btn-sm btn-outline-secondary" {% if not n_destinatarios %}disabled{% endif %}>

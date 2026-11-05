@@ -22,12 +22,25 @@ def destinatarios_activos():
 
 
 def pendientes_para_aviso(dias_antelacion, hoy=None):
+    """Contenido que hay que subir antes de su fecha (no incluye lo que se
+    graba y publica en el momento)."""
     hoy = hoy or date.today()
     return (PublicacionRRSS.query
             .filter(PublicacionRRSS.estado == "pendiente",
+                    PublicacionRRSS.en_directo.is_(False),
                     PublicacionRRSS.fecha >= hoy - timedelta(days=DIAS_ATRASO_MAX),
                     PublicacionRRSS.fecha <= hoy + timedelta(days=dias_antelacion))
             .order_by(PublicacionRRSS.fecha, PublicacionRRSS.id).all())
+
+
+def en_directo_de_hoy(hoy=None):
+    """Lo que se graba y publica en el momento: solo se recuerda su mismo día."""
+    hoy = hoy or date.today()
+    return (PublicacionRRSS.query
+            .filter(PublicacionRRSS.estado == "pendiente",
+                    PublicacionRRSS.en_directo.is_(True),
+                    PublicacionRRSS.fecha == hoy)
+            .order_by(PublicacionRRSS.id).all())
 
 
 def _url(endpoint, **kw):
@@ -45,7 +58,9 @@ def _enlace(p):
 
 def _fila_html(p, hoy):
     color, fondo = p.categoria_info[1], p.categoria_info[2]
-    if p.fecha < hoy:
+    if p.en_directo and p.fecha == hoy:
+        cuando = "<span style='color:#C2410C;font-weight:700'>Hoy · en el momento</span>"
+    elif p.fecha < hoy:
         cuando = f"<span style='color:#DC2626;font-weight:700'>Atrasada ({p.fecha.strftime('%d/%m')})</span>"
     elif p.fecha == hoy:
         cuando = "<span style='color:#C2410C;font-weight:700'>Hoy</span>"
@@ -70,8 +85,20 @@ def _fila_html(p, hoy):
 </td></tr>"""
 
 
-def _html(publicaciones, hoy, intro):
+def _html(publicaciones, hoy, intro, directo=()):
     filas = "".join(_fila_html(p, hoy) for p in publicaciones)
+    if directo:
+        filas_directo = "".join(_fila_html(p, hoy) for p in directo)
+        bloque_directo = (f"<h3 style='margin:22px 0 4px;font-size:16px'>Para grabar y publicar hoy</h3>"
+                          f"<p style='margin:0 0 4px;color:#555;font-size:13px'>No hay que subirlo antes: se hace en el momento.</p>"
+                          f"<table width='100%' cellpadding='0' cellspacing='0'>{filas_directo}</table>")
+    else:
+        bloque_directo = ""
+    if publicaciones:
+        bloque_subir = (f"<p style='margin:0 0 8px;color:#555;font-size:14px'>Sube el vídeo o la foto y la descripción en su ficha del CRM; al subirlo deja de avisarse.</p>"
+                        f"<table width='100%' cellpadding='0' cellspacing='0'>{filas}</table>")
+    else:
+        bloque_subir = ""
     calendario = _url("marketing.publicaciones_calendario")
     boton = (f"<p style='margin:20px 0 0'><a href='{calendario}' style='background:#AD1726;color:#fff;padding:10px 18px;"
              f"border-radius:8px;text-decoration:none;font-weight:700'>Abrir el calendario</a></p>") if calendario else ""
@@ -81,8 +108,8 @@ def _html(publicaciones, hoy, intro):
 <tr><td style="padding:24px 28px">
   <div style="font-size:12px;color:#AD1726;font-weight:700;letter-spacing:1px;text-transform:uppercase">Calendario de publicaciones</div>
   <h2 style="margin:6px 0 10px;font-size:20px">{escape(intro)}</h2>
-  <p style="margin:0 0 8px;color:#555;font-size:14px">Sube el vídeo o la foto y la descripción en su ficha del CRM; al subirlo deja de avisarse.</p>
-  <table width="100%" cellpadding="0" cellspacing="0">{filas}</table>
+  {bloque_subir}
+  {bloque_directo}
   {boton}
 </td></tr></table></td></tr></table></body></html>"""
 
@@ -103,23 +130,29 @@ def enviar_resumen(forzar=False, hoy=None):
     if not destinatarios:
         return 0, 0, "No hay correos añadidos para recibir los avisos."
     pubs = pendientes_para_aviso(config.rrss_aviso_dias, hoy)
-    if not pubs:
+    directo = en_directo_de_hoy(hoy)
+    if not pubs and not directo:
         return 0, len(destinatarios), None
-    n_hoy = sum(1 for p in pubs if p.fecha <= hoy)
-    asunto = f"Redes: {len(pubs)} contenido{'s' if len(pubs) != 1 else ''} por subir"
-    if n_hoy:
-        asunto += f" ({n_hoy} para hoy o atrasado{'s' if n_hoy != 1 else ''})"
+    partes = []
+    if pubs:
+        n_hoy = sum(1 for p in pubs if p.fecha <= hoy)
+        partes.append(f"{len(pubs)} contenido{'s' if len(pubs) != 1 else ''} por subir"
+                      + (f" ({n_hoy} para hoy o atrasado{'s' if n_hoy != 1 else ''})" if n_hoy else ""))
+    if directo:
+        partes.append(f"{len(directo)} para grabar y publicar hoy")
+    asunto = "Redes: " + " · ".join(partes)
+    intro = "Contenido pendiente de subir" if pubs else "Hoy toca grabar y publicar"
     try:
-        _enviar(destinatarios, asunto, _html(pubs, hoy, "Contenido pendiente de subir"))
+        _enviar(destinatarios, asunto, _html(pubs, hoy, intro, directo))
     except Exception as e:
         current_app.logger.error(f"Aviso de publicaciones fallido: {e}")
         return 0, len(destinatarios), str(e)
     ahora = datetime.utcnow()
-    for p in pubs:
+    for p in pubs + directo:
         p.ultimo_aviso_en = ahora
     config.rrss_ultimo_resumen = hoy
     db.session.commit()
-    return len(pubs), len(destinatarios), None
+    return len(pubs) + len(directo), len(destinatarios), None
 
 
 def enviar_aviso_publicacion(publicacion):
@@ -127,9 +160,15 @@ def enviar_aviso_publicacion(publicacion):
     destinatarios = destinatarios_activos()
     if not destinatarios:
         return 0, "No hay correos añadidos para recibir los avisos."
-    asunto = f"Redes: hay que subir «{publicacion.titulo}» ({publicacion.fecha.strftime('%d/%m')})"
+    fecha = publicacion.fecha.strftime('%d/%m')
+    if publicacion.en_directo:
+        asunto = f"Redes: hay que grabar y publicar «{publicacion.titulo}» ({fecha})"
+        html = _html([], date.today(), "Para grabar y publicar en el momento", [publicacion])
+    else:
+        asunto = f"Redes: hay que subir «{publicacion.titulo}» ({fecha})"
+        html = _html([publicacion], date.today(), "Contenido pendiente de subir")
     try:
-        _enviar(destinatarios, asunto, _html([publicacion], date.today(), "Contenido pendiente de subir"))
+        _enviar(destinatarios, asunto, html)
     except Exception as e:
         current_app.logger.error(f"Aviso de publicación {publicacion.id} fallido: {e}")
         return len(destinatarios), str(e)

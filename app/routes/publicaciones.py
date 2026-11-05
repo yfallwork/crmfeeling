@@ -74,6 +74,7 @@ def publicaciones_calendario():
     siguiente = (primero + timedelta(days=32)).replace(day=1)
     pendientes_proximas = (PublicacionRRSS.query
                            .filter(PublicacionRRSS.estado == "pendiente",
+                                   PublicacionRRSS.en_directo.is_(False),
                                    PublicacionRRSS.fecha <= hoy + timedelta(days=7))
                            .order_by(PublicacionRRSS.fecha).limit(12).all())
     return render_template(
@@ -114,6 +115,7 @@ def _leer_form(form, errores):
         "indicaciones": form.get("indicaciones", "").strip(),
         "descripcion": form.get("descripcion", "").strip(),
         "campana_id": campana_id,
+        "en_directo": bool(form.get("en_directo")),
     }
 
 
@@ -175,6 +177,7 @@ def publicaciones_editar(id):
                                                   "formato", "indicaciones", "descripcion")}
     datos["fecha"] = p.fecha.isoformat()
     datos["campana_id"] = p.campana_id or ""
+    datos["en_directo"] = p.en_directo
     return _render_form(p, datos, errores)
 
 
@@ -199,6 +202,19 @@ def publicaciones_estado(id):
         registrar_log("cambiar_estado", "publicacion_rrss", p.id, f"{p.titulo} → {ESTADOS_RRSS[estado][0]}")
         flash(f"Marcada como «{ESTADOS_RRSS[estado][0]}».", "success")
     return redirect(request.form.get("volver") or url_for("marketing.publicaciones_detalle", id=p.id))
+
+
+@marketing_bp.route("/publicaciones/<int:id>/en-directo", methods=["POST"])
+@login_required
+def publicaciones_en_directo(id):
+    p = PublicacionRRSS.query.get_or_404(id)
+    p.en_directo = not p.en_directo
+    db.session.commit()
+    registrar_log("editar", "publicacion_rrss", p.id,
+                  f"{p.titulo}: {'se publica en el momento' if p.en_directo else 'requiere subir el contenido antes'}")
+    flash("Marcada para grabar y publicar en el momento: no se avisará de subirla antes." if p.en_directo
+          else "Ahora requiere subir el contenido antes: se avisará como pendiente.", "success")
+    return redirect(url_for("marketing.publicaciones_detalle", id=p.id))
 
 
 @marketing_bp.route("/publicaciones/<int:id>/eliminar", methods=["POST"])
@@ -369,11 +385,11 @@ def publicaciones_avisos():
                 flash("No hay contenido pendiente en el periodo: no se ha enviado nada.", "info")
         return redirect(url_for("marketing.publicaciones_avisos"))
 
-    from app.services.publicaciones_aviso import pendientes_para_aviso
+    from app.services.publicaciones_aviso import pendientes_para_aviso, en_directo_de_hoy
     return render_template(
         "marketing/publicaciones/avisos.html", config=config,
         destinatarios=DestinatarioAvisoRRSS.query.order_by(DestinatarioAvisoRRSS.email).all(),
-        pendientes=pendientes_para_aviso(config.rrss_aviso_dias), hoy=date.today(),
+        pendientes=pendientes_para_aviso(config.rrss_aviso_dias), directo_hoy=en_directo_de_hoy(), hoy=date.today(),
     )
 
 

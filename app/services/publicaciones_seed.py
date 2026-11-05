@@ -136,10 +136,27 @@ PUBLICACIONES = [
 ]
 
 
+def migrar_en_directo():
+    """Añade la columna en_directo a BBDD existentes y, solo en ese momento,
+    marca como "en el momento" las historias en directo de los días de
+    evento ya cargadas (no se tocan después: lo que cambie el usuario se
+    respeta)."""
+    from sqlalchemy import inspect, text
+    from app.extensions import db
+
+    columnas = {c["name"] for c in inspect(db.engine).get_columns("publicaciones_rrss")}
+    if "en_directo" in columnas:
+        return
+    with db.engine.begin() as conn:
+        conn.execute(text("ALTER TABLE publicaciones_rrss ADD COLUMN en_directo BOOLEAN NOT NULL DEFAULT 0"))
+        conn.execute(text("UPDATE publicaciones_rrss SET en_directo = 1 WHERE tipo = 'evento'"))
+
+
 def seed_publicaciones():
     from app.extensions import db
     from app.models.publicacion_rrss import CampanaRRSS, PublicacionRRSS
 
+    migrar_en_directo()
     if CampanaRRSS.query.count() or PublicacionRRSS.query.count():
         return
     campanas = {}
@@ -151,7 +168,7 @@ def seed_publicaciones():
     for fecha, cat, tipo, titulo, formato, prod, indic, estado, camp in PUBLICACIONES:
         db.session.add(PublicacionRRSS(
             fecha=fecha, categoria=cat, tipo=tipo, titulo=titulo, formato=formato,
-            produccion=prod, indicaciones=indic, estado=estado,
+            produccion=prod, indicaciones=indic, estado=estado, en_directo=(tipo == "evento"),
             campana_id=campanas[camp].id if camp else None,
         ))
     db.session.commit()

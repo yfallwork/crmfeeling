@@ -1,0 +1,134 @@
+{% extends "mecanica/base.html" %}
+{% block title %}{{ s.sesion }} · {{ s.vehiculo.nombre_display }} — {{ s.evento.nombre }}{% endblock %}
+{% block page_title %}{{ s.evento.nombre }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('mecanica.reglajes_evento', id=s.evento_id) }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left"></i><span class="btn-label ms-1">Evento</span>
+</a>
+<button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+  <i class="bi bi-printer"></i><span class="btn-label ms-1">Imprimir</span>
+</button>
+<a href="{{ url_for('mecanica.reglajes_sesion_editar', sid=s.id) }}" class="btn btn-sm btn-primary">
+  <i class="bi bi-pencil"></i><span class="btn-label ms-1">Editar</span>
+</a>
+{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reglajes.css') }}" />
+{% endblock %}
+
+{% block content %}
+{% macro val(x) %}{% if x is none or x == '' %}<span class="text-muted">—</span>{% elif x is number %}{{ '%g' | format(x) }}{% else %}{{ x }}{% endif %}{% endmacro %}
+{% set setup = s.setup %}
+{% set setup_ant = previa.setup if previa else {} %}
+{% set curvas_datos = s.curvas %}
+
+<div class="hoja" style="padding-bottom:24px">
+  <div class="hoja-cab">
+    <div class="dorsal">{{ '#' ~ s.vehiculo.dorsal if s.vehiculo.dorsal else '—' }}</div>
+    <div class="info">
+      <div class="t1">{{ s.sesion }} · {{ s.vehiculo.nombre_display }}</div>
+      <div class="t2">
+        <i class="bi bi-person"></i> {{ s.piloto_display }}
+        {% if s.fecha_hora %} · {{ s.fecha_hora.strftime('%d/%m/%Y %H:%M') }}{% endif %}
+        {% if s.evento.circuito %} · {{ s.evento.circuito }}{% endif %}
+      </div>
+    </div>
+    <div class="d-flex gap-2 no-print">
+      {% if anterior %}<a href="{{ url_for('mecanica.reglajes_sesion', sid=anterior.id) }}" class="btn btn-sm btn-outline-secondary" title="{{ anterior.sesion }}"><i class="bi bi-chevron-left"></i> {{ anterior.sesion }}</a>{% endif %}
+      {% if siguiente %}<a href="{{ url_for('mecanica.reglajes_sesion', sid=siguiente.id) }}" class="btn btn-sm btn-outline-secondary" title="{{ siguiente.sesion }}">{{ siguiente.sesion }} <i class="bi bi-chevron-right"></i></a>{% endif %}
+    </div>
+  </div>
+
+  {% if s.encargado_setup or s.rellenado_por or s.temp_aire is not none or s.temp_pista is not none or s.estado_pista %}
+  <div class="bloque">
+    <div class="row g-2 text-sm">
+      <div class="col-6 col-md-3"><div class="text-xs text-muted fw-semibold">Encargado setup</div>{{ s.encargado_setup or '—' }}</div>
+      <div class="col-6 col-md-3"><div class="text-xs text-muted fw-semibold">Rellenada por</div>{{ s.rellenado_por or '—' }}</div>
+      <div class="col-6 col-md-3"><div class="text-xs text-muted fw-semibold">Temp. aire / pista</div>{{ val(s.temp_aire) }} / {{ val(s.temp_pista) }} °C</div>
+      <div class="col-6 col-md-3"><div class="text-xs text-muted fw-semibold">Pista</div>{{ s.estado_pista or '—' }}</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <h2 class="mt-3" style="font-size:1rem;font-weight:800"><i class="bi bi-sliders me-1"></i>Setup
+    {% if previa %}<span class="text-xs fw-semibold" style="color:#B45309">· en naranja, lo que cambió desde «{{ previa.sesion }}»</span>{% endif %}</h2>
+  <div class="rejilla dos tres">
+    {% for clave, label, unidad, modo, ajuste in parametros %}
+    {% set v = setup.get(clave, {}) %}
+    {% set va = setup_ant.get(clave, {}) %}
+    {% if v or (previa and va) %}
+    <div class="bloque">
+      <div class="bloque-tit mb-2">{{ label }} <small>{{ unidad }}</small></div>
+      <div class="vista-valores">
+        {% if modo == 'eje' %}
+          {% for eje, nombre in [('del', 'Delantera'), ('tras', 'Trasera')] %}
+          <div class="vista-valor"><div class="nom">{{ nombre }}</div><div class="num">{{ val(v.get(eje)) }}</div>
+            {% if previa and va.get(eje) != v.get(eje) %}<div class="antes">antes {{ val(va.get(eje)) }}</div>{% endif %}</div>
+          {% endfor %}
+        {% else %}
+          {% for r, nombre in ruedas %}
+          {% set maximo = ficha.maximo(ajuste, 'del' if r.startswith('d') else 'tras') if (modo == 'clicks' and ficha) else none %}
+          <div class="vista-valor"><div class="nom">{{ nombre }}</div>
+            <div class="num">{{ val(v.get(r)) }}{% if modo == 'clicks' and maximo %}<span class="text-xs text-muted fw-normal"> / {{ maximo }}</span>{% endif %}</div>
+            {% if previa and va.get(r) != v.get(r) %}<div class="antes">antes {{ val(va.get(r)) }}</div>{% endif %}</div>
+          {% endfor %}
+        {% endif %}
+      </div>
+      {% if v.get('cambio') %}<div class="text-sm mt-2"><i class="bi bi-arrow-right-circle me-1" style="color:var(--red)"></i>{{ v.get('cambio') }}</div>{% endif %}
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% if not setup %}<div class="bloque text-sm text-muted">Todavía no se ha apuntado el setup de esta salida.</div>{% endif %}
+
+  <h2 class="mt-3" style="font-size:1rem;font-weight:800"><i class="bi bi-signpost-split me-1"></i>Curva a curva</h2>
+  <div class="bloque p-0">
+    {% for nombre in s.evento.curvas %}
+    {% set c = curvas_datos.get(nombre, {}) %}
+    {% set b = c.get('balance') %}
+    <div class="d-flex gap-2 align-items-start px-3 py-2" style="border-bottom:1px solid var(--border)">
+      <div style="width:92px;flex-shrink:0">
+        <div class="curva-nombre {{ 'joker' if 'JOKER' in nombre | upper }}" style="font-size:.88rem">{{ nombre }}</div>
+        <span class="bal-badge {{ ('neg' if b < 0 else ('pos' if b > 0 else 'cero')) if b is not none }} mt-1">{{ ('%+d' | format(b) if b else '0') if b is not none else '—' }}</span>
+      </div>
+      <div class="flex-grow-1 text-sm" style="min-width:0;overflow-wrap:anywhere">
+        {% if c.get('tipo') %}<div class="text-xs text-muted">{{ c.get('tipo') }}{% if c.get('fases') %} · {{ c.get('fases') | map('replace', 'ent', 'entrada') | map('replace', 'med', 'medio') | map('replace', 'sal', 'salida') | join(', ') }}{% endif %}</div>{% endif %}
+        {% for k, label in problemas %}{% if k in c.get('problemas', []) %}<span class="badge rounded-pill me-1" style="background:#FEF3C7;color:#92400E">{{ label }}</span>{% endif %}{% endfor %}
+        {% if c.get('comentario') %}<span class="text-muted">«{{ c.get('comentario') }}»</span>{% endif %}
+        {% if c.get('diagnostico') %}<div class="mt-1"><i class="bi bi-wrench me-1" style="color:var(--red)"></i>{{ c.get('diagnostico') }}</div>{% endif %}
+        {% if not (c.get('problemas') or c.get('comentario') or c.get('diagnostico') or c.get('tipo')) %}<span class="text-muted">—</span>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+    <div class="px-3 py-2 text-xs text-muted">−5 se va de culo (sobrevira) · 0 perfecto · +5 se va de morro (subvira)</div>
+  </div>
+
+  <div class="rejilla dos mt-3">
+    <div class="bloque">
+      <div class="bloque-tit mb-2"><i class="bi bi-person"></i>Piloto</div>
+      {% set marcadas = s.sensaciones %}
+      {% for k, label in sensaciones %}{% if k in marcadas %}<div class="text-sm"><i class="bi bi-check2-square me-1"></i>{{ label }}</div>{% endif %}{% endfor %}
+      {% if s.autoevaluacion %}<div class="text-sm mt-2" style="white-space:pre-wrap">{{ s.autoevaluacion }}</div>{% endif %}
+      {% if s.lo_mas_importante %}<div class="destacado mt-2 mb-0 text-sm"><strong style="color:var(--red)">Lo que más le molesta:</strong> <span style="white-space:pre-wrap">{{ s.lo_mas_importante }}</span></div>{% endif %}
+      <div class="text-sm mt-2"><strong>Confianza:</strong> {{ s.confianza_piloto ~ ' / 10' if s.confianza_piloto else '—' }}</div>
+    </div>
+    <div class="bloque">
+      <div class="bloque-tit mb-2"><i class="bi bi-flag"></i>Cierre</div>
+      {% if s.cambio_realizado %}<div class="text-sm mb-2" style="white-space:pre-wrap"><strong>Cambio:</strong> {{ s.cambio_realizado }}</div>{% endif %}
+      <div class="vista-valores mb-2">
+        <div class="vista-valor"><div class="nom">Mejor vuelta</div><div class="num">{{ val(s.mejor_vuelta_antes) }} → {{ val(s.mejor_vuelta_despues) }}</div></div>
+        <div class="vista-valor"><div class="nom">Confianza</div><div class="num">{{ val(s.confianza_antes) }} → {{ val(s.confianza_despues) }}</div></div>
+      </div>
+      <div class="text-sm"><strong>Resultado:</strong> {{ (resultados | selectattr(0, 'equalto', s.resultado) | map(attribute=1) | first) or '—' }}
+        {% if s.decision %} → {{ decisiones | selectattr(0, 'equalto', s.decision) | map(attribute=1) | first }}{% endif %}</div>
+      {% if s.plan_siguiente %}<div class="destacado mt-2 mb-0 text-sm"><strong style="color:var(--red)">Plan siguiente salida:</strong> <span style="white-space:pre-wrap">{{ s.plan_siguiente }}</span></div>{% endif %}
+    </div>
+  </div>
+
+  {% if s.apuntes %}
+  <div class="bloque mt-3"><div class="bloque-tit mb-1">Apuntes</div><div class="text-sm" style="white-space:pre-wrap">{{ s.apuntes }}</div></div>
+  {% endif %}
+</div>
+{% endblock %}

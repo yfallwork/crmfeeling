@@ -188,6 +188,43 @@
       </div>
     </div>
 
+    <!-- Reglajes -->
+    <div class="card mb-3" id="suspension">
+      <div class="card-header bg-white border-bottom py-2 d-flex align-items-center justify-content-between gap-2 flex-wrap">
+        <span class="fw-semibold text-sm"><i class="bi bi-sliders me-2"></i>Suspensión y reglajes</span>
+        <a href="{{ url_for('mecanica.reglajes_ficha_suspension', id=vehiculo.id) }}" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-gear me-1"></i>{{ 'Editar' if vehiculo.ficha_suspension else 'Rellenar' }} ficha de suspensión
+        </a>
+      </div>
+      <div class="card-body">
+        {% set ficha = vehiculo.ficha_suspension %}
+        {% if ficha %}
+        <div class="text-sm mb-2"><strong>Amortiguador:</strong> {{ ficha.amortiguador or '—' }}</div>
+        <div class="d-flex flex-wrap gap-2 mb-2">
+          {% for clave, label in ajustes_suspension %}
+          {% set a = ficha.ajustes.get(clave, {}) %}
+          {% if a.get('tiene') %}
+          <span class="badge rounded-pill" style="background:var(--gray-100);color:var(--gray-700);font-weight:600">{{ label }}: máx. {{ a.get('max_del') or '?' }} del. / {{ a.get('max_tras') or '?' }} tras.</span>
+          {% endif %}
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-muted">Sin ficha de suspensión: apunta qué ajustes tienen sus amortiguadores y sus máximos de clicks.</p>
+        {% endif %}
+        {% if sesiones_reglaje %}
+        <div class="text-xs text-muted fw-semibold text-uppercase mt-3 mb-1">Últimas sesiones</div>
+        <ul class="list-unstyled mb-0">
+          {% for sr in sesiones_reglaje %}
+          <li class="text-sm py-1">
+            <a href="{{ url_for('mecanica.reglajes_sesion', sid=sr.id) }}" class="text-decoration-none">{{ sr.evento.nombre }} · {{ sr.sesion }}</a>
+            <span class="text-muted text-xs">· {{ sr.piloto_display }}{% if sr.fecha_hora %} · {{ sr.fecha_hora.strftime('%d/%m/%Y') }}{% endif %}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+    </div>
+
     <!-- Mantenimientos -->
     <div class="card mb-3" id="mantenimientos">
       <div class="card-header bg-white border-bottom py-2 d-flex align-items-center justify-content-between gap-2 flex-wrap">

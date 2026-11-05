@@ -1,0 +1,74 @@
+{% extends "mecanica/base.html" %}
+{% block title %}Ficha de suspensión — {{ vehiculo.nombre_display }}{% endblock %}
+{% block page_title %}Ficha de suspensión — {{ vehiculo.nombre_display }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ volver or url_for('mecanica.vehiculos_detalle', id=vehiculo.id) }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i><span class="btn-label">Volver</span>
+</a>
+{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reglajes.css') }}" />
+<style>
+  .ajuste-card { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; background: #fff; }
+  .ajuste-card .cab { display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0; }
+  .ajuste-card .cab .form-check-input { width: 2.6em; height: 1.4em; margin: 0; flex-shrink: 0; cursor: pointer; }
+  .ajuste-card .nombre { font-weight: 700; font-size: .95rem; }
+  .ajuste-card .maximos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .ajuste-card .maximos label { font-size: .75rem; font-weight: 600; color: var(--text-muted, #6B7280); margin-bottom: 2px; display: block; }
+  .ajuste-card .maximos input { font-size: max(16px, 1rem); min-height: 44px; }
+  .ajuste-card.off .maximos { display: none; }
+  .ajuste-card.off { background: #F9FAFB; }
+  .ajuste-card.off .nombre { color: #6B7280; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set ajustes_ficha = ficha.ajustes if ficha else {} %}
+<div style="max-width:640px;margin-inline:auto">
+  <p class="text-sm text-muted">Se rellena una vez por coche. Marca los ajustes que tienen sus amortiguadores y cuántos clicks tienen como máximo.
+    Criterio del equipo: <strong>0 = cerrado del todo (más duro)</strong>, se cuenta abriendo.</p>
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="volver" value="{{ volver }}">
+    <div class="bloque">
+      <label class="form-label fw-semibold text-sm" for="in-amortiguador">Marca / modelo amortiguador</label>
+      <input type="text" name="amortiguador" id="in-amortiguador" class="form-control" placeholder="Ej. Öhlins TTX" value="{{ ficha.amortiguador if ficha else '' }}">
+    </div>
+
+    {% for clave, label in ajustes %}
+    {% set a = ajustes_ficha.get(clave, {}) %}
+    <div class="ajuste-card {{ '' if a.get('tiene') else 'off' }}">
+      <label class="cab">
+        <span class="form-check form-switch m-0 p-0">
+          <input class="form-check-input ms-0" type="checkbox" role="switch" name="{{ clave }}-tiene" value="1" {% if a.get('tiene') %}checked{% endif %}>
+        </span>
+        <span class="nombre">{{ label }}</span>
+      </label>
+      <div class="maximos">
+        <div><label for="{{ clave }}-del">Máx. clicks delante</label>
+          <input type="number" inputmode="numeric" min="1" max="99" id="{{ clave }}-del" name="{{ clave }}-max_del" class="form-control" value="{{ a.get('max_del') or '' }}"></div>
+        <div><label for="{{ clave }}-tras">Máx. clicks detrás</label>
+          <input type="number" inputmode="numeric" min="1" max="99" id="{{ clave }}-tras" name="{{ clave }}-max_tras" class="form-control" value="{{ a.get('max_tras') or '' }}"></div>
+      </div>
+    </div>
+    {% endfor %}
+
+    <p class="text-xs text-muted">Baja velocidad = movimientos de carrocería (frenar, girar, gas). Alta velocidad = golpes de rueda (baches, piedras, saltos).</p>
+    <button class="btn btn-primary w-100" style="min-height:48px"><i class="bi bi-check-lg me-1"></i>Guardar ficha</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.ajuste-card').forEach(function (card) {
+  var sw = card.querySelector('.form-check-input');
+  sw.addEventListener('change', function () {
+    card.classList.toggle('off', !sw.checked);
+    if (sw.checked) { var i = card.querySelector('.maximos input'); if (i && !i.value) i.focus(); }
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,155 @@
+{% extends "mecanica/base.html" %}
+{% block title %}{{ evento.nombre }} — Reglajes{% endblock %}
+{% block page_title %}{{ evento.nombre }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('mecanica.reglajes_eventos') }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left"></i><span class="btn-label ms-1">Eventos</span>
+</a>
+{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reglajes.css') }}" />
+{% endblock %}
+
+{% block content %}
+{% set en_evento = por_coche.keys() | list %}
+<div style="max-width:900px;margin-inline:auto">
+  <div class="text-sm text-muted mb-3">
+    <i class="bi bi-calendar3 me-1"></i>{{ evento.fecha_inicio.strftime('%d/%m/%Y') }}{% if evento.fecha_fin and evento.fecha_fin != evento.fecha_inicio %} – {{ evento.fecha_fin.strftime('%d/%m/%Y') }}{% endif %}
+    {% if evento.circuito %} · <i class="bi bi-geo-alt me-1"></i>{{ evento.circuito }}{% endif %}
+    · {{ evento.curvas | length }} curvas
+  </div>
+
+  {% for vehiculo, sesiones in por_coche.items() %}
+  {% set sug = sugerencias[vehiculo.id] %}
+  <div class="coche-card">
+    <div class="coche-cab">
+      <div class="dorsal">{{ '#' ~ vehiculo.dorsal if vehiculo.dorsal else '—' }}</div>
+      <div class="flex-grow-1" style="min-width:0">
+        <div class="fw-bold">{{ vehiculo.nombre_display }}</div>
+        {% if not vehiculo.ficha_suspension %}
+        <a href="{{ url_for('mecanica.reglajes_ficha_suspension', id=vehiculo.id, volver=request.path) }}" class="text-xs fw-semibold" style="color:#B45309">
+          <i class="bi bi-exclamation-triangle me-1"></i>Falta su ficha de suspensión (máx. clicks)
+        </a>
+        {% else %}
+        <span class="text-xs text-muted">{{ sesiones | length }} salida{{ 's' if sesiones | length != 1 }}</span>
+        {% endif %}
+      </div>
+    </div>
+    {% for s in sesiones %}
+    {% set p = s.progreso %}
+    <a class="salida" href="{{ url_for('mecanica.reglajes_sesion_editar', sid=s.id) }}">
+      <div class="flex-grow-1" style="min-width:0">
+        <div class="nom">{{ s.sesion }}</div>
+        <div class="sub text-truncate">
+          {{ s.piloto_display }}{% if s.fecha_hora %} · {{ s.fecha_hora.strftime('%d/%m %H:%M') }}{% endif %}
+          {% if s.mejor_vuelta_despues or s.mejor_vuelta_antes %} · <i class="bi bi-stopwatch"></i> {{ s.mejor_vuelta_despues or s.mejor_vuelta_antes }}{% endif %}
+          {% if s.resultado %} · <strong style="color:{{ {'mejor': '#15803D', 'igual': '#6B7280', 'peor': '#DC2626'}[s.resultado] }}">{{ s.resultado | capitalize }}</strong>{% endif %}
+        </div>
+      </div>
+      <div class="prog" title="Setup · Piloto · Diagnóstico · Cierre">
+        <span class="{{ 'ok' if p.setup }}">S</span><span class="{{ 'ok' if p.piloto }}">P</span><span class="{{ 'ok' if p.diagnostico }}">D</span><span class="{{ 'ok' if p.cierre }}">C</span>
+      </div>
+      <i class="bi bi-chevron-right text-muted"></i>
+    </a>
+    {% endfor %}
+    <form method="POST" action="{{ url_for('mecanica.reglajes_sesion_nueva', id=evento.id) }}" class="nueva-salida">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="vehiculo_id" value="{{ vehiculo.id }}">
+      <input type="hidden" name="piloto_id" value="{{ sug.piloto_id or '' }}">
+      <input type="hidden" name="piloto_nombre" value="{{ sug.piloto_nombre }}">
+      <input type="hidden" name="copiar_setup" value="1">
+      <input type="text" name="sesion" class="form-control" value="{{ sug.sesion }}" list="tipos-sesion" aria-label="Nombre de la nueva salida" required>
+      <button class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Nueva salida</button>
+    </form>
+  </div>
+  {% endfor %}
+
+  {% set libres = vehiculos | reject('in', en_evento) | list %}
+  {% if libres or not en_evento %}
+  <div class="coche-card">
+    <div class="coche-cab"><div class="fw-bold"><i class="bi bi-plus-circle me-1"></i>{{ 'Añadir un coche al evento' if en_evento else 'Primera salida' }}</div></div>
+    <form method="POST" action="{{ url_for('mecanica.reglajes_sesion_nueva', id=evento.id) }}" class="p-3" id="form-anadir-coche">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="copiar_setup" value="1">
+      <div class="row g-2">
+        <div class="col-md-5">
+          <label class="form-label text-xs fw-semibold mb-1" for="sel-coche">Coche</label>
+          <select name="vehiculo_id" id="sel-coche" class="form-select" required>
+            <option value="">— Elegir —</option>
+            {% for v in libres %}
+            <option value="{{ v.id }}" data-sesion="{{ sugerencias[v.id].sesion }}" data-piloto="{{ sugerencias[v.id].piloto_id or '' }}" data-piloto-nombre="{{ sugerencias[v.id].piloto_nombre }}">{% if v.dorsal %}#{{ v.dorsal }} · {% endif %}{{ v.nombre_display }}</option>
+            {% endfor %}
+          </select>
+          {% if not vehiculos %}<div class="form-text">No hay coches: <a href="{{ url_for('mecanica.vehiculos_nuevo') }}">da de alta uno</a>.</div>{% endif %}
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label text-xs fw-semibold mb-1" for="in-sesion">Salida</label>
+          <input type="text" name="sesion" id="in-sesion" class="form-control" value="Entrenos 1" list="tipos-sesion" required>
+        </div>
+        <div class="col-6 col-md-4">
+          <label class="form-label text-xs fw-semibold mb-1" for="sel-piloto">Piloto</label>
+          <select name="piloto_id" id="sel-piloto" class="form-select">
+            <option value="">Otro / más tarde</option>
+            {% for p in pilotos %}<option value="{{ p.id }}">{{ p.nombre_completo }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <input type="hidden" name="piloto_nombre" id="in-piloto-nombre" value="">
+      <button class="btn btn-primary w-100 mt-3" style="min-height:46px"><i class="bi bi-clipboard-plus me-1"></i>Crear salida y rellenar hoja</button>
+    </form>
+  </div>
+  {% endif %}
+  <datalist id="tipos-sesion">{% for t in ['Entrenos 1', 'Entrenos 2', 'Manga 1', 'Manga 2', 'Manga 3', 'Semifinal', 'Final'] %}<option value="{{ t }}">{% endfor %}</datalist>
+
+  <details class="coche-card">
+    <summary class="coche-cab" style="cursor:pointer;list-style:none"><span class="fw-bold"><i class="bi bi-pencil me-1"></i>Editar evento y curvas</span></summary>
+    <div class="p-3">
+      <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="row g-2">
+          <div class="col-md-6"><label class="form-label text-xs fw-semibold mb-1">Nombre</label>
+            <input type="text" name="nombre" class="form-control" value="{{ evento.nombre }}" required></div>
+          <div class="col-md-6"><label class="form-label text-xs fw-semibold mb-1">Circuito</label>
+            <input type="text" name="circuito" class="form-control" value="{{ evento.circuito }}"></div>
+          <div class="col-6"><label class="form-label text-xs fw-semibold mb-1">Desde</label>
+            <input type="date" name="fecha_inicio" class="form-control" value="{{ evento.fecha_inicio.isoformat() }}" required></div>
+          <div class="col-6"><label class="form-label text-xs fw-semibold mb-1">Hasta</label>
+            <input type="date" name="fecha_fin" class="form-control" value="{{ evento.fecha_fin.isoformat() if evento.fecha_fin else '' }}"></div>
+          <div class="col-md-6"><label class="form-label text-xs fw-semibold mb-1">Curvas (una por línea)</label>
+            <textarea name="curvas_texto" class="form-control" rows="7">{{ evento.curvas_texto }}</textarea>
+            <div class="form-text">Si renombras una curva, lo apuntado con el nombre anterior deja de verse.</div></div>
+          <div class="col-md-6"><label class="form-label text-xs fw-semibold mb-1">Notas</label>
+            <textarea name="notas" class="form-control" rows="7">{{ evento.notas }}</textarea></div>
+        </div>
+        <button class="btn btn-outline-primary mt-3">Guardar evento</button>
+      </form>
+      <form method="POST" action="{{ url_for('mecanica.reglajes_evento_eliminar', id=evento.id) }}" class="mt-3 text-end"
+            onsubmit="return confirm('¿Eliminar el evento y todas sus sesiones?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash me-1"></i>Eliminar evento</button>
+      </form>
+    </div>
+  </details>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var coche = document.getElementById('sel-coche');
+  if (!coche) return;
+  coche.addEventListener('change', function () {
+    var o = coche.options[coche.selectedIndex];
+    if (!o || !o.value) return;
+    document.getElementById('in-sesion').value = o.dataset.sesion || 'Entrenos 1';
+    document.getElementById('sel-piloto').value = o.dataset.piloto || '';
+    document.getElementById('in-piloto-nombre').value = o.dataset.pilotoNombre || '';
+  });
+  document.getElementById('sel-piloto').addEventListener('change', function () {
+    document.getElementById('in-piloto-nombre').value = '';
+  });
+})();
+</script>
+{% endblock %}

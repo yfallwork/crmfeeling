@@ -1,0 +1,378 @@
+{% extends "mecanica/base.html" %}
+{% block title %}{{ s.sesion }} · {{ s.vehiculo.nombre_display }} — Reglajes{% endblock %}
+{% block page_title %}{{ s.evento.nombre }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('mecanica.reglajes_evento', id=s.evento_id) }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left"></i><span class="btn-label ms-1">Evento</span>
+</a>
+<a href="{{ url_for('mecanica.reglajes_sesion', sid=s.id) }}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-file-earmark-text"></i><span class="btn-label ms-1">Ver / imprimir</span>
+</a>
+{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reglajes.css') }}" />
+{% endblock %}
+
+
+{% block content %}
+{% macro num(x) %}{{ '%g' | format(x) if x is not none else '' }}{% endmacro %}
+{% set setup = s.setup %}
+{% set setup_previo = previa.setup if previa else {} %}
+{% set curvas_datos = s.curvas %}
+{% set pasos = {'altura': 5, 'presion_frio': 0.05, 'presion_caliente': 0.05, 'convergencia': 0.5} %}
+{% set prog = s.progreso %}
+
+<div class="hoja" id="hoja">
+
+  <div class="hoja-cab">
+    <div class="dorsal">{{ '#' ~ s.vehiculo.dorsal if s.vehiculo.dorsal else '<i class="bi bi-car-front-fill"></i>' | safe }}</div>
+    <div class="info">
+      <div class="t1">{{ s.sesion }} · {{ s.vehiculo.nombre_display }}</div>
+      <div class="t2"><i class="bi bi-person"></i> <span id="cab-piloto">{{ s.piloto_display }}</span>{% if s.evento.circuito %} · {{ s.evento.circuito }}{% endif %}</div>
+    </div>
+    <span class="estado-guardado" id="estado-guardado" data-estado="ok" role="status" aria-live="polite">
+      <i class="bi bi-cloud-check"></i><span>Guardado</span>
+    </span>
+  </div>
+
+  <nav class="hoja-tabs" id="hoja-tabs" aria-label="Partes de la hoja">
+    {% for clave, label, icono in [('datos', 'Datos', 'bi-info-circle'), ('setup', 'Setup', 'bi-sliders'), ('piloto', 'Piloto', 'bi-person'), ('diagnostico', 'Diagnóstico', 'bi-wrench'), ('cierre', 'Cierre', 'bi-flag')] %}
+    <button type="button" class="hoja-tab" data-tab="{{ clave }}">
+      <i class="bi {{ icono }}"></i>{{ label }}
+      {% if clave != 'datos' %}<span class="punto {{ 'lleno' if prog[clave] }}" data-punto="{{ clave }}"></span>{% endif %}
+    </button>
+    {% endfor %}
+  </nav>
+
+  <form method="POST" id="hoja-form" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <!-- ═══ SETUP ═══ -->
+    <section class="hoja-sec" id="setup" data-tab="setup">
+      <h2><i class="bi bi-sliders"></i>Setup con el que sale el coche</h2>
+
+      {% if previa %}
+      {% set cambios = [] %}
+      {% for clave, label, unidad, modo, ajuste in parametros %}{% if setup_previo.get(clave, {}).get('cambio') %}{% set _ = cambios.append(label ~ ': ' ~ setup_previo[clave]['cambio']) %}{% endif %}{% endfor %}
+      {% if cambios or previa.plan_siguiente %}
+      <div class="planeado">
+        <strong><i class="bi bi-clipboard-check me-1"></i>Planeado en «{{ previa.sesion }}»{% if previa.evento_id != s.evento_id %} ({{ previa.evento.nombre }}){% endif %}</strong>
+        {% if cambios %}<ul>{% for c in cambios %}<li>{{ c }}</li>{% endfor %}</ul>{% endif %}
+        {% if previa.plan_siguiente %}<div class="mt-1" style="white-space:pre-wrap">{{ previa.plan_siguiente }}</div>{% endif %}
+      </div>
+      {% endif %}
+      {% endif %}
+
+      {% if not ficha %}
+      <div class="planeado" style="border-color:var(--border);background:#fff">
+        <i class="bi bi-info-circle me-1"></i>Este coche no tiene ficha de suspensión, así que no se sabe el máximo de clicks.
+        <a href="{{ url_for('mecanica.reglajes_ficha_suspension', id=s.vehiculo_id, volver=request.path) }}" class="fw-semibold">Rellenarla (1 minuto)</a>
+      </div>
+      {% endif %}
+
+      <div class="rejilla dos">
+        {% for clave, label, unidad, modo, ajuste in parametros %}
+        {% set v = setup.get(clave, {}) %}
+        {% set vp = setup_previo.get(clave, {}) %}
+        {% set es_clicks = modo == 'clicks' %}
+        {% set tiene = ficha and ficha.ajustes.get(ajuste, {}).get('tiene') %}
+        {# Sin ficha se muestran los ajustes de la hoja en papel; con ficha, solo los que tiene el amortiguador. #}
+        {% set visible = (not es_clicks) or tiene or (not ficha and ajuste != 'comp_unica') %}
+        {% if not visible %}
+          {% for k, val in v.items() %}<input type="hidden" name="setup-{{ clave }}-{{ k }}" value="{{ num(val) if val is number else val }}">{% endfor %}
+        {% else %}
+        <div class="bloque">
+          <div class="param-cab">
+            <div class="bloque-tit">{{ label }} <small>{{ unidad }}</small></div>
+            {% if modo != 'eje' %}
+            <button type="button" class="btn-mini" data-igualar="{{ clave }}" title="Copia el valor de Del. Izq. a las cuatro ruedas">= Igualar las 4</button>
+            {% endif %}
+          </div>
+          <div class="ruedas">
+            {% if modo == 'eje' %}
+              {% for eje, nombre in [('del', 'Delantera'), ('tras', 'Trasera')] %}
+              <div class="rueda">
+                <span class="nom">{{ nombre }}</span>
+                <div class="stepper" data-paso="{{ pasos.get(clave, 1) }}">
+                  <button type="button" data-paso-dir="-1" aria-label="Bajar {{ label }} {{ nombre }}">−</button>
+                  <input type="text" inputmode="decimal" name="setup-{{ clave }}-{{ eje }}" value="{{ num(v.get(eje)) }}" aria-label="{{ label }} {{ nombre }}" autocomplete="off">
+                  <button type="button" data-paso-dir="1" aria-label="Subir {{ label }} {{ nombre }}">+</button>
+                </div>
+                <span class="antes {{ 'cambiado' if previa and vp.get(eje) != v.get(eje) }}" data-antes="{{ num(vp.get(eje)) }}">{% if previa and vp.get(eje) is not none %}Antes: {{ num(vp.get(eje)) }}{% endif %}</span>
+              </div>
+              {% endfor %}
+            {% else %}
+              {% for rueda, nombre in ruedas %}
+              {% if loop.index == 1 %}<span class="eje-lbl">Delante</span>{% elif loop.index == 3 %}<span class="eje-lbl">Detrás</span>{% endif %}
+              {% set maximo = ficha.maximo(ajuste, 'del' if rueda.startswith('d') else 'tras') if (es_clicks and ficha) else none %}
+              <div class="rueda">
+                <span class="nom">{{ 'Izquierda' if rueda.endswith('i') else 'Derecha' }}</span>
+                <div class="stepper" data-paso="{{ 1 if es_clicks else pasos.get(clave, 0.05) }}" data-min="0"{% if es_clicks %} data-inicio="0"{% if maximo %} data-max="{{ maximo }}"{% endif %}{% endif %}>
+                  <button type="button" data-paso-dir="-1" aria-label="Bajar {{ label }} {{ nombre }}">−</button>
+                  <input type="text" inputmode="{{ 'numeric' if es_clicks else 'decimal' }}" name="setup-{{ clave }}-{{ rueda }}" value="{{ num(v.get(rueda)) }}" aria-label="{{ label }} {{ nombre }}" autocomplete="off">
+                  {% if es_clicks and maximo %}<span class="suf">/{{ maximo }}</span>{% endif %}
+                  <button type="button" data-paso-dir="1" aria-label="Subir {{ label }} {{ nombre }}">+</button>
+                </div>
+                <span class="antes {{ 'cambiado' if previa and vp.get(rueda) != v.get(rueda) }}" data-antes="{{ num(vp.get(rueda)) }}">{% if previa and vp.get(rueda) is not none %}Antes: {{ num(vp.get(rueda)) }}{% endif %}</span>
+              </div>
+              {% endfor %}
+            {% endif %}
+          </div>
+          <div class="cambio-sig">
+            <input type="text" class="form-control" name="setup-{{ clave }}-cambio" value="{{ v.get('cambio', '') }}"
+                   placeholder="Cambio para la siguiente salida (opcional)" autocomplete="off">
+          </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+      {% if ficha %}
+      <p class="hoja-ayuda mt-2">Clicks: 0 = cerrado del todo (más duro). Se ocultan los ajustes que este amortiguador no tiene · <a href="{{ url_for('mecanica.reglajes_ficha_suspension', id=s.vehiculo_id, volver=request.path) }}">editar ficha de suspensión</a></p>
+      {% endif %}
+    </section>
+
+    <!-- ═══ PILOTO ═══ -->
+    <section class="hoja-sec" id="piloto" data-tab="piloto">
+      <h2><i class="bi bi-person"></i>Lo que dice el piloto</h2>
+      <p class="hoja-ayuda">Toca un número por curva: <strong style="color:#B91C1C">−5 se va de culo</strong> · <strong style="color:#15803D">0 perfecto</strong> · <strong style="color:#1D4ED8">+5 se va de morro</strong>. Toca otra vez para quitarlo.</p>
+      <div class="rejilla dos">
+        {% for nombre in s.evento.curvas %}
+        {% set i = loop.index0 %}
+        {% set c = curvas_datos.get(nombre, {}) %}
+        {% set partes = nombre.split(' (', 1) %}
+        <div class="bloque">
+          <div class="curva-cab">
+            <span class="curva-nombre {{ 'joker' if 'JOKER' in nombre | upper }}">{{ partes[0] }}{% if partes | length > 1 %} <small>({{ partes[1] }}</small>{% endif %}</span>
+            {% if c.get('tipo') %}<span class="text-xs text-muted text-truncate" style="max-width:55%">{{ c.get('tipo') }}</span>{% endif %}
+          </div>
+          <div class="escala" role="radiogroup" aria-label="Balance en {{ nombre }}">
+            {% for b in range(-5, 6) %}
+            <label class="{{ 'neg' if b < 0 else ('pos' if b > 0 else 'cero') }}">
+              <input type="radio" name="curva-{{ i }}-balance" value="{{ b }}" data-curva="{{ i }}" {% if c.get('balance') == b %}checked{% endif %}>
+              <span>{{ '%+d' | format(b) if b else '0' }}</span>
+            </label>
+            {% endfor %}
+          </div>
+          <div class="escala-ley"><span>← Culo</span><span>Perfecto</span><span>Morro →</span></div>
+          <div class="chips">
+            {% for k, label in problemas %}
+            <label class="chip"><input type="checkbox" name="curva-{{ i }}-problemas" value="{{ k }}" data-curva="{{ i }}" {% if k in c.get('problemas', []) %}checked{% endif %}><span>{{ label }}</span></label>
+            {% endfor %}
+            <button type="button" class="btn-mini btn-comentario" data-abre-comentario="{{ i }}" {% if c.get('comentario') %}hidden{% endif %}><i class="bi bi-chat-text me-1"></i>Comentario</button>
+          </div>
+          <input type="text" class="form-control comentario-piloto" name="curva-{{ i }}-comentario" value="{{ c.get('comentario', '') }}"
+                 data-curva="{{ i }}" placeholder="Comentario del piloto" autocomplete="off" {% if not c.get('comentario') %}hidden{% endif %}>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="bloque mt-2">
+        <div class="bloque-tit mb-1">Motor (MT-07), cambio y frenos</div>
+        <div class="chips bloque-chips">
+          {% for k, label in sensaciones %}
+          <label class="chip"><input type="checkbox" name="sensaciones" value="{{ k }}" {% if k in s.sensaciones %}checked{% endif %}><span>{{ label }}</span></label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="bloque">
+        <div class="campo mb-3">
+          <label for="f-autoeval">Cómo se ha sentido: dónde pierde tiempo, qué le cuesta, dónde duda</label>
+          <textarea id="f-autoeval" name="autoevaluacion" class="form-control" rows="3">{{ s.autoevaluacion }}</textarea>
+        </div>
+        <div class="campo mb-3">
+          <label for="f-importante" style="color:var(--red)">¡Lo más importante! ¿Qué le molesta más del coche y qué arreglamos?</label>
+          <textarea id="f-importante" name="lo_mas_importante" class="form-control" rows="2">{{ s.lo_mas_importante }}</textarea>
+        </div>
+        <div class="campo">
+          <span class="lbl">Confianza general en esta sesión</span>
+          <div class="chips del-1-al-10" role="radiogroup" aria-label="Confianza del piloto">
+            {% for n in range(1, 11) %}
+            <label class="chip"><input type="radio" name="confianza_piloto" value="{{ n }}" {% if s.confianza_piloto == n %}checked{% endif %}><span>{{ n }}</span></label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ DIAGNÓSTICO ═══ -->
+    <section class="hoja-sec" id="diagnostico" data-tab="diagnostico">
+      <h2><i class="bi bi-wrench"></i>Diagnóstico curva a curva</h2>
+      <p class="hoja-ayuda">Se abren solas las curvas donde el piloto ha marcado algo. Toca cualquier curva para abrirla o cerrarla.</p>
+      <div class="destacado" id="diag-importante" {% if not s.lo_mas_importante %}hidden{% endif %}>
+        <div class="bloque-tit"><i class="bi bi-megaphone"></i>Lo que más le molesta al piloto</div>
+        <div class="mt-1 text-sm" style="white-space:pre-wrap" id="diag-importante-txt">{{ s.lo_mas_importante }}</div>
+      </div>
+      <datalist id="tipos-curva">
+        {% for t in ['Horquilla lenta en tierra', 'Horquilla lenta en asfalto', 'Frenada fuerte en asfalto', 'Frenada fuerte en tierra', 'Rápida en asfalto', 'Rápida en tierra', 'Rápida con cambio de superficie', 'Cambio de superficie asfalto → tierra', 'Cambio de superficie tierra → asfalto', 'Enlazada (chicane)', 'Salto / cambio de rasante'] %}<option value="{{ t }}">{% endfor %}
+      </datalist>
+      <div class="rejilla dos">
+        {% for nombre in s.evento.curvas %}
+        {% set i = loop.index0 %}
+        {% set c = curvas_datos.get(nombre, {}) %}
+        {% set partes = nombre.split(' (', 1) %}
+        {% set b = c.get('balance') %}
+        {% set hay_algo = (b is not none and b != 0) or c.get('problemas') or c.get('diagnostico') or c.get('fases') %}
+        <div class="bloque plegable {{ '' if hay_algo else 'plegada' }}" data-curva-diag="{{ i }}">
+          <div class="curva-cab" role="button" tabindex="0" aria-label="Mostrar u ocultar {{ nombre }}">
+            <span class="curva-nombre {{ 'joker' if 'JOKER' in nombre | upper }}"><i class="bi bi-chevron-down flecha"></i> {{ partes[0] }}{% if partes | length > 1 %} <small>({{ partes[1] }}</small>{% endif %}</span>
+            <span class="bal-badge {{ ('neg' if b < 0 else ('pos' if b > 0 else 'cero')) if b is not none }}" data-bal="{{ i }}" title="Balance del piloto">{{ ('%+d' | format(b) if b else '0') if b is not none else 'sin dato' }}</span>
+          </div>
+          <div class="curva-cuerpo">
+          <div class="piloto-dijo" data-dijo="{{ i }}">
+            {% for k, label in problemas %}{% if k in c.get('problemas', []) %}<span class="tag">{{ label }}</span>{% endif %}{% endfor %}
+            {% if c.get('comentario') %}«{{ c.get('comentario') }}»{% endif %}
+          </div>
+          <div class="campo mt-2">
+            <label for="tipo-{{ i }}">Tipo de curva</label>
+            <input type="text" id="tipo-{{ i }}" class="form-control" name="curva-{{ i }}-tipo" value="{{ c.get('tipo', '') }}"
+                   list="tipos-curva" placeholder="Ej. horquilla lenta en tierra" autocomplete="off">
+          </div>
+          <div class="chips">
+            {% for k, label in fases %}
+            <label class="chip"><input type="checkbox" name="curva-{{ i }}-fases" value="{{ k }}" {% if k in c.get('fases', []) %}checked{% endif %}><span>{{ {'ent': 'Entrada', 'med': 'Medio', 'sal': 'Salida'}[k] }}</span></label>
+            {% endfor %}
+          </div>
+          <div class="campo mt-2">
+            <label for="diag-{{ i }}">Diagnóstico / ajuste propuesto</label>
+            <textarea id="diag-{{ i }}" class="form-control" name="curva-{{ i }}-diagnostico" rows="2">{{ c.get('diagnostico', '') }}</textarea>
+          </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- ═══ CIERRE ═══ -->
+    <section class="hoja-sec" id="cierre" data-tab="cierre">
+      <h2><i class="bi bi-flag"></i>Cierre de la sesión</h2>
+      <div class="bloque">
+        <div class="campo mb-3">
+          <label for="f-cambio">Cambio realizado / motivo</label>
+          <textarea id="f-cambio" name="cambio_realizado" class="form-control" rows="2">{{ s.cambio_realizado }}</textarea>
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-6 campo"><label for="f-vb">Mejor vuelta antes</label>
+            <input id="f-vb" type="text" inputmode="decimal" data-vuelta name="mejor_vuelta_antes" class="form-control" placeholder="m:ss.mmm" value="{{ s.mejor_vuelta_antes }}" autocomplete="off"></div>
+          <div class="col-6 campo"><label for="f-vd">Mejor vuelta después</label>
+            <input id="f-vd" type="text" inputmode="decimal" data-vuelta name="mejor_vuelta_despues" class="form-control" placeholder="m:ss.mmm" value="{{ s.mejor_vuelta_despues }}" autocomplete="off"></div>
+        </div>
+        <div class="row g-2 mb-3">
+          {% for campo, label, valor in [('confianza_antes', 'Confianza antes', s.confianza_antes), ('confianza_despues', 'Confianza después', s.confianza_despues)] %}
+          <div class="col-6 campo">
+            <label>{{ label }} (1-10)</label>
+            <div class="stepper" data-paso="1" data-min="1" data-max="10" data-inicio="5">
+              <button type="button" data-paso-dir="-1" aria-label="Bajar {{ label }}">−</button>
+              <input type="text" inputmode="numeric" name="{{ campo }}" value="{{ valor or '' }}" aria-label="{{ label }}" autocomplete="off">
+              <button type="button" data-paso-dir="1" aria-label="Subir {{ label }}">+</button>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="campo mb-3">
+          <span class="lbl">Resultado del cambio</span>
+          <div class="segmento" role="radiogroup" aria-label="Resultado">
+            {% for k, label in resultados %}
+            <label class="chip {{ {'mejor': 'ok', 'igual': 'meh', 'peor': 'ko'}[k] }}"><input type="radio" name="resultado" value="{{ k }}" {% if s.resultado == k %}checked{% endif %}><span>{{ label }}</span></label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="campo">
+          <span class="lbl">¿Qué hacemos con el cambio?</span>
+          <div class="segmento" role="radiogroup" aria-label="Decisión">
+            {% for k, label in decisiones %}
+            <label class="chip {{ 'ok' if k == 'queda' else 'ko' }}"><input type="radio" name="decision" value="{{ k }}" {% if s.decision == k %}checked{% endif %}><span>{{ label }}</span></label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      <div class="bloque destacado">
+        <div class="campo">
+          <label for="f-plan" style="color:var(--red)">Plan para la siguiente salida: ¿qué cambio hacemos y qué esperamos que mejore?</label>
+          <textarea id="f-plan" name="plan_siguiente" class="form-control" rows="2">{{ s.plan_siguiente }}</textarea>
+        </div>
+      </div>
+      <div class="bloque">
+        <div class="campo">
+          <label for="f-apuntes">Apuntes</label>
+          <textarea id="f-apuntes" name="apuntes" class="form-control" rows="3">{{ s.apuntes }}</textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ DATOS ═══ -->
+    <section class="hoja-sec" id="datos" data-tab="datos">
+      <h2><i class="bi bi-info-circle"></i>Datos de la sesión</h2>
+      <div class="bloque">
+        <div class="row g-2">
+          <div class="col-sm-6 campo"><label for="f-sesion">Sesión</label>
+            <input id="f-sesion" type="text" name="sesion" class="form-control" value="{{ s.sesion }}" list="tipos-sesion" autocomplete="off">
+            <datalist id="tipos-sesion">{% for t in ['Entrenos 1', 'Entrenos 2', 'Manga 1', 'Manga 2', 'Manga 3', 'Semifinal', 'Final'] %}<option value="{{ t }}">{% endfor %}</datalist>
+          </div>
+          <div class="col-sm-6 campo"><label for="f-hora">Día / hora</label>
+            <input id="f-hora" type="datetime-local" name="fecha_hora" class="form-control" value="{{ s.fecha_hora.strftime('%Y-%m-%dT%H:%M') if s.fecha_hora else '' }}"></div>
+          <div class="col-sm-6 campo"><label for="f-piloto">Piloto</label>
+            <select id="f-piloto" name="piloto_id" class="form-select">
+              <option value="">Otro (escribir nombre)</option>
+              {% for p in pilotos %}<option value="{{ p.id }}" {% if s.piloto_id == p.id %}selected{% endif %}>{{ p.nombre_completo }}</option>{% endfor %}
+            </select></div>
+          <div class="col-sm-6 campo" id="campo-piloto-nombre" {% if s.piloto_id %}hidden{% endif %}><label for="f-piloto-nombre">Nombre del piloto</label>
+            <input id="f-piloto-nombre" type="text" name="piloto_nombre" class="form-control" value="{{ s.piloto_nombre }}" autocomplete="off"></div>
+          <div class="col-sm-6 campo"><label for="f-encargado">Encargado del setup</label>
+            <input id="f-encargado" type="text" name="encargado_setup" class="form-control" value="{{ s.encargado_setup }}" autocomplete="off"></div>
+          <div class="col-sm-6 campo"><label for="f-rellena">Ficha rellenada por</label>
+            <input id="f-rellena" type="text" name="rellenado_por" class="form-control" value="{{ s.rellenado_por }}" autocomplete="off"></div>
+        </div>
+      </div>
+      <div class="bloque">
+        <div class="row g-2">
+          {% for campo, label, valor in [('temp_aire', 'Temp. aire (°C)', s.temp_aire), ('temp_pista', 'Temp. pista (°C)', s.temp_pista)] %}
+          <div class="col-6 campo"><label>{{ label }}</label>
+            <div class="stepper" data-paso="1">
+              <button type="button" data-paso-dir="-1" aria-label="Bajar {{ label }}">−</button>
+              <input type="text" inputmode="decimal" name="{{ campo }}" value="{{ num(valor) }}" aria-label="{{ label }}" autocomplete="off">
+              <button type="button" data-paso-dir="1" aria-label="Subir {{ label }}">+</button>
+            </div></div>
+          {% endfor %}
+          <div class="col-12 campo"><label for="f-pista">Estado de la pista</label>
+            <input id="f-pista" type="text" name="estado_pista" class="form-control" value="{{ s.estado_pista }}" autocomplete="off" placeholder="Ej. tierra húmeda, asfalto seco">
+            <div class="chips" id="chips-pista">
+              {% for t in ['Seca', 'Húmeda', 'Mojada', 'Barro', 'Polvo', 'Bacheada'] %}<button type="button" class="btn-mini" data-pista="{{ t }}">{{ t }}</button>{% endfor %}
+            </div></div>
+        </div>
+      </div>
+      <div class="text-end no-print">
+        <button type="submit" form="form-eliminar" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash me-1"></i>Eliminar sesión</button>
+      </div>
+    </section>
+
+    <noscript><button class="btn btn-primary">Guardar</button></noscript>
+  </form>
+
+  <form method="POST" id="form-eliminar" action="{{ url_for('mecanica.reglajes_sesion_eliminar', sid=s.id) }}"
+        onsubmit="return confirm('¿Eliminar esta sesión y todo lo apuntado?')">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  </form>
+</div>
+
+<div class="hoja-barra no-print" id="hoja-barra">
+  <button type="button" class="btn btn-outline-secondary" id="btn-ant" aria-label="Sección anterior"><i class="bi bi-chevron-left"></i></button>
+  <div class="medio">
+    <button type="button" class="btn btn-primary" id="btn-guardar"><i class="bi bi-check-lg me-1"></i>Guardar</button>
+  </div>
+  <button type="button" class="btn btn-outline-secondary" id="btn-sig"><span id="btn-sig-txt">Siguiente</span> <i class="bi bi-chevron-right"></i></button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/reglajes.js') }}"></script>
+<script>
+  HojaReglajes.iniciar({
+    sesionId: {{ s.id }},
+    verUrl: {{ url_for('mecanica.reglajes_sesion', sid=s.id) | tojson }},
+    pestanaInicial: 'setup'
+  });
+</script>
+{% endblock %}

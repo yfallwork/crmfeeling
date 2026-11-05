@@ -16,6 +16,7 @@ from flask_login import login_required, current_user
 from app.extensions import db
 from app.models.vehiculo import Vehiculo
 from app.models.piloto import Piloto
+from app.models.reglaje import AJUSTES_SUSPENSION, SesionReglaje
 from app.models.mantenimiento_vehiculo import MantenimientoVehiculo, CATALOGO_OPERACIONES, OPERACIONES_LABELS
 from app.services.log_service import registrar_log
 
@@ -144,6 +145,8 @@ def vehiculos_detalle(id):
                            mantenimientos=mantenimientos, coste_total=coste_total,
                            ultimas_vueltas=ultimas_vueltas,
                            proximo=proximo, proximo_vencido=proximo_vencido,
+                           ajustes_suspension=AJUSTES_SUSPENSION,
+                           sesiones_reglaje=vehiculo.sesiones_reglaje.order_by(SesionReglaje.creado_en.desc()).limit(8).all(),
                            hoy=_date.today())
 
 
